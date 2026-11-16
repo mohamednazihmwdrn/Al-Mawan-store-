@@ -1,0 +1,209 @@
+{
+  "entities": {
+    "StoreConfig": {
+      "title": "StoreConfig",
+      "description": "Global store settings, contact information, section copy, visibility toggles, features, and partner brands.",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "headerBrandName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "subtitle": { "type": "string", "minLength": 0, "maxLength": 200 },
+        "announcementBar": { "type": "string", "minLength": 0, "maxLength": 200 },
+        "phonePrimary": { "type": "string", "minLength": 4, "maxLength": 30 },
+        "phoneSecondary": { "type": "string", "minLength": 0, "maxLength": 30 },
+        "whatsappNumber": { "type": "string", "minLength": 4, "maxLength": 30 },
+        "workingHours": { "type": "string", "minLength": 0, "maxLength": 120 },
+        "address": { "type": "string", "minLength": 2, "maxLength": 240 },
+        "shippingFee": { "type": "number" },
+        "freeShippingMin": { "type": "number" },
+        "facebookUrl": { "type": "string", "minLength": 0, "maxLength": 300 },
+        "mapsUrl": { "type": "string", "minLength": 0, "maxLength": 300 },
+        "sectionsTitleCategories": { "type": "string", "minLength": 0, "maxLength": 120 },
+        "sectionsSubtitleCategories": { "type": "string", "minLength": 0, "maxLength": 200 },
+        "sectionsTitleProducts": { "type": "string", "minLength": 0, "maxLength": 120 },
+        "sectionsTitleBrands": { "type": "string", "minLength": 0, "maxLength": 120 },
+        "sectionsSubtitleBrands": { "type": "string", "minLength": 0, "maxLength": 200 },
+        "contactBadge": { "type": "string", "minLength": 0, "maxLength": 120 },
+        "contactTitle": { "type": "string", "minLength": 0, "maxLength": 160 },
+        "contactDescription": { "type": "string", "minLength": 0, "maxLength": 500 },
+        "footerBio": { "type": "string", "minLength": 0, "maxLength": 500 },
+        "visibility": { "type": "object" },
+        "features": { "type": "array" },
+        "brands": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["storeName", "headerBrandName", "phonePrimary", "whatsappNumber", "address", "shippingFee", "freeShippingMin", "visibility", "features", "brands", "updatedAt"]
+    },
+    "Banner": {
+      "title": "Banner",
+      "description": "Hero promotional banner displayed on the storefront.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 0, "maxLength": 140 },
+        "imageUrl": { "type": "string", "minLength": 1, "maxLength": 250000 },
+        "actionType": { "type": "string", "enum": ["none", "whatsapp", "category", "color_studio"] },
+        "actionTarget": { "type": "string", "minLength": 0, "maxLength": 160 },
+        "active": { "type": "boolean" },
+        "sortOrder": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "imageUrl", "actionType", "active", "sortOrder", "createdAt", "updatedAt"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Main store department category.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "description": { "type": "string", "minLength": 0, "maxLength": 240 },
+        "imageUrl": { "type": "string", "minLength": 0, "maxLength": 250000 },
+        "sortOrder": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "sortOrder", "createdAt", "updatedAt"]
+    },
+    "Subpage": {
+      "title": "Subpage",
+      "description": "Sub-page inside a main category.",
+      "type": "object",
+      "properties": {
+        "categoryId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "description": { "type": "string", "minLength": 0, "maxLength": 240 },
+        "imageUrl": { "type": "string", "minLength": 0, "maxLength": 250000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["categoryId", "name", "createdAt", "updatedAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Store product item with pricing, stock, category, brand, and imagery.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 1500 },
+        "price": { "type": "number" },
+        "oldPrice": { "type": "number" },
+        "stock": { "type": "number" },
+        "available": { "type": "boolean" },
+        "unit": { "type": "string", "minLength": 0, "maxLength": 60 },
+        "sizes": { "type": "string", "minLength": 0, "maxLength": 160 },
+        "specs": { "type": "string", "minLength": 0, "maxLength": 400 },
+        "badge": { "type": "string", "minLength": 0, "maxLength": 50 },
+        "categoryId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "subpageId": { "type": "string", "minLength": 0, "maxLength": 128 },
+        "brandName": { "type": "string", "minLength": 0, "maxLength": 100 },
+        "imageUrl": { "type": "string", "minLength": 1, "maxLength": 250000 },
+        "galleryImages": { "type": "array" },
+        "isOffer": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "description", "available", "categoryId", "imageUrl", "isOffer", "createdAt", "updatedAt"]
+    },
+    "ColorCatalog": {
+      "title": "ColorCatalog",
+      "description": "Color studio PDF catalogs and multi-image shade cards.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "brand": { "type": "string", "minLength": 0, "maxLength": 80 },
+        "fileType": { "type": "string", "enum": ["pdf", "image"] },
+        "fileUrl": { "type": "string", "minLength": 1, "maxLength": 750000 },
+        "attachments": { "type": "array" },
+        "notes": { "type": "string", "minLength": 0, "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "fileType", "fileUrl", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order placed from the storefront cart.",
+      "type": "object",
+      "properties": {
+        "orderNumber": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "customerName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "phone": { "type": "string", "minLength": 6, "maxLength": 30 },
+        "address": { "type": "string", "minLength": 3, "maxLength": 300 },
+        "notes": { "type": "string", "minLength": 0, "maxLength": 500 },
+        "paymentMethod": { "type": "string", "enum": ["cod", "instapay", "vodafone_cash"] },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "shippingFee": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["new", "preparing", "shipped", "delivered", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderNumber", "customerName", "phone", "address", "paymentMethod", "items", "subtotal", "shippingFee", "total", "status", "createdAt", "updatedAt"]
+    },
+    "Inquiry": {
+      "title": "Inquiry",
+      "description": "Customer technical inquiry or color mixing request.",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "phone": { "type": "string", "minLength": 6, "maxLength": 30 },
+        "subject": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "message": { "type": "string", "minLength": 2, "maxLength": 1500 },
+        "colorCode": { "type": "string", "minLength": 0, "maxLength": 80 },
+        "status": { "type": "string", "enum": ["new", "replied", "completed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerName", "phone", "subject", "message", "status", "createdAt", "updatedAt"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized store owner/admin UID record.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "minLength": 3, "maxLength": 120 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/store_config/{configId}": {
+      "schema": { "$ref": "#/entities/StoreConfig" },
+      "description": "Public store configuration and copy document."
+    },
+    "/banners/{bannerId}": {
+      "schema": { "$ref": "#/entities/Banner" },
+      "description": "Promotional storefront hero banners."
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Main storefront categories."
+    },
+    "/subpages/{subpageId}": {
+      "schema": { "$ref": "#/entities/Subpage" },
+      "description": "Sub-pages linked to parent main categories."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Storefront products catalog."
+    },
+    "/catalogs/{catalogId}": {
+      "schema": { "$ref": "#/entities/ColorCatalog" },
+      "description": "Color studio PDF catalogs and shade cards."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders (PII isolated to admins for read/update/delete)."
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": { "$ref": "#/entities/Inquiry" },
+      "description": "Customer inquiries and color code requests (PII isolated to admins)."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Explicit admin users collection."
+    }
+  }
+}

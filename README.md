@@ -1,11 +1,20 @@
-<div align="center">
+# الموان للحدايد والبويات ولوازم المعمار (PWA + Real-Time Storefront)
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+موقع وتطبيق ويب متكامل (PWA) لمتجر **الموان للحدايد والبويات ولوازم المعمار** مع مزامنة حية لحظية عبر Firebase Firestore بين لوحة تحكم المالك وجميع أجهزة العملاء.
 
-  <h1>Built with AI Studio</h2>
+## المميزات الأساسية
+- **دخول المالك السري:** اضغط **10 ضغطات متتالية** على اسم `"الموان للحداد والبويهات"` في الهيدر، ثم أدخل الرمز السري `1272000`.
+- **مزامنة لحظية حية:** أي تعديل أو منتج أو بنر ينشره المالك يظهر فوراً لدى جميع العملاء على المتصفح أو التطبيق المثبت.
+- **تطبيق قابل للتثبيت (PWA):** يدعم التثبيت على أندرويد وiOS وسطح المكتب بأيقونة مستقلة مثل تطبيقات Google Play.
+- **لوحة تحكم كاملة (9 أقسام):** الإحصائيات، طلبات العملاء، استفسارات العملاء، إدارة المنتجات، بنرات الواجهة، الأقسام والصفحات الفرعية، كتالوجات الألوان PDF/صور، المميزات والماركات، وإعدادات ونصوص الموقع.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
-
-  <a href="https://aistudio.google.com/apps">Start building</a>
-
-</div>
+## خطوات الرفع على GitHub ثم Vercel
+1. ارفع ملفات المشروع كاملة إلى مستودع GitHub جديد (تأكد من تضمين `firebase-applet-config.json` و `vercel.json`).
+2. افتح [Vercel](https://vercel.com) واختر **Add New Project** ثم اربطه بمستودع GitHub.
+3. إعدادات البناء الافتراضية في Vercel:
+   - **Framework Preset:** `Vite`
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+4. بعد نشر الرابط من Vercel (مثل `https://almowan-store.vercel.app`):
+   - افتح **Firebase Console** -> **Authentication** -> **Settings** -> **Authorized domains**.
+   - أضف رابط Vercel الخاص بك (`almowan-store.vercel.app`) حتى يعمل تسجيل دخول المالك عبر Google على الرابط المنشور بسلاسة.

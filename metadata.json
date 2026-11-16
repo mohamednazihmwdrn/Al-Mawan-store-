@@ -1,0 +1,6 @@
+{
+  "name": "الموان للحدايد والبويات ولوازم المعمار",
+  "description": "متجر الموان للعدد الأصلية والدهانات وكمبيوتر الألوان ولوازم المعمار — الهضبة الوسطى المقطم",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

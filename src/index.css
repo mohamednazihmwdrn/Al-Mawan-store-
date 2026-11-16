@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    font-family: 'Tajawal', system-ui, -apple-system, sans-serif;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    overflow-x: clip;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  }
+
+  .font-mono-nums {
+    font-family: 'IBM Plex Mono', 'Cairo', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Signature Mowan Architectural Chamfered / Beveled Frames
+   Double-layered polygon geometry creating crisp 1.5px metallic-amber edges
+   without standard rounded-card templates or overflow clipping glitches. */
+
+.mowan-banner-shell {
+  padding: 1.5px;
+  background: linear-gradient(135deg, #fbbf24 0%, #334155 45%, #f59e0b 100%);
+  clip-path: polygon(
+    10px 0,
+    calc(100% - 24px) 0,
+    100% 24px,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    24px 100%,
+    0 calc(100% - 24px),
+    0 10px
+  );
+}
+
+.mowan-banner-core {
+  clip-path: polygon(
+    9px 0,
+    calc(100% - 23px) 0,
+    100% 23px,
+    100% calc(100% - 9px),
+    calc(100% - 9px) 100%,
+    23px 100%,
+    0 calc(100% - 23px),
+    0 9px
+  );
+}
+
+@media (min-width: 640px) {
+  .mowan-banner-shell {
+    padding: 2px;
+    clip-path: polygon(
+      12px 0,
+      calc(100% - 34px) 0,
+      100% 34px,
+      100% calc(100% - 12px),
+      calc(100% - 12px) 100%,
+      34px 100%,
+      0 calc(100% - 34px),
+      0 12px
+    );
+  }
+
+  .mowan-banner-core {
+    clip-path: polygon(
+      11px 0,
+      calc(100% - 33px) 0,
+      100% 33px,
+      100% calc(100% - 11px),
+      calc(100% - 11px) 100%,
+      33px 100%,
+      0 calc(100% - 33px),
+      0 11px
+    );
+  }
+}
+
+.mowan-product-shell {
+  padding: 1.5px;
+  background: linear-gradient(145deg, #cbd5e1 0%, #e2e8f0 50%, #94a3b8 100%);
+  clip-path: polygon(
+    7px 0,
+    calc(100% - 16px) 0,
+    100% 16px,
+    100% calc(100% - 7px),
+    calc(100% - 7px) 100%,
+    16px 100%,
+    0 calc(100% - 16px),
+    0 7px
+  );
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 220ms ease,
+    filter 220ms ease;
+}
+
+.mowan-product-shell:hover,
+.mowan-product-shell:focus-within {
+  background: linear-gradient(145deg, #f59e0b 0%, #1d4ed8 55%, #fbbf24 100%);
+  filter: drop-shadow(0 12px 20px rgba(15, 23, 42, 0.08));
+}
+
+.mowan-product-core {
+  clip-path: polygon(
+    6px 0,
+    calc(100% - 15px) 0,
+    100% 15px,
+    100% calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    15px 100%,
+    0 calc(100% - 15px),
+    0 6px
+  );
+}
+
+.mowan-product-media {
+  clip-path: polygon(
+    6px 0,
+    calc(100% - 15px) 0,
+    100% 15px,
+    100% 100%,
+    0 100%,
+    0 6px
+  );
+}
+
+.mowan-cat-shell {
+  padding: 1.5px;
+  background: #cbd5e1;
+  clip-path: polygon(
+    0 0,
+    calc(100% - 12px) 0,
+    100% 12px,
+    100% 100%,
+    12px 100%,
+    0 calc(100% - 12px)
+  );
+  transition: background 180ms ease, transform 180ms ease;
+}
+
+.mowan-cat-shell[data-active="true"] {
+  background: linear-gradient(135deg, #f59e0b 0%, #0f172a 100%);
+}
+
+.mowan-cat-shell:hover {
+  background: #0f172a;
+}
+
+.mowan-cat-core {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 11px) 0,
+    100% 11px,
+    100% 100%,
+    11px 100%,
+    0 calc(100% - 11px)
+  );
+}
+
+.mowan-btn-bevel {
+  clip-path: polygon(
+    8px 0,
+    100% 0,
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    0 100%,
+    0 8px
+  );
+}
+
+/* Safe-area bottom padding utility for mobile browsers & installed PWAs */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Smooth scrollbar hiding for horizontal dashboard/filter bars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mowan-product-shell,
+  .mowan-cat-shell {
+    transition: none;
+  }
+}
