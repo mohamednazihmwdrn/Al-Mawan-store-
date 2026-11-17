@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { Settings } from 'lucide-react';
 import { StoreProvider } from './context/StoreContext';
@@ -10,7 +10,16 @@ import { ColorStudioModal } from './components/ColorStudioModal';
 import { OwnerAuthModal } from './components/OwnerAuthModal';
 import { OwnerDashboard } from './components/OwnerDashboard';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { trackAnalyticsEvent } from './lib/analytics';
 import { Product, StorefrontPage } from './types/store';
+
+const PAGE_LABELS: Record<StorefrontPage, string> = {
+  home: 'الرئيسية والمنتجات',
+  categories: 'الأقسام والبحث',
+  brands: 'العلامات التجارية',
+  about: 'عن المتجر',
+  contact: 'تواصل معنا',
+};
 
 function AppShell() {
   const [ownerUnlocked, setOwnerUnlocked] = useState(false);
@@ -30,6 +39,46 @@ function AppShell() {
   };
 
   const isDashboardView = ownerUnlocked && viewMode === 'dashboard';
+
+  useEffect(() => {
+    if (isDashboardView) return;
+    trackAnalyticsEvent({
+      eventType: 'store_visit',
+      targetId: 'store',
+      targetLabel: 'زيارة المتجر',
+    });
+  }, [isDashboardView]);
+
+  useEffect(() => {
+    if (isDashboardView) return;
+    trackAnalyticsEvent({
+      eventType: 'page_view',
+      targetId: activePage,
+      targetLabel: PAGE_LABELS[activePage],
+    });
+  }, [activePage, isDashboardView]);
+
+  const handleOpenColorStudio = () => {
+    setColorStudioOpen(true);
+    if (!isDashboardView) {
+      trackAnalyticsEvent({
+        eventType: 'page_view',
+        targetId: 'color_studio',
+        targetLabel: 'كمبيوتر الألوان',
+      });
+    }
+  };
+
+  const handleOpenProduct = (product: Product) => {
+    setSelectedProduct(product);
+    if (!isDashboardView) {
+      trackAnalyticsEvent({
+        eventType: 'product_view',
+        targetId: product.id,
+        targetLabel: product.name,
+      });
+    }
+  };
 
   return (
     <>
@@ -62,7 +111,7 @@ function AppShell() {
               activePage={activePage}
               onSelectPage={setActivePage}
               onOpenCart={() => setCartOpen(true)}
-              onOpenColorStudio={() => setColorStudioOpen(true)}
+              onOpenColorStudio={handleOpenColorStudio}
               onTriggerOwnerAuth={handleTriggerOwnerAuth}
             />
 
@@ -83,8 +132,8 @@ function AppShell() {
             <Storefront
               activePage={activePage}
               onSelectPage={setActivePage}
-              onOpenProduct={(product) => setSelectedProduct(product)}
-              onOpenColorStudio={() => setColorStudioOpen(true)}
+              onOpenProduct={handleOpenProduct}
+              onOpenColorStudio={handleOpenColorStudio}
               onOpenCart={() => setCartOpen(true)}
             />
           </motion.div>

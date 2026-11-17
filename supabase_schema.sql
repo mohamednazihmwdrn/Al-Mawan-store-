@@ -177,6 +177,22 @@ CREATE TABLE IF NOT EXISTS public.inquiries (
 
 CREATE INDEX IF NOT EXISTS idx_inquiries_created_at ON public.inquiries(created_at DESC);
 
+-- 8. Privacy-First Lightweight Store Analytics (No IP, No PII, Ephemeral Session IDs)
+CREATE TABLE IF NOT EXISTS public.store_analytics (
+  id text PRIMARY KEY,
+  session_id text NOT NULL,
+  event_type text NOT NULL CHECK (
+    event_type IN ('store_visit', 'page_view', 'category_view', 'product_view', 'cart_add', 'whatsapp_click')
+  ),
+  target_id text NOT NULL DEFAULT '',
+  target_label text NOT NULL DEFAULT '',
+  device_type text NOT NULL DEFAULT 'desktop' CHECK (device_type IN ('mobile', 'desktop')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_store_analytics_created_at ON public.store_analytics(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_store_analytics_event_type ON public.store_analytics(event_type);
+
 -- ============================================================================
 -- Enable Row Level Security (RLS)
 -- ============================================================================
@@ -189,6 +205,7 @@ ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.catalogs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.store_analytics ENABLE ROW LEVEL SECURITY;
 
 -- Public Read Policies (Storefront Catalog)
 DROP POLICY IF EXISTS "Public read store_config" ON public.store_config;
@@ -271,6 +288,22 @@ DROP POLICY IF EXISTS "Admin delete inquiries" ON public.inquiries;
 CREATE POLICY "Admin delete inquiries" ON public.inquiries
   FOR DELETE USING (public.is_store_admin());
 
+-- Store Analytics (Public insert only; only Admin can read or clear)
+DROP POLICY IF EXISTS "Public insert analytics" ON public.store_analytics;
+CREATE POLICY "Public insert analytics" ON public.store_analytics
+  FOR INSERT WITH CHECK (
+    event_type IN ('store_visit', 'page_view', 'category_view', 'product_view', 'cart_add', 'whatsapp_click')
+    AND device_type IN ('mobile', 'desktop')
+  );
+
+DROP POLICY IF EXISTS "Admin read analytics" ON public.store_analytics;
+CREATE POLICY "Admin read analytics" ON public.store_analytics
+  FOR SELECT USING (public.is_store_admin());
+
+DROP POLICY IF EXISTS "Admin delete analytics" ON public.store_analytics;
+CREATE POLICY "Admin delete analytics" ON public.store_analytics
+  FOR DELETE USING (public.is_store_admin());
+
 -- ============================================================================
 -- Supabase Storage Bucket ('mowan-media') for Lightweight Device Uploads
 -- ============================================================================
@@ -315,6 +348,7 @@ ALTER TABLE public.products REPLICA IDENTITY FULL;
 ALTER TABLE public.catalogs REPLICA IDENTITY FULL;
 ALTER TABLE public.orders REPLICA IDENTITY FULL;
 ALTER TABLE public.inquiries REPLICA IDENTITY FULL;
+ALTER TABLE public.store_analytics REPLICA IDENTITY FULL;
 
 DO $$
 DECLARE
@@ -322,7 +356,7 @@ DECLARE
 BEGIN
   FOREACH tbl IN ARRAY ARRAY[
     'store_config', 'banners', 'categories', 'subpages',
-    'products', 'catalogs', 'orders', 'inquiries'
+    'products', 'catalogs', 'orders', 'inquiries', 'store_analytics'
   ]
   LOOP
     IF NOT EXISTS (

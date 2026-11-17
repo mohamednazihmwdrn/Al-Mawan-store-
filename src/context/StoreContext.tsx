@@ -15,6 +15,7 @@ import {
 } from '../lib/supabase';
 import {
   DbRow,
+  mapAnalyticsFromDb,
   mapBannerFromDb,
   mapBannerToDb,
   mapCatalogFromDb,
@@ -31,6 +32,13 @@ import {
   mapSubpageToDb,
 } from '../lib/supabaseMappers';
 import {
+  ANALYTICS_STORAGE_KEY,
+  ANALYTICS_UPDATED_EVENT,
+  clearLocalAnalyticsEvents,
+  loadLocalAnalyticsEvents,
+  trackAnalyticsEvent,
+} from '../lib/analytics';
+import {
   DEFAULT_BANNERS,
   DEFAULT_CATALOGS,
   DEFAULT_CATEGORIES,
@@ -40,6 +48,7 @@ import {
 } from '../data/defaults';
 import { sanitizeId } from '../lib/imageUtils';
 import {
+  AnalyticsEvent,
   Banner,
   CartItem,
   Category,
@@ -64,6 +73,7 @@ interface StoreContextValue {
   catalogs: ColorCatalog[];
   orders: Order[];
   inquiries: Inquiry[];
+  analyticsEvents: AnalyticsEvent[];
   cart: CartItem[];
   isLoading: boolean;
   isLiveSynced: boolean;
@@ -114,6 +124,7 @@ interface StoreContextValue {
     colorCode?: string;
   }) => Promise<void>;
   updateInquiryStatus: (id: string, status: InquiryStatus) => Promise<void>;
+  clearAnalytics: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -212,6 +223,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [orders, setOrders] = useState<Order[]>(initialLocal?.orders || []);
   const [inquiries, setInquiries] = useState<Inquiry[]>(initialLocal?.inquiries || []);
+  const [analyticsEvents, setAnalyticsEvents] = useState<AnalyticsEvent[]>(() =>
+    isSupabaseConfigured ? [] : loadLocalAnalyticsEvents()
+  );
 
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
   const [isLiveSynced, setIsLiveSynced] = useState(!isSupabaseConfigured);
@@ -269,6 +283,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     if (isSupabaseConfigured) return;
     const onStorage = (e: StorageEvent) => {
+      if (e.key === ANALYTICS_STORAGE_KEY) {
+        setAnalyticsEvents(loadLocalAnalyticsEvents());
+        return;
+      }
       if (e.key !== LOCAL_PREVIEW_STORAGE_KEY || !e.newValue) return;
       const snap = readLocalSnapshot();
       setHasCloudConfig(snap.initialized);
@@ -282,8 +300,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setOrders(snap.orders);
       setInquiries(snap.inquiries);
     };
+    const onLocalAnalytics = () => {
+      setAnalyticsEvents(loadLocalAnalyticsEvents());
+    };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener(ANALYTICS_UPDATED_EVENT, onLocalAnalytics);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(ANALYTICS_UPDATED_EVENT, onLocalAnalytics);
+    };
   }, []);
 
   // Supabase Auth Session Listener
@@ -479,26 +504,35 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  // Private Admin Realtime Listeners (Orders & Inquiries)
+  // Private Admin Realtime Listeners (Orders, Inquiries & Store Analytics)
   useEffect(() => {
     if (!supabase || !isSupabaseConfigured) return;
     if (!authReady || !isVerifiedAdmin) {
       setOrders([]);
       setInquiries([]);
+      setAnalyticsEvents([]);
       return;
     }
 
     const client = supabase;
     let mounted = true;
+    const thirtyDaysAgoIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
     const loadAdminData = async () => {
-      const [ordRes, inqRes] = await Promise.all([
+      const [ordRes, inqRes, anaRes] = await Promise.all([
         client.from('orders').select('*').order('created_at', { ascending: false }).limit(200),
         client.from('inquiries').select('*').order('created_at', { ascending: false }).limit(200),
+        client
+          .from('store_analytics')
+          .select('*')
+          .gte('created_at', thirtyDaysAgoIso)
+          .order('created_at', { ascending: false })
+          .limit(2000),
       ]);
       if (!mounted) return;
       if (ordRes.data) setOrders((ordRes.data as DbRow[]).map(mapOrderFromDb));
       if (inqRes.data) setInquiries((inqRes.data as DbRow[]).map(mapInquiryFromDb));
+      if (anaRes.data) setAnalyticsEvents((anaRes.data as DbRow[]).map(mapAnalyticsFromDb));
     };
 
     loadAdminData();
@@ -532,6 +566,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setInquiries((prev) =>
               upsertItemInList(prev, mapped, payload.eventType === 'INSERT')
             );
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'store_analytics' },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const delId = String((payload.old as DbRow)?.id || '');
+            setAnalyticsEvents((prev) => (delId ? prev.filter((e) => e.id !== delId) : []));
+          } else if (payload.new) {
+            const mapped = mapAnalyticsFromDb(payload.new as DbRow);
+            setAnalyticsEvents((prev) => upsertItemInList(prev, mapped, true).slice(0, 2000));
           }
         }
       )
@@ -595,6 +642,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const addToCart = useCallback((product: Product, quantity = 1) => {
+    trackAnalyticsEvent({
+      eventType: 'cart_add',
+      targetId: product.id,
+      targetLabel: product.name,
+    });
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -1192,6 +1244,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setInquiries((prev) => prev.map((q) => (q.id === safeId ? { ...q, status } : q)));
   }, []);
 
+  const clearAnalytics = useCallback(async () => {
+    if (!supabase || !isSupabaseConfigured) {
+      clearLocalAnalyticsEvents();
+      setAnalyticsEvents([]);
+      return;
+    }
+    const { error } = await supabase.from('store_analytics').delete().neq('id', '');
+    if (error) throw new Error(error.message);
+    setAnalyticsEvents([]);
+  }, []);
+
   return (
     <StoreContext.Provider
       value={{
@@ -1203,6 +1266,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         catalogs,
         orders,
         inquiries,
+        analyticsEvents,
         cart,
         isLoading,
         isLiveSynced,
@@ -1237,6 +1301,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateOrderStatus,
         submitInquiry,
         updateInquiryStatus,
+        clearAnalytics,
       }}
     >
       {children}

@@ -32,6 +32,7 @@ import { ADMIN_EMAIL, uploadImageAsset } from '../lib/supabase';
 import { InquiryStatus, OrderStatus, OwnerTab, Product } from '../types/store';
 import { OwnerBannersTab, OwnerCatalogsTab, OwnerCategoriesTab } from './owner/OwnerCatalogTabs';
 import { OwnerBrandsFeaturesTab, OwnerSiteSettingsTab } from './owner/OwnerSettingsTab';
+import { OwnerAnalyticsSection } from './owner/OwnerAnalyticsSection';
 import { ConfirmActionModal } from './ConfirmActionModal';
 
 interface OwnerDashboardProps {
@@ -52,6 +53,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
     catalogs,
     orders,
     inquiries,
+    analyticsEvents,
     isLiveSynced,
     isCloudConfigured,
     ownerUser,
@@ -66,6 +68,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
     cleanAllProductsAndBanners,
     updateOrderStatus,
     updateInquiryStatus,
+    clearAnalytics,
   } = useStore();
 
   const [activeTab, setActiveTab] = useState<OwnerTab>('overview');
@@ -666,6 +669,12 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                 )}
               </div>
             </div>
+
+            <OwnerAnalyticsSection
+              events={analyticsEvents}
+              onClearAnalytics={clearAnalytics}
+              onNotify={showToast}
+            />
           </div>
         )}
 

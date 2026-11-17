@@ -187,3 +187,21 @@ export type OwnerTab =
   | 'catalogs'
   | 'brands'
   | 'settings';
+
+export type AnalyticsEventType =
+  | 'store_visit'
+  | 'page_view'
+  | 'category_view'
+  | 'product_view'
+  | 'cart_add'
+  | 'whatsapp_click';
+
+export interface AnalyticsEvent {
+  id: string;
+  sessionId: string;
+  eventType: AnalyticsEventType;
+  targetId: string;
+  targetLabel: string;
+  deviceType: 'mobile' | 'desktop';
+  createdAt: string;
+}

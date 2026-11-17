@@ -23,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+import { trackAnalyticsEvent } from '../lib/analytics';
 import { Banner, Product, StoreFeature, StorefrontPage } from '../types/store';
 import { PWAInstallButton } from './PWAInstallButton';
 
@@ -371,6 +372,13 @@ export const Storefront: React.FC<StorefrontProps> = ({
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() =>
+                    trackAnalyticsEvent({
+                      eventType: 'whatsapp_click',
+                      targetId: product.id,
+                      targetLabel: product.name,
+                    })
+                  }
                   className="w-11 h-11 shrink-0 mowan-btn-bevel border border-emerald-600/30 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 flex items-center justify-center transition-colors"
                   aria-label={`طلب ${product.name} عبر واتساب`}
                 >
@@ -525,6 +533,11 @@ export const Storefront: React.FC<StorefrontProps> = ({
                               setSelectedCategoryId(section.id);
                               setSelectedSubpageId('all');
                               setOffersOnly(false);
+                              trackAnalyticsEvent({
+                                eventType: 'category_view',
+                                targetId: section.id,
+                                targetLabel: section.name,
+                              });
                               navigatePage('categories');
                             }}
                             className="min-h-[44px] inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-blue-700 hover:text-blue-800 px-2 shrink-0 cursor-pointer transition-colors"
@@ -599,9 +612,17 @@ export const Storefront: React.FC<StorefrontProps> = ({
                             <button
                               type="button"
                               onClick={() => {
-                                setSelectedCategoryId(isSelected ? 'all' : cat.id);
+                                const nextId = isSelected ? 'all' : cat.id;
+                                setSelectedCategoryId(nextId);
                                 setSelectedSubpageId('all');
                                 setOffersOnly(false);
+                                if (nextId !== 'all') {
+                                  trackAnalyticsEvent({
+                                    eventType: 'category_view',
+                                    targetId: cat.id,
+                                    targetLabel: cat.name,
+                                  });
+                                }
                               }}
                               className={`mowan-cat-core w-full min-h-[60px] p-2.5 sm:p-3.5 text-right transition-colors flex items-center gap-2.5 sm:gap-3 cursor-pointer ${
                                 isSelected
@@ -1070,6 +1091,13 @@ export const Storefront: React.FC<StorefrontProps> = ({
                         href={whatsappBase}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() =>
+                          trackAnalyticsEvent({
+                            eventType: 'whatsapp_click',
+                            targetId: 'contact_whatsapp',
+                            targetLabel: 'تواصل واتساب مباشر',
+                          })
+                        }
                         className="min-h-[44px] inline-flex items-center gap-2 mowan-btn-bevel bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs sm:text-sm font-bold text-white transition-colors"
                       >
                         <MessageCircle className="w-4 h-4" />

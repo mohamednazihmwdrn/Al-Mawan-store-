@@ -1,5 +1,6 @@
 import { DEFAULT_STORE_CONFIG } from '../data/defaults';
 import {
+  AnalyticsEvent,
   Banner,
   CatalogAttachment,
   Category,
@@ -288,5 +289,17 @@ export function mapInquiryFromDb(row: DbRow): Inquiry {
     status: (row.status as Inquiry['status']) || 'new',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+export function mapAnalyticsFromDb(row: DbRow): AnalyticsEvent {
+  return {
+    id: String(row.id),
+    sessionId: String(row.session_id ?? ''),
+    eventType: (row.event_type as AnalyticsEvent['eventType']) || 'store_visit',
+    targetId: String(row.target_id ?? ''),
+    targetLabel: String(row.target_label ?? ''),
+    deviceType: row.device_type === 'mobile' ? 'mobile' : 'desktop',
+    createdAt: String(row.created_at || new Date().toISOString()),
   };
 }
