@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   ArrowRight,
@@ -112,9 +112,23 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   const [prodCatFilter, setProdCatFilter] = useState('all');
   const [prodViewMode, setProdViewMode] = useState<'cards' | 'table'>('cards');
 
+  useEffect(() => {
+    if (categories.length === 0) {
+      if (pCategoryId !== '') setPCategoryId('');
+      return;
+    }
+    if (!categories.some((c) => c.id === pCategoryId)) {
+      setPCategoryId(categories[0].id);
+      setPSubpageId('');
+    }
+  }, [categories, pCategoryId]);
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
-    window.setTimeout(() => setToastMsg(''), 4000);
+    if (isCloudConfigured && !isVerifiedAdmin && msg.includes('تسجيل دخول السحابة')) {
+      setShowCloudLogin(true);
+    }
+    window.setTimeout(() => setToastMsg(''), 5000);
   };
 
   const requestCleanEntireSite = () => {
@@ -139,7 +153,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
       if (confirmKind === 'clean_all') {
         await cleanAllProductsAndBanners();
         resetProductForm();
-        showToast('تم تنظيف الموقع بالكامل وحذف جميع المنتجات والبنرات نهائياً على كل الأجهزة!');
+        showToast('تم تنظيف الموقع بالكامل وحذف جميع المنتجات والبنرات والكتالوجات نهائياً!');
       } else if (confirmKind === 'delete_all_products') {
         await deleteAllProducts();
         resetProductForm();
@@ -164,9 +178,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
     setSeeding(true);
     try {
       await seedMissingCatalog();
-      showToast('تمت تهيئة ومزامنة جميع البيانات الافتراضية في قاعدة البيانات بنجاح!');
+      showToast('تمت تهيئة إعدادات المتجر والأقسام الأساسية بنجاح!');
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'تعذر مزامنة البيانات');
+      showToast(e instanceof Error ? e.message : 'تعذر تهيئة الأقسام');
     } finally {
       setSeeding(false);
     }
@@ -251,8 +265,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
 
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pName.trim() || !pImageUrl.trim() || !pDesc.trim()) {
-      showToast('يرجى إدخال اسم المنتج وصورته ووصفه.');
+    if (!pName.trim() || !pImageUrl.trim()) {
+      showToast('يرجى إدخال اسم المنتج واختيار صورته.');
       return;
     }
     setPSaving(true);
@@ -266,7 +280,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
         {
           id,
           name: pName.trim(),
-          description: pDesc.trim(),
+          description: pDesc.trim() || pName.trim(),
           price: Number.isFinite(priceNum) ? priceNum : null,
           oldPrice: Number.isFinite(oldPriceNum) ? oldPriceNum : null,
           stock: Number.isFinite(stockNum) ? stockNum : null,
@@ -275,7 +289,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
           sizes: pSizes.trim(),
           specs: pSpecs.trim(),
           badge: pBadge.trim(),
-          categoryId: pCategoryId || categories[0]?.id || 'cat_glc',
+          categoryId: pCategoryId || categories[0]?.id || '',
           subpageId: pSubpageId,
           brandName: pBrandName.trim(),
           imageUrl: pImageUrl.trim(),
@@ -430,7 +444,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                 className="inline-flex items-center gap-1.5 text-amber-300 hover:text-amber-200 font-bold cursor-pointer"
               >
                 <Database className="w-3.5 h-3.5" />
-                <span>{seeding ? 'جاري الرفع...' : 'مزامنة البيانات الافتراضية'}</span>
+                <span>{seeding ? 'جاري التهيئة...' : 'تهيئة الأقسام الأساسية'}</span>
               </button>
               {isCloudConfigured && !isVerifiedAdmin && (
                 <button
@@ -657,14 +671,14 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                   <Plus className="w-4 h-4" />
                   <span>إضافة بنر للواجهة</span>
                 </button>
-                {(products.length > 0 || banners.length > 0) && (
+                {(products.length > 0 || banners.length > 0 || catalogs.length > 0) && (
                   <button
                     type="button"
                     onClick={requestCleanEntireSite}
                     className="min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white px-5 py-3 text-sm font-bold cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
-                    <span>تنظيف الموقع بالكامل (حذف كل المنتجات والبنرات)</span>
+                    <span>تنظيف الموقع بالكامل (حذف كل المنشورات)</span>
                   </button>
                 )}
               </div>
@@ -740,6 +754,10 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                           value={ord.status}
                           onChange={(e) =>
                             updateOrderStatus(ord.id, e.target.value as OrderStatus)
+                              .then(() => showToast('تم تحديث حالة الطلب بنجاح.'))
+                              .catch((err) =>
+                                showToast(err instanceof Error ? err.message : 'تعذر تحديث الطلب')
+                              )
                           }
                           className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold bg-slate-50"
                         >
@@ -851,6 +869,10 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                         value={inq.status}
                         onChange={(e) =>
                           updateInquiryStatus(inq.id, e.target.value as InquiryStatus)
+                            .then(() => showToast('تم تحديث حالة الاستفسار بنجاح.'))
+                            .catch((err) =>
+                              showToast(err instanceof Error ? err.message : 'تعذر تحديث الاستفسار')
+                            )
                         }
                         className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold bg-slate-50"
                       >
@@ -1078,10 +1100,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">وصف المنتج *</label>
+                  <label className="block text-xs font-bold text-slate-700">وصف المنتج (اختياري)</label>
                   <textarea
                     rows={3}
-                    required
                     value={pDesc}
                     onChange={(e) => setPDesc(e.target.value)}
                     placeholder="اكتب وصفاً بسيطاً وواضحاً لمواصفات واستخدامات المنتج..."
@@ -1154,15 +1175,6 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                   المنتجات المعروضة بالمتجر ({filteredProducts.length})
                 </h3>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={seeding}
-                    onClick={handleSeedDatabase}
-                    className="min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1.5 text-xs font-extrabold cursor-pointer"
-                  >
-                    <Database className="w-3.5 h-3.5" />
-                    <span>{seeding ? 'جاري النشر...' : 'نشر التشكيلة الافتراضية الموسّعة'}</span>
-                  </button>
                   <div className="flex items-center rounded-xl bg-slate-100 p-1">
                     <button
                       type="button"
@@ -1195,7 +1207,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                       <span>حذف جميع المنتجات</span>
                     </button>
                   )}
-                  {(products.length > 0 || banners.length > 0) && (
+                  {(products.length > 0 || banners.length > 0 || catalogs.length > 0) && (
                     <button
                       type="button"
                       onClick={requestCleanEntireSite}
@@ -1361,7 +1373,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
         }
         description={
           confirmKind === 'clean_all'
-            ? `سيتم حذف جميع المنتجات (${products.length} منتج) وجميع البنرات (${banners.length} بنر) من جذور قاعدة البيانات فوراً، ولن تظهر لأي عميل حتى تضيف منتجات أو بنرات جديدة.`
+            ? `سيتم حذف جميع المنتجات (${products.length} منتج) وجميع البنرات (${banners.length} بنر) والكتالوجات (${catalogs.length}) من جذور قاعدة البيانات فوراً، ولن تظهر لأي عميل حتى تضيف منشورات جديدة.`
             : confirmKind === 'delete_all_products'
               ? `سيتم حذف جميع المنتجات (${products.length} منتج) نهائياً من الموقع وقاعدة البيانات لجميع العملاء على كافة الأجهزة.`
               : `هل أنت متأكد من حذف "${targetProduct?.name || ''}" نهائياً من قاعدة البيانات؟ سيختفي فورياً عند جميع العملاء.`

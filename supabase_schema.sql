@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS public.subpages (
 CREATE TABLE IF NOT EXISTS public.products (
   id text PRIMARY KEY,
   name text NOT NULL,
-  description text NOT NULL,
+  description text NOT NULL DEFAULT '',
   price numeric NULL,
   old_price numeric NULL,
   stock integer NULL,
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   sizes text NOT NULL DEFAULT '',
   specs text NOT NULL DEFAULT '',
   badge text NOT NULL DEFAULT '',
-  category_id text NOT NULL REFERENCES public.categories(id) ON DELETE RESTRICT,
+  category_id text NOT NULL DEFAULT '',
   subpage_id text NOT NULL DEFAULT '',
   brand_name text NOT NULL DEFAULT '',
   image_url text NOT NULL,
@@ -125,6 +125,9 @@ CREATE TABLE IF NOT EXISTS public.products (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Allow category editing/deletion freely without foreign key blocks
+ALTER TABLE public.products DROP CONSTRAINT IF EXISTS products_category_id_fkey;
 
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON public.products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_created_at ON public.products(created_at DESC);

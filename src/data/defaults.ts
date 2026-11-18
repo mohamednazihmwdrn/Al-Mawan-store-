@@ -1,5 +1,3 @@
-import heroShowroomImg from '../assets/images/hero_paint_hardware_1794817421598.jpg';
-import productPuttyImg from '../assets/images/product_glc_putty_1794817423099.jpg';
 import productSealerImg from '../assets/images/product_glc_sealer_1794817424003.jpg';
 import productDrillImg from '../assets/images/product_ingco_drill_1794817424731.jpg';
 import productJotunImg from '../assets/images/product_jotun_fenomastic_1794818520635.jpg';
@@ -16,17 +14,19 @@ import {
   Subpage,
 } from '../types/store';
 
-export const DEFAULT_IMAGES = {
-  hero: heroShowroomImg,
-  putty: productPuttyImg,
-  sealer: productSealerImg,
-  drill: productDrillImg,
-  jotun: productJotunImg,
-  grinder: productGrinderImg,
-  rollerKit: productRollerKitImg,
-  lock: productLockImg,
-  waterproof: productWaterproofImg,
-};
+export const DEMO_BANNER_IDS = ['ban_hero_main', 'ban_tools_pro', 'ban_putty_offer'];
+export const DEMO_PRODUCT_IDS = [
+  'prod_glc_daytone100',
+  'prod_glc_sealer007',
+  'prod_jotun_fenomastic',
+  'prod_ingco_drill20v',
+  'prod_ingco_grinder900',
+  'prod_painter_kit_pro',
+  'prod_ahram_lockset',
+  'prod_cmb_waterproof',
+  'prod_pachin_sipes_satin',
+];
+export const DEMO_CATALOG_IDS = ['catlg_facades_2026'];
 
 export const DEFAULT_STORE_CONFIG: StoreConfig = {
   storeName: 'الموان للحدايد والبويات ولوازم المعمار',
@@ -186,229 +186,11 @@ export const DEFAULT_SUBPAGES: Subpage[] = [
   },
 ];
 
-export const DEFAULT_BANNERS: Banner[] = [
-  {
-    id: 'ban_hero_main',
-    title: 'الموان للحدايد والبويات — دهانات كمبيوتر ونتائج تدوم',
-    imageUrl: heroShowroomImg,
-    actionType: 'color_studio',
-    actionTarget: '',
-    active: true,
-    sortOrder: 1,
-  },
-  {
-    id: 'ban_tools_pro',
-    title: 'أقوى تشكيلة عدد كهربائية ومعدات ورش احترافية بضمان أصلي',
-    imageUrl: productGrinderImg,
-    actionType: 'category',
-    actionTarget: 'cat_tools',
-    active: true,
-    sortOrder: 2,
-  },
-  {
-    id: 'ban_putty_offer',
-    title: 'عروض تأسيس GLC — معجون دايتون 100 وسيلر 007 بأفضل سعر جملة',
-    imageUrl: productPuttyImg,
-    actionType: 'category',
-    actionTarget: 'cat_glc',
-    active: true,
-    sortOrder: 3,
-  },
-];
+export const DEFAULT_BANNERS: Banner[] = [];
 
-export const DEFAULT_PRODUCTS: Product[] = [
-  {
-    id: 'prod_glc_daytone100',
-    name: 'بستلة معجون دايتون 100 GLC',
-    description:
-      'بستلة معجون داي-تون 100 من GLC وزن 14 كجم لتجهيز الحوائط الداخلية وتشطيب الأسطح الأسمنتية والجبسبورد بنعومة فائقة وسهولة في الصنفرة.',
-    price: 265,
-    oldPrice: 275,
-    stock: 45,
-    available: true,
-    unit: 'بستلة 14 كجم',
-    sizes: '14 كجم / 5 كجم',
-    specs: 'معدل الفرد 2-3 م²/كجم · جفاف أولي 20-30 دقيقة',
-    badge: 'الأكثر مبيعاً',
-    categoryId: 'cat_glc',
-    subpageId: 'sub_glc_plastic',
-    brandName: 'GLC',
-    imageUrl: productPuttyImg,
-    galleryImages: [],
-    isOffer: true,
-  },
-  {
-    id: 'prod_glc_sealer007',
-    name: 'بستلة سيلر المقاوم 007 GLC',
-    description:
-      'سيلر أكريليك مائي للاستخدام الداخلي بمقاومة عالية للقلويات وقوة التصاق فائقة وسرعة جفاف ممتازة على المحارة والخرسانة.',
-    price: 440,
-    oldPrice: 450,
-    stock: 30,
-    available: true,
-    unit: 'بستلة',
-    sizes: 'بستلة كبيرة',
-    specs: 'مقاومة عالية للقلويات · سريع الجفاف · مناسب للمحارة',
-    badge: 'وصل حديثاً',
-    categoryId: 'cat_glc',
-    subpageId: 'sub_glc_plastic',
-    brandName: 'GLC',
-    imageUrl: productSealerImg,
-    galleryImages: [],
-    isOffer: true,
-  },
-  {
-    id: 'prod_jotun_fenomastic',
-    name: 'بستلة دهان فينوماستيك بيتي مطفي غني',
-    description:
-      'أفخم دهان بلاستيك داخلي مطفي من جوتن يتميز بتغطية استثنائية ومظهر مخملي غني ومقاومة ممتازة للغسيل وتراكم البقع مع تلوين كمبيوتر فوري.',
-    price: 2450,
-    oldPrice: 2650,
-    stock: 18,
-    available: true,
-    unit: 'بستلة 9 لتر',
-    sizes: '3 لتر / 9 لتر / 18 لتر',
-    specs: 'بدون رائحة · قابل للغسيل · دقة ألوان عالية بالكمبيوتر',
-    badge: 'نخب أول',
-    categoryId: 'cat_paints',
-    subpageId: 'sub_paints_interior',
-    brandName: 'JOTUN',
-    imageUrl: productJotunImg,
-    galleryImages: [],
-    isOffer: true,
-  },
-  {
-    id: 'prod_ingco_drill20v',
-    name: 'شنيور دقاق بطارية 20 فولت احترافي',
-    description:
-      'شنيور هيلتي دقاق بدون فحمات (Brushless) عالي العزم للأعمال الشاقة والخرسانة والخشب والمعادن، مزود بمقبض جانبي للتحكم الدقيق وبطاريتين ليثيوم.',
-    price: 3850,
-    oldPrice: 4200,
-    stock: 12,
-    available: true,
-    unit: 'طقم كامل',
-    sizes: '20V Li-Ion 5Ah',
-    specs: 'محرك Brushless · 3 أوضاع تشغيل · إضاءة LED مدمجة',
-    badge: 'ضمان أصلي',
-    categoryId: 'cat_tools',
-    subpageId: 'sub_tools_power',
-    brandName: 'INGCO',
-    imageUrl: productDrillImg,
-    galleryImages: [],
-    isOffer: true,
-  },
-  {
-    id: 'prod_ingco_grinder900',
-    name: 'صاروخ قطع وجلخ 900 واط — 115 مم',
-    description:
-      'صاروخ كهربائي للخدمة الشاقة بقدرة 900 واط وموتور نحاس بالكامل مع واقي حماية ومقبض جانبي مانع للاهتزاز لقص الحديد والجرانيت بدقة.',
-    price: 1680,
-    oldPrice: 1850,
-    stock: 20,
-    available: true,
-    unit: 'جهاز + مفتاح',
-    sizes: 'قرص 115 مم / 125 مم',
-    specs: '900 واط · 12000 لفة/دقيقة · علبة تروس ألومنيوم متينة',
-    badge: 'عرض خاص',
-    categoryId: 'cat_tools',
-    subpageId: 'sub_tools_power',
-    brandName: 'INGCO',
-    imageUrl: productGrinderImg,
-    galleryImages: [],
-    isOffer: true,
-  },
-  {
-    id: 'prod_painter_kit_pro',
-    name: 'طقم دهان متكامل رولة مايكروفايبر + فرشة وعصا',
-    description:
-      'مجموعة تشطيب احترافية تضم رولة مايكروفايبر بدون وبر لتوزيع الدهان بالتساوي، فرشة تحديد مائلة، صينية معدنية متينة، وعصا تمديد ألومنيوم تلسكوبية.',
-    price: 320,
-    oldPrice: 370,
-    stock: 40,
-    available: true,
-    unit: 'طقم 4 قطع',
-    sizes: 'رولة 23 سم + عصا 2 متر',
-    specs: 'خامة مايكروفايبر عالية الكثافة · مناسبة للبلاستيك واللاكيه',
-    badge: 'تشكيلة الورش',
-    categoryId: 'cat_tools',
-    subpageId: 'sub_tools_painting',
-    brandName: 'APT',
-    imageUrl: productRollerKitImg,
-    galleryImages: [],
-    isOffer: true,
-  },
-  {
-    id: 'prod_ahram_lockset',
-    name: 'طقم مقبض استانلس 304 + كالون وسلندر نحاس',
-    description:
-      'مجموعة أمان متكاملة للأبواب الخشبية والمصفحة تشمل مقبض استانلس مقاوم للصدأ بتصميم هندسي، كالون 72 مم بلسان نحاس، وسلندر كمبيوتر نحاسي بخمس مفاتيح.',
-    price: 890,
-    oldPrice: 980,
-    stock: 25,
-    available: true,
-    unit: 'طقم باب كامل',
-    sizes: 'سلندر 70 مم · كالون 72 مم',
-    specs: 'استانلس ستيل 304 · سلندر نحاس صلب · 5 مفاتيح كمبيوتر',
-    badge: 'أمان عالي',
-    categoryId: 'cat_locks',
-    subpageId: '',
-    brandName: 'AHRAM',
-    imageUrl: productLockImg,
-    galleryImages: [],
-    isOffer: true,
-  },
-  {
-    id: 'prod_cmb_waterproof',
-    name: 'عازل أسمنتي ولاصق سيراميك وبورسلين 20 كجم',
-    description:
-      'مركب كيماوي أسمنتي مرن للعزل المائي للحمامات والأسطح ولصق البورسلين والرخام بقوة تماسك مضاعفة ومقاومة تامة للرطوبة والأملاح.',
-    price: 495,
-    oldPrice: 540,
-    stock: 50,
-    available: true,
-    unit: 'عبوة 20 كجم',
-    sizes: '20 كجم (رمادي)',
-    specs: 'مقاوم لضغط المياه الإيجابي والسلبي · التصاق عالي C2TE',
-    badge: 'معتمد للمشاريع',
-    categoryId: 'cat_construction',
-    subpageId: 'sub_construction_waterproof',
-    brandName: 'CMB',
-    imageUrl: productWaterproofImg,
-    galleryImages: [],
-    isOffer: true,
-  },
-  {
-    id: 'prod_pachin_sipes_satin',
-    name: 'دهان بلاستيك باكين / سايبس نصف لامع — 3 لتر',
-    description:
-      'جالون دهان أكريليك حريري نصف لامع مقاوم للغسيل والاحتكاك اليومي في الغرف والممرات مع تغطية ناعمة ومتجانسة.',
-    price: 580,
-    oldPrice: 640,
-    stock: 28,
-    available: true,
-    unit: 'جالون 3 لتر',
-    sizes: '3 لتر / 9 لتر',
-    specs: 'نصف لامع حريري · تغطية 12-14 م²/لتر · قابل للتلوين',
-    badge: 'جودة مضمونة',
-    categoryId: 'cat_paints',
-    subpageId: 'sub_paints_interior',
-    brandName: 'PACHIN',
-    imageUrl: productSealerImg,
-    galleryImages: [],
-    isOffer: true,
-  },
-];
+export const DEFAULT_PRODUCTS: Product[] = [];
 
-export const DEFAULT_CATALOGS: ColorCatalog[] = [
-  {
-    id: 'catlg_facades_2026',
-    title: 'ألوان واجهات عمارات وتأسيس خارجي',
-    brand: 'JOTUN / GLC',
-    fileType: 'image',
-    fileUrl: heroShowroomImg,
-    notes: 'تصفح درجات الواجهات واختر كود اللون المطلوب وسنقوم بخلطه لك بالكمبيوتر فوراً.',
-  },
-];
+export const DEFAULT_CATALOGS: ColorCatalog[] = [];
 
 export const CURATED_PAINT_SHADES = [
   { code: 'JOTUN 1001', name: 'Egg White — أوف وايت كلاسيك', hex: '#F3EEE4', brand: 'JOTUN' },

@@ -624,9 +624,11 @@ export const OwnerSiteSettingsTab: React.FC<{
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700">رابط فيسبوك (اختياري)</label>
               <input
-                type="url"
+                type="text"
+                dir="ltr"
                 value={draft.facebookUrl}
                 onChange={(e) => setDraft({ ...draft, facebookUrl: e.target.value })}
+                placeholder="https://facebook.com/..."
                 className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm"
               />
             </div>
@@ -636,9 +638,11 @@ export const OwnerSiteSettingsTab: React.FC<{
                 رابط الخريطة Google Maps (اختياري)
               </label>
               <input
-                type="url"
+                type="text"
+                dir="ltr"
                 value={draft.mapsUrl}
                 onChange={(e) => setDraft({ ...draft, mapsUrl: e.target.value })}
+                placeholder="https://maps.google.com/..."
                 className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm"
               />
             </div>
@@ -787,10 +791,10 @@ export const OwnerSiteSettingsTab: React.FC<{
       <div className="rounded-2xl bg-white border border-slate-200 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <h4 className="text-sm font-extrabold text-slate-900">
-            استعادة الإعدادات والأقسام الافتراضية
+            استعادة الإعدادات والأقسام الأساسية للمتجر
           </h4>
           <p className="text-xs text-slate-500">
-            يستعيد الأقسام والبنرات وإعدادات التواصل الأساسية فقط دون المساس بمنتجاتك التي أضفتها.
+            يستعيد بيانات التواصل ونصوص الواجهة والأقسام الأساسية فقط دون إضافة أي منشورات تجريبية أو المساس بمنتجاتك وبنراتك.
           </p>
         </div>
         <button
@@ -800,7 +804,7 @@ export const OwnerSiteSettingsTab: React.FC<{
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-800 cursor-pointer shrink-0"
         >
           <RotateCcw className="w-4 h-4" />
-          <span>استعادة الإعدادات</span>
+          <span>استعادة الإعدادات الأساسية</span>
         </button>
       </div>
     </form>

@@ -45,6 +45,9 @@ import {
   DEFAULT_PRODUCTS,
   DEFAULT_STORE_CONFIG,
   DEFAULT_SUBPAGES,
+  DEMO_BANNER_IDS,
+  DEMO_CATALOG_IDS,
+  DEMO_PRODUCT_IDS,
 } from '../data/defaults';
 import { sanitizeId } from '../lib/imageUtils';
 import {
@@ -131,6 +134,24 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 
 const CART_STORAGE_KEY = 'mowan_cart_v1';
 const LOCAL_PREVIEW_STORAGE_KEY = 'mowan_local_store_v1';
+const LOCAL_DEMO_PURGE_FLAG = 'mowan_demo_purged_v2';
+const CLOUD_DEMO_PURGE_FLAG = 'mowan_cloud_demo_purged_v2';
+
+const CLOUD_AUTH_REQUIRED_MSG =
+  'لم يتم الحفظ في السحابة: يرجى تسجيل الدخول بحساب المالك عبر "تسجيل دخول السحابة" أعلى اللوحة لإتمام التعديل والحذف النهائي.';
+
+function normalizeSupabaseError(errMsg: string): Error {
+  const lower = errMsg.toLowerCase();
+  if (
+    lower.includes('row-level security') ||
+    lower.includes('permission denied') ||
+    lower.includes('42501') ||
+    lower.includes('not allowed')
+  ) {
+    return new Error(CLOUD_AUTH_REQUIRED_MSG);
+  }
+  return new Error(errMsg);
+}
 
 interface LocalSnapshotState {
   initialized: boolean;
@@ -145,6 +166,14 @@ interface LocalSnapshotState {
 }
 
 function readLocalSnapshot(): LocalSnapshotState {
+  const shouldPurgeDemo = (() => {
+    try {
+      return localStorage.getItem(LOCAL_DEMO_PURGE_FLAG) !== '1';
+    } catch {
+      return false;
+    }
+  })();
+
   try {
     const raw = localStorage.getItem(LOCAL_PREVIEW_STORAGE_KEY);
     if (raw) {
@@ -158,23 +187,58 @@ function readLocalSnapshot(): LocalSnapshotState {
       ) {
         mergedConfig.headerBrandName = DEFAULT_STORE_CONFIG.headerBrandName;
       }
-      return {
-        initialized: Boolean(parsed.initialized),
+
+      const rawBanners = Array.isArray(parsed.banners) ? parsed.banners : DEFAULT_BANNERS;
+      const rawProducts = Array.isArray(parsed.products) ? parsed.products : DEFAULT_PRODUCTS;
+      const rawCatalogs = Array.isArray(parsed.catalogs) ? parsed.catalogs : DEFAULT_CATALOGS;
+
+      const cleanBanners = shouldPurgeDemo
+        ? rawBanners.filter((b) => !DEMO_BANNER_IDS.includes(b.id))
+        : rawBanners;
+      const cleanProducts = shouldPurgeDemo
+        ? rawProducts.filter((p) => !DEMO_PRODUCT_IDS.includes(p.id))
+        : rawProducts;
+      const cleanCatalogs = shouldPurgeDemo
+        ? rawCatalogs.filter((k) => !DEMO_CATALOG_IDS.includes(k.id))
+        : rawCatalogs;
+
+      const nextState: LocalSnapshotState = {
+        initialized: true,
         config: mergedConfig,
-        banners: Array.isArray(parsed.banners) ? parsed.banners : DEFAULT_BANNERS,
+        banners: cleanBanners,
         categories: Array.isArray(parsed.categories) ? parsed.categories : DEFAULT_CATEGORIES,
         subpages: Array.isArray(parsed.subpages) ? parsed.subpages : DEFAULT_SUBPAGES,
-        products: Array.isArray(parsed.products) ? parsed.products : DEFAULT_PRODUCTS,
-        catalogs: Array.isArray(parsed.catalogs) ? parsed.catalogs : DEFAULT_CATALOGS,
+        products: cleanProducts,
+        catalogs: cleanCatalogs,
         orders: Array.isArray(parsed.orders) ? parsed.orders : [],
         inquiries: Array.isArray(parsed.inquiries) ? parsed.inquiries : [],
       };
+
+      if (shouldPurgeDemo) {
+        try {
+          localStorage.setItem(LOCAL_PREVIEW_STORAGE_KEY, JSON.stringify(nextState));
+          localStorage.setItem(LOCAL_DEMO_PURGE_FLAG, '1');
+        } catch {
+          // Ignore storage quota issues
+        }
+      }
+
+      return nextState;
     }
   } catch {
     // Ignore corrupted cache
   }
+
+  if (shouldPurgeDemo) {
+    try {
+      localStorage.setItem(LOCAL_DEMO_PURGE_FLAG, '1');
+    } catch {
+      // Ignore storage quota issues
+    }
+  }
+
   return {
-    initialized: false,
+    initialized: true,
     config: DEFAULT_STORE_CONFIG,
     banners: DEFAULT_BANNERS,
     categories: DEFAULT_CATEGORIES,
@@ -533,6 +597,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (ordRes.data) setOrders((ordRes.data as DbRow[]).map(mapOrderFromDb));
       if (inqRes.data) setInquiries((inqRes.data as DbRow[]).map(mapInquiryFromDb));
       if (anaRes.data) setAnalyticsEvents((anaRes.data as DbRow[]).map(mapAnalyticsFromDb));
+
+      // One-time auto-purge of legacy demo IDs if previously seeded into Supabase
+      try {
+        if (localStorage.getItem(CLOUD_DEMO_PURGE_FLAG) !== '1') {
+          const [bDel, pDel, cDel] = await Promise.all([
+            client.from('banners').delete().in('id', DEMO_BANNER_IDS),
+            client.from('products').delete().in('id', DEMO_PRODUCT_IDS),
+            client.from('catalogs').delete().in('id', DEMO_CATALOG_IDS),
+          ]);
+          if (!bDel.error && !pDel.error && !cDel.error && mounted) {
+            setCloudBanners((prev) => prev.filter((b) => !DEMO_BANNER_IDS.includes(b.id)));
+            setCloudProducts((prev) => prev.filter((p) => !DEMO_PRODUCT_IDS.includes(p.id)));
+            setCloudCatalogs((prev) => prev.filter((c) => !DEMO_CATALOG_IDS.includes(c.id)));
+            localStorage.setItem(CLOUD_DEMO_PURGE_FLAG, '1');
+          }
+        }
+      } catch {
+        // Ignore storage error
+      }
     };
 
     loadAdminData();
@@ -590,11 +673,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [authReady, isVerifiedAdmin]);
 
-  // Once cloud store_config exists, PostgreSQL is the sole source of truth—even when empty ([])
-  const banners = useMemo(
-    () => (hasCloudConfig || cloudBanners.length > 0 ? cloudBanners : DEFAULT_BANNERS),
-    [hasCloudConfig, cloudBanners]
-  );
+  // Real items only (never fall back to fake demo banners/products/catalogs)
+  const banners = cloudBanners;
+  const products = cloudProducts;
+  const catalogs = cloudCatalogs;
+
   const categories = useMemo(
     () => (hasCloudConfig || cloudCategories.length > 0 ? cloudCategories : DEFAULT_CATEGORIES),
     [hasCloudConfig, cloudCategories]
@@ -602,14 +685,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const subpages = useMemo(
     () => (hasCloudConfig || cloudSubpages.length > 0 ? cloudSubpages : DEFAULT_SUBPAGES),
     [hasCloudConfig, cloudSubpages]
-  );
-  const products = useMemo(
-    () => (hasCloudConfig || cloudProducts.length > 0 ? cloudProducts : DEFAULT_PRODUCTS),
-    [hasCloudConfig, cloudProducts]
-  );
-  const catalogs = useMemo(
-    () => (hasCloudConfig || cloudCatalogs.length > 0 ? cloudCatalogs : DEFAULT_CATALOGS),
-    [hasCloudConfig, cloudCatalogs]
   );
 
   const signInOwnerGoogle = useCallback(async () => {
@@ -678,16 +753,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCart([]);
   }, []);
 
-  // Materializes defaults into PostgreSQL (or local state) before first mutation so deletions stay permanent
+  // Materializes store_config & base categories/subpages on first mutation (never seeds demo products/banners)
   const materializeDefaultsIfUnseeded = useCallback(
     async (opts?: {
-      skipBannerId?: string;
       skipCategoryId?: string;
       skipSubpageId?: string;
-      skipProductId?: string;
-      skipCatalogId?: string;
-      skipAllBanners?: boolean;
-      skipAllProducts?: boolean;
     }) => {
       if (hasCloudConfigRef.current) return;
 
@@ -695,22 +765,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const subs = DEFAULT_SUBPAGES.filter(
         (s) => s.id !== opts?.skipSubpageId && s.categoryId !== opts?.skipCategoryId
       );
-      const bans = opts?.skipAllBanners
-        ? []
-        : DEFAULT_BANNERS.filter((b) => b.id !== opts?.skipBannerId);
-      const prods = opts?.skipAllProducts
-        ? []
-        : DEFAULT_PRODUCTS.filter((p) => p.id !== opts?.skipProductId);
-      const catlgs = DEFAULT_CATALOGS.filter((k) => k.id !== opts?.skipCatalogId);
 
       if (!supabase || !isSupabaseConfigured) {
         hasCloudConfigRef.current = true;
         setHasCloudConfig(true);
         setCloudCategories(cats);
         setCloudSubpages(subs);
-        setCloudBanners(bans);
-        setCloudProducts(prods);
-        setCloudCatalogs(catlgs);
         return;
       }
 
@@ -718,41 +778,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const { error: cfgErr } = await client
         .from('store_config')
         .upsert(mapConfigToDb(config), { onConflict: 'id' });
-      if (cfgErr) throw new Error(cfgErr.message);
+      if (cfgErr) throw normalizeSupabaseError(cfgErr.message);
 
       if (cats.length > 0) {
         const { error } = await client
           .from('categories')
           .upsert(cats.map(mapCategoryToDb), { onConflict: 'id' });
-        if (error) throw new Error(error.message);
+        if (error) throw normalizeSupabaseError(error.message);
       }
 
       if (subs.length > 0) {
         const { error } = await client
           .from('subpages')
           .upsert(subs.map(mapSubpageToDb), { onConflict: 'id' });
-        if (error) throw new Error(error.message);
-      }
-
-      if (bans.length > 0) {
-        const { error } = await client
-          .from('banners')
-          .upsert(bans.map(mapBannerToDb), { onConflict: 'id' });
-        if (error) throw new Error(error.message);
-      }
-
-      if (prods.length > 0) {
-        const { error } = await client
-          .from('products')
-          .upsert(prods.map(mapProductToDb), { onConflict: 'id' });
-        if (error) throw new Error(error.message);
-      }
-
-      if (catlgs.length > 0) {
-        const { error } = await client
-          .from('catalogs')
-          .upsert(catlgs.map(mapCatalogToDb), { onConflict: 'id' });
-        if (error) throw new Error(error.message);
+        if (error) throw normalizeSupabaseError(error.message);
       }
 
       hasCloudConfigRef.current = true;
@@ -771,73 +810,52 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const { error } = await supabase
       .from('store_config')
       .upsert(mapConfigToDb(nextConfig), { onConflict: 'id' });
-    if (error) throw new Error(error.message);
+    if (error) throw normalizeSupabaseError(error.message);
     hasCloudConfigRef.current = true;
     setHasCloudConfig(true);
     setConfig(nextConfig);
   }, []);
 
+  // Initializes store settings and base categories ONLY (never inserts demo banners or products)
   const seedMissingCatalog = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) {
       hasCloudConfigRef.current = true;
       setHasCloudConfig(true);
-      setConfig(DEFAULT_STORE_CONFIG);
-      setCloudCategories(DEFAULT_CATEGORIES);
-      setCloudSubpages(DEFAULT_SUBPAGES);
-      setCloudBanners(DEFAULT_BANNERS);
-      setCloudProducts(DEFAULT_PRODUCTS);
-      setCloudCatalogs(DEFAULT_CATALOGS);
+      setConfig((prev) => ({ ...DEFAULT_STORE_CONFIG, ...prev }));
+      if (cloudCategories.length === 0) setCloudCategories(DEFAULT_CATEGORIES);
+      if (cloudSubpages.length === 0) setCloudSubpages(DEFAULT_SUBPAGES);
       return;
     }
 
     const client = supabase;
     const { error: e1 } = await client
       .from('store_config')
-      .upsert(mapConfigToDb(DEFAULT_STORE_CONFIG), { onConflict: 'id' });
-    if (e1) throw new Error(e1.message);
+      .upsert(mapConfigToDb(config), { onConflict: 'id' });
+    if (e1) throw normalizeSupabaseError(e1.message);
 
     const { error: e2 } = await client
       .from('categories')
       .upsert(DEFAULT_CATEGORIES.map(mapCategoryToDb), { onConflict: 'id' });
-    if (e2) throw new Error(e2.message);
+    if (e2) throw normalizeSupabaseError(e2.message);
 
     const { error: e3 } = await client
       .from('subpages')
       .upsert(DEFAULT_SUBPAGES.map(mapSubpageToDb), { onConflict: 'id' });
-    if (e3) throw new Error(e3.message);
-
-    const { error: e4 } = await client
-      .from('banners')
-      .upsert(DEFAULT_BANNERS.map(mapBannerToDb), { onConflict: 'id' });
-    if (e4) throw new Error(e4.message);
-
-    const { error: e5 } = await client
-      .from('products')
-      .upsert(DEFAULT_PRODUCTS.map(mapProductToDb), { onConflict: 'id' });
-    if (e5) throw new Error(e5.message);
-
-    const { error: e6 } = await client
-      .from('catalogs')
-      .upsert(DEFAULT_CATALOGS.map(mapCatalogToDb), { onConflict: 'id' });
-    if (e6) throw new Error(e6.message);
+    if (e3) throw normalizeSupabaseError(e3.message);
 
     hasCloudConfigRef.current = true;
     setHasCloudConfig(true);
-    setConfig(DEFAULT_STORE_CONFIG);
-    setCloudCategories(DEFAULT_CATEGORIES);
-    setCloudSubpages(DEFAULT_SUBPAGES);
-    setCloudBanners(DEFAULT_BANNERS);
-    setCloudProducts(DEFAULT_PRODUCTS);
-    setCloudCatalogs(DEFAULT_CATALOGS);
-  }, []);
+    setCloudCategories((prev) => (prev.length > 0 ? prev : DEFAULT_CATEGORIES));
+    setCloudSubpages((prev) => (prev.length > 0 ? prev : DEFAULT_SUBPAGES));
+  }, [cloudCategories.length, cloudSubpages.length, config]);
 
+  // Restores default store config text/contact & base categories if empty (never restores demo posts)
   const restoreDefaultConfigAndCatalog = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) {
       hasCloudConfigRef.current = true;
       setHasCloudConfig(true);
       setConfig(DEFAULT_STORE_CONFIG);
-      setCloudCategories(DEFAULT_CATEGORIES);
-      setCloudBanners(DEFAULT_BANNERS);
+      if (cloudCategories.length === 0) setCloudCategories(DEFAULT_CATEGORIES);
       return;
     }
 
@@ -845,22 +863,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const { error: e1 } = await client
       .from('store_config')
       .upsert(mapConfigToDb(DEFAULT_STORE_CONFIG), { onConflict: 'id' });
-    if (e1) throw new Error(e1.message);
+    if (e1) throw normalizeSupabaseError(e1.message);
 
-    const { error: e2 } = await client
-      .from('categories')
-      .upsert(DEFAULT_CATEGORIES.map(mapCategoryToDb), { onConflict: 'id' });
-    if (e2) throw new Error(e2.message);
-
-    const { error: e3 } = await client
-      .from('banners')
-      .upsert(DEFAULT_BANNERS.map(mapBannerToDb), { onConflict: 'id' });
-    if (e3) throw new Error(e3.message);
+    if (cloudCategories.length === 0) {
+      const { error: e2 } = await client
+        .from('categories')
+        .upsert(DEFAULT_CATEGORIES.map(mapCategoryToDb), { onConflict: 'id' });
+      if (e2) throw normalizeSupabaseError(e2.message);
+      setCloudCategories(DEFAULT_CATEGORIES);
+    }
 
     hasCloudConfigRef.current = true;
     setHasCloudConfig(true);
     setConfig(DEFAULT_STORE_CONFIG);
-  }, []);
+  }, [cloudCategories.length]);
 
   const upsertBanner = useCallback(
     async (banner: Omit<Banner, 'createdAt' | 'updatedAt'>, _isNew: boolean) => {
@@ -878,7 +894,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const { error } = await supabase
         .from('banners')
         .upsert(mapBannerToDb(next), { onConflict: 'id' });
-      if (error) throw new Error(error.message);
+      if (error) throw normalizeSupabaseError(error.message);
       setCloudBanners((prev) =>
         upsertItemInList(prev, next).sort((a, b) => a.sortOrder - b.sortOrder)
       );
@@ -889,28 +905,39 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteBanner = useCallback(
     async (id: string) => {
       const safeId = sanitizeId(id);
-      await materializeDefaultsIfUnseeded({ skipBannerId: safeId });
+      await materializeDefaultsIfUnseeded();
       if (!supabase || !isSupabaseConfigured) {
         setCloudBanners((prev) => prev.filter((b) => b.id !== safeId));
         return;
       }
-      const { error } = await supabase.from('banners').delete().eq('id', safeId);
-      if (error) throw new Error(error.message);
+      const { data, error } = await supabase
+        .from('banners')
+        .delete()
+        .eq('id', safeId)
+        .select('id');
+      if (error) throw normalizeSupabaseError(error.message);
+      if ((!data || data.length === 0) && !isVerifiedAdmin) {
+        throw new Error(CLOUD_AUTH_REQUIRED_MSG);
+      }
       setCloudBanners((prev) => prev.filter((b) => b.id !== safeId));
     },
-    [materializeDefaultsIfUnseeded]
+    [isVerifiedAdmin, materializeDefaultsIfUnseeded]
   );
 
   const deleteAllBanners = useCallback(async () => {
-    await materializeDefaultsIfUnseeded({ skipAllBanners: true });
+    await materializeDefaultsIfUnseeded();
     if (!supabase || !isSupabaseConfigured) {
       setCloudBanners([]);
       return;
     }
-    const { error } = await supabase.from('banners').delete().neq('id', '');
-    if (error) throw new Error(error.message);
+    const hadBanners = cloudBanners.length > 0;
+    const { data, error } = await supabase.from('banners').delete().neq('id', '').select('id');
+    if (error) throw normalizeSupabaseError(error.message);
+    if (hadBanners && (!data || data.length === 0) && !isVerifiedAdmin) {
+      throw new Error(CLOUD_AUTH_REQUIRED_MSG);
+    }
     setCloudBanners([]);
-  }, [materializeDefaultsIfUnseeded]);
+  }, [cloudBanners.length, isVerifiedAdmin, materializeDefaultsIfUnseeded]);
 
   const upsertCategory = useCallback(
     async (cat: Omit<Category, 'createdAt' | 'updatedAt'>, _isNew: boolean) => {
@@ -928,7 +955,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const { error } = await supabase
         .from('categories')
         .upsert(mapCategoryToDb(next), { onConflict: 'id' });
-      if (error) throw new Error(error.message);
+      if (error) throw normalizeSupabaseError(error.message);
       setCloudCategories((prev) =>
         upsertItemInList(prev, next).sort((a, b) => a.sortOrder - b.sortOrder)
       );
@@ -940,15 +967,58 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     async (id: string) => {
       const safeId = sanitizeId(id);
       await materializeDefaultsIfUnseeded({ skipCategoryId: safeId });
+      const remainingCat = categories.find((c) => c.id !== safeId);
+      const nextCatId = remainingCat ? remainingCat.id : '';
+
       if (!supabase || !isSupabaseConfigured) {
+        setCloudProducts((prev) =>
+          prev.map((p) =>
+            p.categoryId === safeId ? { ...p, categoryId: nextCatId, subpageId: '' } : p
+          )
+        );
+        setCloudSubpages((prev) => prev.filter((s) => s.categoryId !== safeId));
         setCloudCategories((prev) => prev.filter((c) => c.id !== safeId));
         return;
       }
-      const { error } = await supabase.from('categories').delete().eq('id', safeId);
-      if (error) throw new Error(error.message);
+
+      if (remainingCat && !cloudCategories.some((c) => c.id === remainingCat.id)) {
+        await supabase
+          .from('categories')
+          .upsert(mapCategoryToDb(remainingCat), { onConflict: 'id' });
+      }
+
+      // Move products from the deleted category first so no FK restriction blocks deletion
+      const { error: moveErr } = await supabase
+        .from('products')
+        .update({ category_id: nextCatId, subpage_id: '', updated_at: new Date().toISOString() })
+        .eq('category_id', safeId);
+      if (moveErr) throw normalizeSupabaseError(moveErr.message);
+
+      const { error: subErr } = await supabase
+        .from('subpages')
+        .delete()
+        .eq('category_id', safeId);
+      if (subErr) throw normalizeSupabaseError(subErr.message);
+
+      const { data, error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', safeId)
+        .select('id');
+      if (error) throw normalizeSupabaseError(error.message);
+      if ((!data || data.length === 0) && !isVerifiedAdmin) {
+        throw new Error(CLOUD_AUTH_REQUIRED_MSG);
+      }
+
+      setCloudProducts((prev) =>
+        prev.map((p) =>
+          p.categoryId === safeId ? { ...p, categoryId: nextCatId, subpageId: '' } : p
+        )
+      );
+      setCloudSubpages((prev) => prev.filter((s) => s.categoryId !== safeId));
       setCloudCategories((prev) => prev.filter((c) => c.id !== safeId));
     },
-    [materializeDefaultsIfUnseeded]
+    [categories, cloudCategories, isVerifiedAdmin, materializeDefaultsIfUnseeded]
   );
 
   const upsertSubpage = useCallback(
@@ -971,7 +1041,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const { error } = await supabase
         .from('subpages')
         .upsert(mapSubpageToDb(next), { onConflict: 'id' });
-      if (error) throw new Error(error.message);
+      if (error) throw normalizeSupabaseError(error.message);
       setCloudSubpages((prev) => upsertItemInList(prev, next));
     },
     [categories, cloudCategories, materializeDefaultsIfUnseeded]
@@ -982,20 +1052,40 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const safeId = sanitizeId(id);
       await materializeDefaultsIfUnseeded({ skipSubpageId: safeId });
       if (!supabase || !isSupabaseConfigured) {
+        setCloudProducts((prev) =>
+          prev.map((p) => (p.subpageId === safeId ? { ...p, subpageId: '' } : p))
+        );
         setCloudSubpages((prev) => prev.filter((s) => s.id !== safeId));
         return;
       }
-      const { error } = await supabase.from('subpages').delete().eq('id', safeId);
-      if (error) throw new Error(error.message);
+
+      await supabase
+        .from('products')
+        .update({ subpage_id: '', updated_at: new Date().toISOString() })
+        .eq('subpage_id', safeId);
+
+      const { data, error } = await supabase
+        .from('subpages')
+        .delete()
+        .eq('id', safeId)
+        .select('id');
+      if (error) throw normalizeSupabaseError(error.message);
+      if ((!data || data.length === 0) && !isVerifiedAdmin) {
+        throw new Error(CLOUD_AUTH_REQUIRED_MSG);
+      }
+
+      setCloudProducts((prev) =>
+        prev.map((p) => (p.subpageId === safeId ? { ...p, subpageId: '' } : p))
+      );
       setCloudSubpages((prev) => prev.filter((s) => s.id !== safeId));
     },
-    [materializeDefaultsIfUnseeded]
+    [isVerifiedAdmin, materializeDefaultsIfUnseeded]
   );
 
   const upsertProduct = useCallback(
     async (prod: Omit<Product, 'createdAt' | 'updatedAt'>, isNew: boolean) => {
       const id = sanitizeId(prod.id);
-      const categoryId = sanitizeId(prod.categoryId);
+      const categoryId = prod.categoryId ? sanitizeId(prod.categoryId) : '';
       const next: Product = { ...prod, id, categoryId };
       await materializeDefaultsIfUnseeded();
 
@@ -1012,7 +1102,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const { error } = await supabase
         .from('products')
         .upsert(mapProductToDb(next), { onConflict: 'id' });
-      if (error) throw new Error(error.message);
+      if (error) throw normalizeSupabaseError(error.message);
       setCloudProducts((prev) => upsertItemInList(prev, next, isNew));
     },
     [categories, cloudCategories, materializeDefaultsIfUnseeded]
@@ -1021,48 +1111,73 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteProduct = useCallback(
     async (id: string) => {
       const safeId = sanitizeId(id);
-      await materializeDefaultsIfUnseeded({ skipProductId: safeId });
+      await materializeDefaultsIfUnseeded();
       if (!supabase || !isSupabaseConfigured) {
         setCloudProducts((prev) => prev.filter((p) => p.id !== safeId));
         return;
       }
-      const { error } = await supabase.from('products').delete().eq('id', safeId);
-      if (error) throw new Error(error.message);
+      const { data, error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', safeId)
+        .select('id');
+      if (error) throw normalizeSupabaseError(error.message);
+      if ((!data || data.length === 0) && !isVerifiedAdmin) {
+        throw new Error(CLOUD_AUTH_REQUIRED_MSG);
+      }
       setCloudProducts((prev) => prev.filter((p) => p.id !== safeId));
     },
-    [materializeDefaultsIfUnseeded]
+    [isVerifiedAdmin, materializeDefaultsIfUnseeded]
   );
 
   const deleteAllProducts = useCallback(async () => {
-    await materializeDefaultsIfUnseeded({ skipAllProducts: true });
+    await materializeDefaultsIfUnseeded();
     if (!supabase || !isSupabaseConfigured) {
       setCloudProducts([]);
       return;
     }
-    const { error } = await supabase.from('products').delete().neq('id', '');
-    if (error) throw new Error(error.message);
+    const hadProducts = cloudProducts.length > 0;
+    const { data, error } = await supabase.from('products').delete().neq('id', '').select('id');
+    if (error) throw normalizeSupabaseError(error.message);
+    if (hadProducts && (!data || data.length === 0) && !isVerifiedAdmin) {
+      throw new Error(CLOUD_AUTH_REQUIRED_MSG);
+    }
     setCloudProducts([]);
-  }, [materializeDefaultsIfUnseeded]);
+  }, [cloudProducts.length, isVerifiedAdmin, materializeDefaultsIfUnseeded]);
 
   const cleanAllProductsAndBanners = useCallback(async () => {
-    await materializeDefaultsIfUnseeded({
-      skipAllProducts: true,
-      skipAllBanners: true,
-    });
+    await materializeDefaultsIfUnseeded();
     if (!supabase || !isSupabaseConfigured) {
       setCloudProducts([]);
       setCloudBanners([]);
+      setCloudCatalogs([]);
       return;
     }
-    const [prodRes, banRes] = await Promise.all([
-      supabase.from('products').delete().neq('id', ''),
-      supabase.from('banners').delete().neq('id', ''),
+    const hadAny =
+      cloudProducts.length > 0 || cloudBanners.length > 0 || cloudCatalogs.length > 0;
+    const [prodRes, banRes, catlgRes] = await Promise.all([
+      supabase.from('products').delete().neq('id', '').select('id'),
+      supabase.from('banners').delete().neq('id', '').select('id'),
+      supabase.from('catalogs').delete().neq('id', '').select('id'),
     ]);
-    if (prodRes.error) throw new Error(prodRes.error.message);
-    if (banRes.error) throw new Error(banRes.error.message);
+    if (prodRes.error) throw normalizeSupabaseError(prodRes.error.message);
+    if (banRes.error) throw normalizeSupabaseError(banRes.error.message);
+    if (catlgRes.error) throw normalizeSupabaseError(catlgRes.error.message);
+    const totalDeleted =
+      (prodRes.data?.length || 0) + (banRes.data?.length || 0) + (catlgRes.data?.length || 0);
+    if (hadAny && totalDeleted === 0 && !isVerifiedAdmin) {
+      throw new Error(CLOUD_AUTH_REQUIRED_MSG);
+    }
     setCloudProducts([]);
     setCloudBanners([]);
-  }, [materializeDefaultsIfUnseeded]);
+    setCloudCatalogs([]);
+  }, [
+    cloudBanners.length,
+    cloudCatalogs.length,
+    cloudProducts.length,
+    isVerifiedAdmin,
+    materializeDefaultsIfUnseeded,
+  ]);
 
   const upsertCatalog = useCallback(
     async (catlg: Omit<ColorCatalog, 'createdAt' | 'updatedAt'>, isNew: boolean) => {
@@ -1101,7 +1216,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const { error } = await supabase
         .from('catalogs')
         .upsert(mapCatalogToDb(next), { onConflict: 'id' });
-      if (error) throw new Error(error.message);
+      if (error) throw normalizeSupabaseError(error.message);
       setCloudCatalogs((prev) => upsertItemInList(prev, next, isNew));
     },
     [materializeDefaultsIfUnseeded]
@@ -1110,16 +1225,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteCatalog = useCallback(
     async (id: string) => {
       const safeId = sanitizeId(id);
-      await materializeDefaultsIfUnseeded({ skipCatalogId: safeId });
+      await materializeDefaultsIfUnseeded();
       if (!supabase || !isSupabaseConfigured) {
         setCloudCatalogs((prev) => prev.filter((c) => c.id !== safeId));
         return;
       }
-      const { error } = await supabase.from('catalogs').delete().eq('id', safeId);
-      if (error) throw new Error(error.message);
+      const { data, error } = await supabase
+        .from('catalogs')
+        .delete()
+        .eq('id', safeId)
+        .select('id');
+      if (error) throw normalizeSupabaseError(error.message);
+      if ((!data || data.length === 0) && !isVerifiedAdmin) {
+        throw new Error(CLOUD_AUTH_REQUIRED_MSG);
+      }
       setCloudCatalogs((prev) => prev.filter((c) => c.id !== safeId));
     },
-    [materializeDefaultsIfUnseeded]
+    [isVerifiedAdmin, materializeDefaultsIfUnseeded]
   );
 
   const submitOrder = useCallback(
@@ -1187,7 +1309,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       .from('orders')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', safeId);
-    if (error) throw new Error(error.message);
+    if (error) throw normalizeSupabaseError(error.message);
     setOrders((prev) => prev.map((o) => (o.id === safeId ? { ...o, status } : o)));
   }, []);
 
@@ -1240,7 +1362,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       .from('inquiries')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', safeId);
-    if (error) throw new Error(error.message);
+    if (error) throw normalizeSupabaseError(error.message);
     setInquiries((prev) => prev.map((q) => (q.id === safeId ? { ...q, status } : q)));
   }, []);
 
@@ -1251,7 +1373,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
     const { error } = await supabase.from('store_analytics').delete().neq('id', '');
-    if (error) throw new Error(error.message);
+    if (error) throw normalizeSupabaseError(error.message);
     setAnalyticsEvents([]);
   }, []);
 

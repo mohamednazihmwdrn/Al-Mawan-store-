@@ -359,12 +359,28 @@ export const OwnerCategoriesTab: React.FC<{
   const [catDesc, setCatDesc] = useState('');
   const [catImg, setCatImg] = useState('');
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [savingCat, setSavingCat] = useState(false);
 
   const [subParentId, setSubParentId] = useState(categories[0]?.id || '');
   const [subName, setSubName] = useState('');
   const [subDesc, setSubDesc] = useState('');
   const [subImg, setSubImg] = useState('');
   const [editingSubId, setEditingSubId] = useState<string | null>(null);
+  const [savingSub, setSavingSub] = useState(false);
+
+  const resetCatForm = () => {
+    setEditingCatId(null);
+    setCatName('');
+    setCatDesc('');
+    setCatImg('');
+  };
+
+  const resetSubForm = () => {
+    setEditingSubId(null);
+    setSubName('');
+    setSubDesc('');
+    setSubImg('');
+  };
 
   const handleImgUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -382,45 +398,63 @@ export const OwnerCategoriesTab: React.FC<{
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!catName.trim()) return;
-    const id = editingCatId || sanitizeId(`cat_${Date.now().toString(36)}`);
-    await upsertCategory(
-      {
-        id,
-        name: catName.trim(),
-        description: catDesc.trim(),
-        imageUrl: catImg.trim(),
-        sortOrder: editingCatId
-          ? categories.find((c) => c.id === editingCatId)?.sortOrder ?? 1
-          : categories.length + 1,
-      },
-      !editingCatId
-    );
-    setEditingCatId(null);
-    setCatName('');
-    setCatDesc('');
-    setCatImg('');
+    if (!catName.trim()) {
+      requireAuthToast('يرجى إدخال اسم القسم.');
+      return;
+    }
+    setSavingCat(true);
+    try {
+      const id = editingCatId || sanitizeId(`cat_${Date.now().toString(36)}`);
+      await upsertCategory(
+        {
+          id,
+          name: catName.trim(),
+          description: catDesc.trim(),
+          imageUrl: catImg.trim(),
+          sortOrder: editingCatId
+            ? categories.find((c) => c.id === editingCatId)?.sortOrder ?? 1
+            : categories.length + 1,
+        },
+        !editingCatId
+      );
+      requireAuthToast(editingCatId ? 'تم حفظ تعديلات القسم بنجاح!' : 'تمت إضافة القسم بنجاح!');
+      resetCatForm();
+    } catch (err) {
+      requireAuthToast(err instanceof Error ? err.message : 'تعذر حفظ القسم');
+    } finally {
+      setSavingCat(false);
+    }
   };
 
   const handleSaveSubpage = async (e: React.FormEvent) => {
     e.preventDefault();
     const targetCatId = subParentId || categories[0]?.id;
-    if (!targetCatId || !subName.trim()) return;
-    const id = editingSubId || sanitizeId(`sub_${Date.now().toString(36)}`);
-    await upsertSubpage(
-      {
-        id,
-        categoryId: targetCatId,
-        name: subName.trim(),
-        description: subDesc.trim(),
-        imageUrl: subImg.trim(),
-      },
-      !editingSubId
-    );
-    setEditingSubId(null);
-    setSubName('');
-    setSubDesc('');
-    setSubImg('');
+    if (!targetCatId || !subName.trim()) {
+      requireAuthToast('يرجى اختيار القسم الرئيسي وإدخال اسم الصفحة الفرعية.');
+      return;
+    }
+    setSavingSub(true);
+    try {
+      const id = editingSubId || sanitizeId(`sub_${Date.now().toString(36)}`);
+      await upsertSubpage(
+        {
+          id,
+          categoryId: targetCatId,
+          name: subName.trim(),
+          description: subDesc.trim(),
+          imageUrl: subImg.trim(),
+        },
+        !editingSubId
+      );
+      requireAuthToast(
+        editingSubId ? 'تم حفظ تعديلات الصفحة الفرعية بنجاح!' : 'تمت إضافة الصفحة الفرعية بنجاح!'
+      );
+      resetSubForm();
+    } catch (err) {
+      requireAuthToast(err instanceof Error ? err.message : 'تعذر حفظ الصفحة الفرعية');
+    } finally {
+      setSavingSub(false);
+    }
   };
 
   return (
@@ -430,9 +464,20 @@ export const OwnerCategoriesTab: React.FC<{
         onSubmit={handleSaveCategory}
         className="rounded-2xl bg-white border border-slate-200 p-5 space-y-4"
       >
-        <h3 className="text-base font-extrabold text-slate-900">
-          {editingCatId ? 'تعديل قسم رئيسي' : 'إضافة قسم رئيسي جديد'}
-        </h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-base font-extrabold text-slate-900">
+            {editingCatId ? 'تعديل قسم رئيسي' : 'إضافة قسم رئيسي جديد'}
+          </h3>
+          {editingCatId && (
+            <button
+              type="button"
+              onClick={resetCatForm}
+              className="text-xs font-bold text-slate-500 hover:text-slate-900 cursor-pointer"
+            >
+              إلغاء التعديل
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input
             type="text"
@@ -471,9 +516,10 @@ export const OwnerCategoriesTab: React.FC<{
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 text-white py-3 text-sm font-bold cursor-pointer"
+          disabled={savingCat}
+          className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 text-sm font-bold cursor-pointer"
         >
-          {editingCatId ? 'حفظ تعديل القسم' : 'إضافة القسم الآن'}
+          {savingCat ? 'جاري الحفظ...' : editingCatId ? 'حفظ تعديل القسم' : 'إضافة القسم الآن'}
         </button>
       </form>
 
@@ -522,12 +568,17 @@ export const OwnerCategoriesTab: React.FC<{
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      deleteCategory(c.id).catch((err) =>
-                        requireAuthToast(err instanceof Error ? err.message : 'تعذر حذف القسم')
-                      );
+                    onClick={async () => {
+                      try {
+                        await deleteCategory(c.id);
+                        if (editingCatId === c.id) resetCatForm();
+                        requireAuthToast(`تم حذف قسم "${c.name}" نهائياً.`);
+                      } catch (err) {
+                        requireAuthToast(err instanceof Error ? err.message : 'تعذر حذف القسم');
+                      }
                     }}
                     className="p-2 rounded-lg bg-red-50 text-red-600 cursor-pointer"
+                    aria-label="حذف القسم"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -543,11 +594,22 @@ export const OwnerCategoriesTab: React.FC<{
         onSubmit={handleSaveSubpage}
         className="rounded-2xl bg-white border border-slate-200 p-5 space-y-4"
       >
-        <div className="flex items-center gap-2">
-          <Layers className="w-5 h-5 text-indigo-600" />
-          <h3 className="text-base font-extrabold text-slate-900">
-            {editingSubId ? 'تعديل صفحة فرعية' : 'إضافة صفحة فرعية داخل قسم'}
-          </h3>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Layers className="w-5 h-5 text-indigo-600" />
+            <h3 className="text-base font-extrabold text-slate-900">
+              {editingSubId ? 'تعديل صفحة فرعية' : 'إضافة صفحة فرعية داخل قسم'}
+            </h3>
+          </div>
+          {editingSubId && (
+            <button
+              type="button"
+              onClick={resetSubForm}
+              className="text-xs font-bold text-slate-500 hover:text-slate-900 cursor-pointer"
+            >
+              إلغاء التعديل
+            </button>
+          )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <select
@@ -598,9 +660,10 @@ export const OwnerCategoriesTab: React.FC<{
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white py-3 text-sm font-bold cursor-pointer"
+          disabled={savingSub}
+          className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white py-3 text-sm font-bold cursor-pointer"
         >
-          {editingSubId ? 'حفظ تعديل الصفحة الفرعية' : 'إضافة الصفحة الفرعية الآن'}
+          {savingSub ? 'جاري الحفظ...' : editingSubId ? 'حفظ تعديل الصفحة الفرعية' : 'إضافة الصفحة الفرعية الآن'}
         </button>
       </form>
 
@@ -637,12 +700,17 @@ export const OwnerCategoriesTab: React.FC<{
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      deleteSubpage(s.id).catch((err) =>
-                        requireAuthToast(err instanceof Error ? err.message : 'تعذر حذف الصفحة الفرعية')
-                      );
+                    onClick={async () => {
+                      try {
+                        await deleteSubpage(s.id);
+                        if (editingSubId === s.id) resetSubForm();
+                        requireAuthToast(`تم حذف الصفحة الفرعية "${s.name}" نهائياً.`);
+                      } catch (err) {
+                        requireAuthToast(err instanceof Error ? err.message : 'تعذر حذف الصفحة الفرعية');
+                      }
                     }}
                     className="p-2 rounded-lg bg-red-50 text-red-600 cursor-pointer"
+                    aria-label="حذف الصفحة الفرعية"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -1008,80 +1076,94 @@ export const OwnerCatalogsTab: React.FC<{
         </button>
       </form>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {catalogs.map((catlg) => {
-          const items = getCatalogAttachments(catlg);
-          const imgs = items.filter((i) => i.type === 'image');
-          const pdfs = items.filter((i) => i.type === 'pdf');
-          const coverImg = imgs[0];
+      {catalogs.length === 0 ? (
+        <div className="rounded-2xl bg-white border border-slate-200 p-10 text-center space-y-2 text-slate-500">
+          <FileText className="w-10 h-10 mx-auto text-slate-300" />
+          <p className="text-sm font-bold text-slate-700">لا توجد كتالوجات مرفقة حالياً</p>
+          <p className="text-xs text-slate-500">
+            أضف كتالوجات الألوان (صور متعددة أو ملفات PDF متعددة) من النموذج أعلاه لتظهر للعملاء في كمبيوتر الألوان.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {catalogs.map((catlg) => {
+            const items = getCatalogAttachments(catlg);
+            const imgs = items.filter((i) => i.type === 'image');
+            const pdfs = items.filter((i) => i.type === 'pdf');
+            const coverImg = imgs[0];
 
-          return (
-            <div
-              key={catlg.id}
-              className="rounded-2xl bg-white border border-slate-200 overflow-hidden flex flex-col"
-            >
-              {coverImg ? (
-                <div className="aspect-[4/3] bg-slate-100 overflow-hidden relative">
-                  <img
-                    src={coverImg.url}
-                    alt={catlg.title}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="aspect-[4/3] bg-slate-900 text-amber-400 flex flex-col items-center justify-center gap-2">
-                  <FileText className="w-10 h-10" />
-                  <span className="text-xs font-bold text-white">
-                    {pdfs.length > 1 ? `${pdfs.length} ملفات PDF` : 'كتالوج PDF'}
-                  </span>
-                </div>
-              )}
-
-              <div className="p-4 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold text-blue-700">
-                    {imgs.length > 0 && `${imgs.length} صورة`}
-                    {imgs.length > 0 && pdfs.length > 0 && ' · '}
-                    {pdfs.length > 0 && `${pdfs.length} PDF`}
-                    {catlg.brand ? ` · ${catlg.brand}` : ''}
+            return (
+              <div
+                key={catlg.id}
+                className="rounded-2xl bg-white border border-slate-200 overflow-hidden flex flex-col"
+              >
+                {coverImg ? (
+                  <div className="aspect-[4/3] bg-slate-100 overflow-hidden relative">
+                    <img
+                      src={coverImg.url}
+                      alt={catlg.title}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  <h4 className="text-sm font-bold text-slate-900 truncate">{catlg.title}</h4>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingId(catlg.id);
-                      setTitle(catlg.title);
-                      setBrand(catlg.brand);
-                      setAttachments(getCatalogAttachments(catlg));
-                      setNotes(catlg.notes);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="p-2 rounded-lg bg-blue-50 text-blue-700 cursor-pointer"
-                    aria-label="تعديل"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      deleteCatalog(catlg.id).catch((err) =>
-                        requireAuthToast(err instanceof Error ? err.message : 'تعذر حذف الكتالوج')
-                      );
-                    }}
-                    className="p-2 rounded-lg bg-red-50 text-red-600 cursor-pointer"
-                    aria-label="حذف"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                ) : (
+                  <div className="aspect-[4/3] bg-slate-900 text-amber-400 flex flex-col items-center justify-center gap-2">
+                    <FileText className="w-10 h-10" />
+                    <span className="text-xs font-bold text-white">
+                      {pdfs.length > 1 ? `${pdfs.length} ملفات PDF` : 'كتالوج PDF'}
+                    </span>
+                  </div>
+                )}
+
+                <div className="p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-blue-700">
+                      {imgs.length > 0 && `${imgs.length} صورة`}
+                      {imgs.length > 0 && pdfs.length > 0 && ' · '}
+                      {pdfs.length > 0 && `${pdfs.length} PDF`}
+                      {catlg.brand ? ` · ${catlg.brand}` : ''}
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900 truncate">{catlg.title}</h4>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(catlg.id);
+                        setTitle(catlg.title);
+                        setBrand(catlg.brand);
+                        setAttachments(getCatalogAttachments(catlg));
+                        setNotes(catlg.notes);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="p-2 rounded-lg bg-blue-50 text-blue-700 cursor-pointer"
+                      aria-label="تعديل"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await deleteCatalog(catlg.id);
+                          if (editingId === catlg.id) resetForm();
+                          requireAuthToast(`تم حذف "${catlg.title}" نهائياً.`);
+                        } catch (err) {
+                          requireAuthToast(err instanceof Error ? err.message : 'تعذر حذف الكتالوج');
+                        }
+                      }}
+                      className="p-2 rounded-lg bg-red-50 text-red-600 cursor-pointer"
+                      aria-label="حذف"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
