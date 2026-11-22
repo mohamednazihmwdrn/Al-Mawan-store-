@@ -84,8 +84,8 @@ export const Header: React.FC<HeaderProps> = ({
     },
     {
       id: 'glc_colors',
-      label: 'كمبيوتر ألوان GLC بلاتين',
-      subtitle: '132 لون بأكوادها مع خاصية عرض الحائط المباشر',
+      label: 'كمبيوتر الألوان (GLC و جوتن)',
+      subtitle: 'كتالوج GLC بلاتين وكتالوج جوتن الرسمي مع معاينة الحائط',
       icon: <Palette className="w-5 h-5 shrink-0" />,
       visible: config.visibility.colorStudio,
     },
@@ -115,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({
   const desktopNavItems: { label: string; page: StorefrontPage; visible: boolean }[] = [
     { label: 'المنتجات', page: 'home', visible: true },
     { label: 'الأقسام والبحث', page: 'categories', visible: true },
-    { label: 'ألوان GLC', page: 'glc_colors', visible: config.visibility.colorStudio },
+    { label: 'كمبيوتر الألوان', page: 'glc_colors', visible: config.visibility.colorStudio },
     { label: 'العلامات التجارية', page: 'brands', visible: config.visibility.brands && config.brands.length > 0 },
     { label: 'تواصل معنا', page: 'contact', visible: config.visibility.contact },
   ];

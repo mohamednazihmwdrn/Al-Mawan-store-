@@ -1,13 +1,20 @@
 import React from 'react';
-import { GlcColorShade, isLightHex } from '../data/glcColors';
+import { isLightHex } from '../data/glcColors';
 
 export type RoomSceneType = 'living' | 'bedroom' | 'wall';
 export type WallLightingMode = 'daylight' | 'warm';
 export type WallFinishType = 'matt' | 'silk' | 'semigloss';
 
+export interface WallPreviewShade {
+  code: string;
+  hex: string;
+  nameAr?: string;
+  brandLabel?: string;
+}
+
 interface GlcWallPreviewProps {
-  primaryShade: GlcColorShade;
-  compareShade: GlcColorShade | null;
+  primaryShade: WallPreviewShade;
+  compareShade: WallPreviewShade | null;
   scene: RoomSceneType;
   lighting: WallLightingMode;
   finish: WallFinishType;
@@ -33,7 +40,7 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
         viewBox="0 0 960 540"
         className="w-full h-full block"
         role="img"
-        aria-label={`معاينة لون GLC ${primaryShade.code} على الحائط`}
+        aria-label={`معاينة لون ${primaryShade.brandLabel || ''} ${primaryShade.code} على الحائط`}
       >
         <defs>
           {/* Side Wall Shadow Multiplier */}
@@ -348,8 +355,16 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
           <div className="text-[10px] opacity-75">
             {isSplit ? 'اللون الأساسي (يمين)' : 'اللون المعروض على الحائط'}
           </div>
-          <div className="font-mono-nums text-xs sm:text-sm font-extrabold tracking-wide">
-            {primaryShade.code}
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-mono-nums text-xs sm:text-sm font-extrabold tracking-wide">
+              {primaryShade.brandLabel ? `${primaryShade.brandLabel} ` : ''}
+              {primaryShade.code}
+            </span>
+            {primaryShade.nameAr && (
+              <span className="text-[11px] font-bold opacity-90 truncate max-w-[140px]">
+                {primaryShade.nameAr}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -364,8 +379,16 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
             }`}
           >
             <div className="text-[10px] opacity-75">لون المقارنة (يسار)</div>
-            <div className="font-mono-nums text-xs sm:text-sm font-extrabold tracking-wide">
-              {compareShade.code}
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-mono-nums text-xs sm:text-sm font-extrabold tracking-wide">
+                {compareShade.brandLabel ? `${compareShade.brandLabel} ` : ''}
+                {compareShade.code}
+              </span>
+              {compareShade.nameAr && (
+                <span className="text-[11px] font-bold opacity-90 truncate max-w-[140px]">
+                  {compareShade.nameAr}
+                </span>
+              )}
             </div>
           </div>
         </div>

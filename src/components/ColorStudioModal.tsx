@@ -20,7 +20,7 @@ import { CatalogAttachment } from '../types/store';
 interface ColorStudioModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenGlcColors?: () => void;
+  onOpenGlcColors?: (brand?: 'glc' | 'jotun') => void;
 }
 
 export const ColorStudioModal: React.FC<ColorStudioModalProps> = ({
@@ -119,31 +119,58 @@ export const ColorStudioModal: React.FC<ColorStudioModalProps> = ({
         </div>
 
         <div className="p-5 sm:p-6 space-y-8">
-          {/* Featured GLC Platine 132-Color Computer & Wall Visualizer Entry */}
+          {/* Featured GLC & JOTUN Interactive Wall Visualizer Launchers */}
           {onOpenGlcColors && (
-            <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-800">
-              <div className="space-y-1.5 min-w-0">
-                <div className="text-xs font-bold text-amber-400">
-                  GLC PAINTS · كارتيلا سوبر بلاتين
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 flex flex-col justify-between gap-4 border border-slate-800">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="text-xs font-bold text-amber-400">
+                    GLC PAINTS · كارتيلا سوبر بلاتين
+                  </div>
+                  <h3 className="text-base font-extrabold text-white">
+                    ألوان GLC بالكمبيوتر ومعاينة الحائط (132 لون)
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    درجات بلاتين الرسمية بأكوادها مع معاينة الغرف ومقارنة لونين على الحائط.
+                  </p>
                 </div>
-                <h3 className="text-base sm:text-lg font-extrabold text-white">
-                  عرض ألوان GLC بالكمبيوتر ومعاينة الحائط (132 لون بأكوادها)
-                </h3>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  اضغط على أي كود لون من كتالوج بلاتين لتشاهد تطبيقه مباشرة على الحائط مع مقارنة لونين ودرجة اللمعة.
-                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenGlcColors('glc');
+                  }}
+                  className="min-h-[44px] w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap transition-colors cursor-pointer"
+                >
+                  <Palette className="w-4 h-4" />
+                  <span>فتح ألوان GLC ومعاينة الحائط</span>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenGlcColors();
-                }}
-                className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
-              >
-                <Palette className="w-4 h-4" />
-                <span>فتح معاينة الحائط و132 لون</span>
-              </button>
+
+              <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 flex flex-col justify-between gap-4 border border-slate-800">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="text-xs font-bold text-amber-400">
+                    JOTUN EGYPT · كتالوج جوتن الداخلي
+                  </div>
+                  <h3 className="text-base font-extrabold text-white">
+                    ألوان جوتن بالكمبيوتر ومعاينة الحائط (994 لون)
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    جميع درجات جوتن المعتمدة بأكوادها وأسمائها الرسمية (مثل 7627 ريفرش، 1001، 1622).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenGlcColors('jotun');
+                  }}
+                  className="min-h-[44px] w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white hover:bg-slate-100 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap transition-colors cursor-pointer"
+                >
+                  <Palette className="w-4 h-4 text-blue-700" />
+                  <span>فتح ألوان جوتن ومعاينة الحائط</span>
+                </button>
+              </div>
             </div>
           )}
 

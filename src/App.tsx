@@ -6,7 +6,7 @@ import { Header } from './components/Header';
 import { Storefront } from './components/Storefront';
 import { CartDrawer } from './components/CartDrawer';
 import { ProductDetailPage } from './components/ProductDetailPage';
-import { GlcColorStudioPage } from './components/GlcColorStudioPage';
+import { ColorStudioBrand, GlcColorStudioPage } from './components/GlcColorStudioPage';
 import { ColorStudioModal } from './components/ColorStudioModal';
 import { OwnerAuthModal } from './components/OwnerAuthModal';
 import { OwnerDashboard } from './components/OwnerDashboard';
@@ -17,7 +17,7 @@ import { Product, StorefrontPage } from './types/store';
 const PAGE_LABELS: Record<StorefrontPage, string> = {
   home: 'الرئيسية والمنتجات',
   categories: 'الأقسام والبحث',
-  glc_colors: 'كمبيوتر ألوان GLC',
+  glc_colors: 'كمبيوتر الألوان (GLC · جوتن)',
   brands: 'العلامات التجارية',
   about: 'عن المتجر',
   contact: 'تواصل معنا',
@@ -44,6 +44,7 @@ function AppShell() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [colorStudioOpen, setColorStudioOpen] = useState(false);
+  const [colorStudioBrand, setColorStudioBrand] = useState<ColorStudioBrand>('glc');
   const [selectedProductId, setSelectedProductId] = useState<string | null>(() =>
     readProductIdFromHash()
   );
@@ -152,12 +153,16 @@ function AppShell() {
     [handleCloseProductPage]
   );
 
-  const handleOpenGlcColors = useCallback(() => {
-    handleCloseProductPage();
-    setColorStudioOpen(false);
-    setActivePage('glc_colors');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [handleCloseProductPage]);
+  const handleOpenGlcColors = useCallback(
+    (brand: ColorStudioBrand = 'glc') => {
+      handleCloseProductPage();
+      setColorStudioOpen(false);
+      setColorStudioBrand(brand);
+      setActivePage('glc_colors');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [handleCloseProductPage]
+  );
 
   const handleOpenCategoryFromProduct = useCallback(
     (categoryId: string, subpageId?: string) => {
@@ -227,8 +232,11 @@ function AppShell() {
               />
             ) : activePage === 'glc_colors' ? (
               <GlcColorStudioPage
+                activeBrand={colorStudioBrand}
+                onChangeBrand={setColorStudioBrand}
                 onBackHome={() => handleSelectPage('home')}
                 onBrowseGlcProducts={() => handleOpenCategoryFromProduct('cat_glc')}
+                onBrowseJotunProducts={() => handleOpenCategoryFromProduct('cat_paints')}
                 onOpenProduct={handleOpenProduct}
               />
             ) : (

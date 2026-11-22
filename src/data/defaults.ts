@@ -206,14 +206,14 @@ export const DEFAULT_CATALOGS: ColorCatalog[] = [
 ];
 
 export const CURATED_PAINT_SHADES = [
-  { code: 'JOTUN 1001', name: 'Egg White — أوف وايت كلاسيك', hex: '#F3EEE4', brand: 'JOTUN' },
-  { code: 'JOTUN 1622', name: 'Refined Yellow — بيج هادئ', hex: '#EFE5D1', brand: 'JOTUN' },
-  { code: 'JOTUN 1024', name: 'Timeless — رمادي دافئ فاتح', hex: '#DEDAD2', brand: 'JOTUN' },
-  { code: 'JOTUN 10679', name: 'Washed Linen — كتان عصري', hex: '#CFC7BA', brand: 'JOTUN' },
-  { code: 'JOTUN 9918', name: 'Classic White — أبيض نقي', hex: '#F7F7F5', brand: 'JOTUN' },
-  { code: 'GLC 2040', name: 'Desert Sand — رملي واجهات', hex: '#DFC9A6', brand: 'GLC' },
-  { code: 'GLC 5120', name: 'Urban Slate — رمادي معماري', hex: '#64748B', brand: 'GLC' },
-  { code: 'PACHIN 308', name: 'Sage Mist — أخضر مرمري', hex: '#CBD5C0', brand: 'PACHIN' },
-  { code: 'SIPES 412', name: 'Warm Clay — طمي دافئ', hex: '#B88B6A', brand: 'SIPES' },
-  { code: 'JOTUN 4477', name: 'Deco Blue — أزرق ديكوري', hex: '#334E68', brand: 'JOTUN' },
+  { code: 'JOTUN 7627', name: 'Refresh — ريفرش', hex: '#CACFC3', brand: 'JOTUN' },
+  { code: 'JOTUN 1001', name: 'Egg White — إغّ وايت', hex: '#EFEDE3', brand: 'JOTUN' },
+  { code: 'JOTUN 1622', name: 'Reflection — رفلكشن', hex: '#EBE9E2', brand: 'JOTUN' },
+  { code: 'JOTUN 1024', name: 'Timeless — تايملس', hex: '#E0DDD3', brand: 'JOTUN' },
+  { code: 'JOTUN 10679', name: 'Washed Linen — واشد لينن', hex: '#C9C3B6', brand: 'JOTUN' },
+  { code: 'JOTUN 9918', name: 'Classic White — كلاسيك وايت', hex: '#F0EFEA', brand: 'JOTUN' },
+  { code: 'GLC Y21010', name: 'بيج عسلي بلاتين', hex: '#E9D8B7', brand: 'GLC' },
+  { code: 'GLC N03000', name: 'أوف وايت محايد بلاتين', hex: '#F7F4F0', brand: 'GLC' },
+  { code: 'JOTUN 12078', name: 'Comfort Grey — كمفرت غراي', hex: '#BEB9AF', brand: 'JOTUN' },
+  { code: 'JOTUN 4477', name: 'Deco Blue — دكو بلو', hex: '#525C64', brand: 'JOTUN' },
 ];

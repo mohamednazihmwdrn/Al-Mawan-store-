@@ -17,9 +17,14 @@ import {
   GLC_PLATINE_BASES,
   GLC_PLATINE_COLORS,
   GLC_PLATINE_PDF_URL,
-  GlcColorShade,
   getToneBrightnessLabel,
 } from '../data/glcColors';
+import {
+  JOTUN_CATALOG_URL,
+  JOTUN_COLOR_FAMILIES,
+  JOTUN_INTERIOR_BASES,
+  JOTUN_INTERIOR_COLORS,
+} from '../data/jotunColors';
 import { useStore } from '../context/StoreContext';
 import { Product } from '../types/store';
 import { trackAnalyticsEvent } from '../lib/analytics';
@@ -30,37 +35,119 @@ import {
   WallLightingMode,
 } from './GlcWallPreview';
 
+export type ColorStudioBrand = 'glc' | 'jotun';
+
 interface GlcColorStudioPageProps {
+  activeBrand: ColorStudioBrand;
+  onChangeBrand: (brand: ColorStudioBrand) => void;
   onBackHome: () => void;
   onBrowseGlcProducts: () => void;
+  onBrowseJotunProducts: () => void;
   onOpenProduct: (product: Product) => void;
 }
 
-const SIZE_OPTIONS = ['1 لتر عينة', 'جالون 2.75 لتر', 'بستلة 9 لتر', 'بستلة 15 لتر'] as const;
+interface NormalizedShade {
+  code: string;
+  hex: string;
+  familyId: string;
+  nameAr?: string;
+  nameEn?: string;
+  pageNumber?: number;
+  url?: string;
+}
+
+interface NormalizedBase {
+  id: string;
+  productId?: string;
+  nameAr: string;
+  finish: WallFinishType;
+  finishLabelAr: string;
+}
+
+const GLC_SIZE_OPTIONS = [
+  '1 لتر عينة',
+  'جالون 2.75 لتر',
+  'بستلة 9 لتر',
+  'بستلة 15 لتر',
+] as const;
+
+const JOTUN_SIZE_OPTIONS = [
+  '0.9 لتر عينة',
+  'جالون 3.6 لتر',
+  'بستلة 9 لتر',
+  'بستلة 16.2 لتر',
+] as const;
+
+const INITIAL_JOTUN_ALL_LIMIT = 120;
+
+const GLC_NORMALIZED_SHADES: NormalizedShade[] = GLC_PLATINE_COLORS.map((c) => ({
+  code: c.code,
+  hex: c.hex,
+  familyId: c.familyId,
+  pageNumber: c.pageNumber,
+}));
+
+const JOTUN_NORMALIZED_SHADES: NormalizedShade[] = JOTUN_INTERIOR_COLORS.map((c) => ({
+  code: c.code,
+  hex: c.hex,
+  familyId: c.familyId,
+  nameAr: c.nameAr,
+  nameEn: c.nameEn,
+  url: c.url,
+}));
 
 export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
+  activeBrand,
+  onChangeBrand,
   onBackHome,
   onBrowseGlcProducts,
+  onBrowseJotunProducts,
   onOpenProduct,
 }) => {
   const { config, products, submitInquiry } = useStore();
 
-  const [selectedFamilyId, setSelectedFamilyId] = useState<string>('all');
-  const [searchCode, setSearchCode] = useState('');
-  const [primaryShade, setPrimaryShade] = useState<GlcColorShade>(
-    () => GLC_PLATINE_COLORS.find((c) => c.code === 'Y21010') || GLC_PLATINE_COLORS[0]
+  // Separate filter, search & shade selection state per brand so switching preserves choices
+  const [familyByBrand, setFamilyByBrand] = useState<Record<ColorStudioBrand, string>>({
+    glc: 'all',
+    jotun: 'all',
+  });
+  const [searchByBrand, setSearchByBrand] = useState<Record<ColorStudioBrand, string>>({
+    glc: '',
+    jotun: '',
+  });
+  const [showAllJotun, setShowAllJotun] = useState(false);
+
+  const [primaryByBrand, setPrimaryByBrand] = useState<Record<ColorStudioBrand, NormalizedShade>>(
+    () => ({
+      glc:
+        GLC_NORMALIZED_SHADES.find((c) => c.code === 'Y21010') || GLC_NORMALIZED_SHADES[0],
+      jotun:
+        JOTUN_NORMALIZED_SHADES.find((c) => c.code === '7627') || JOTUN_NORMALIZED_SHADES[0],
+    })
   );
-  const [compareMode, setCompareMode] = useState(false);
-  const [compareSlotTarget, setCompareSlotTarget] = useState<'primary' | 'compare'>('compare');
-  const [compareShade, setCompareShade] = useState<GlcColorShade>(
-    () => GLC_PLATINE_COLORS.find((c) => c.code === 'N03000') || GLC_PLATINE_COLORS[1]
+  const [compareByBrand, setCompareByBrand] = useState<Record<ColorStudioBrand, NormalizedShade>>(
+    () => ({
+      glc:
+        GLC_NORMALIZED_SHADES.find((c) => c.code === 'N03000') || GLC_NORMALIZED_SHADES[1],
+      jotun:
+        JOTUN_NORMALIZED_SHADES.find((c) => c.code === '1001') || JOTUN_NORMALIZED_SHADES[1],
+    })
   );
 
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSlotTarget, setCompareSlotTarget] = useState<'primary' | 'compare'>('compare');
   const [scene, setScene] = useState<RoomSceneType>('living');
   const [lighting, setLighting] = useState<WallLightingMode>('daylight');
   const [finish, setFinish] = useState<WallFinishType>('matt');
-  const [selectedBaseId, setSelectedBaseId] = useState<string>(GLC_PLATINE_BASES[0].id);
-  const [sizeOption, setSizeOption] = useState<string>(SIZE_OPTIONS[2]);
+
+  const [baseIdByBrand, setBaseIdByBrand] = useState<Record<ColorStudioBrand, string>>({
+    glc: GLC_PLATINE_BASES[0].id,
+    jotun: JOTUN_INTERIOR_BASES[0].id,
+  });
+  const [sizeByBrand, setSizeByBrand] = useState<Record<ColorStudioBrand, string>>({
+    glc: GLC_SIZE_OPTIONS[2],
+    jotun: JOTUN_SIZE_OPTIONS[2],
+  });
 
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
@@ -68,62 +155,126 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const isJotun = activeBrand === 'jotun';
+  const brandTitleUpper = isJotun ? 'JOTUN' : 'GLC';
+
+  const allShades = isJotun ? JOTUN_NORMALIZED_SHADES : GLC_NORMALIZED_SHADES;
+  const primaryShade = primaryByBrand[activeBrand];
+  const compareShade = compareByBrand[activeBrand];
+  const selectedFamilyId = familyByBrand[activeBrand];
+  const searchCode = searchByBrand[activeBrand];
+
+  const basesList: NormalizedBase[] = isJotun ? JOTUN_INTERIOR_BASES : GLC_PLATINE_BASES;
+  const sizeOptions = isJotun ? JOTUN_SIZE_OPTIONS : GLC_SIZE_OPTIONS;
+  const selectedBaseId = baseIdByBrand[activeBrand];
+  const sizeOption = sizeByBrand[activeBrand];
+
+  const families = useMemo(() => {
+    if (isJotun) {
+      return JOTUN_COLOR_FAMILIES.map((f) => ({
+        id: f.id,
+        nameAr: f.nameAr,
+        swatchHex: f.swatchHex,
+      }));
+    }
+    return GLC_COLOR_FAMILIES.map((f) => ({
+      id: f.id,
+      nameAr: f.nameAr,
+      swatchHex: GLC_PLATINE_COLORS.find((c) => c.familyId === f.id)?.hex || '#CBD5E1',
+    }));
+  }, [isJotun]);
+
   const familyNameById = useMemo(
-    () => new Map(GLC_COLOR_FAMILIES.map((f) => [f.id, f.nameAr])),
-    []
+    () => new Map(families.map((f) => [f.id, f.nameAr])),
+    [families]
   );
 
   const selectedBase = useMemo(
-    () => GLC_PLATINE_BASES.find((b) => b.id === selectedBaseId) || GLC_PLATINE_BASES[0],
-    [selectedBaseId]
+    () => basesList.find((b) => b.id === selectedBaseId) || basesList[0],
+    [basesList, selectedBaseId]
   );
 
-  const matchingStoreProduct = useMemo(
-    () => products.find((p) => p.id === selectedBase.productId) || null,
-    [products, selectedBase.productId]
-  );
+  const matchingStoreProduct = useMemo(() => {
+    if (!isJotun && selectedBase.productId) {
+      return products.find((p) => p.id === selectedBase.productId) || null;
+    }
+    if (isJotun) {
+      return (
+        products.find((p) =>
+          `${p.brandName} ${p.name}`.toUpperCase().includes('JOTUN') ||
+          p.name.includes('جوتن')
+        ) || null
+      );
+    }
+    return null;
+  }, [isJotun, products, selectedBase.productId]);
 
   const filteredColors = useMemo(() => {
     const q = searchCode.trim().toLowerCase();
-    return GLC_PLATINE_COLORS.filter((c) => {
+    return allShades.filter((c) => {
       if (selectedFamilyId !== 'all' && c.familyId !== selectedFamilyId) return false;
       if (q) {
         const famName = (familyNameById.get(c.familyId) || '').toLowerCase();
-        return c.code.toLowerCase().includes(q) || famName.includes(q);
+        const hay = `${c.code} ${c.nameAr || ''} ${c.nameEn || ''} ${famName}`.toLowerCase();
+        return hay.includes(q);
       }
       return true;
     });
-  }, [selectedFamilyId, searchCode, familyNameById]);
+  }, [allShades, selectedFamilyId, searchCode, familyNameById]);
 
-  const handleSelectSwatch = (shade: GlcColorShade) => {
+  const shouldCapJotun =
+    isJotun &&
+    !showAllJotun &&
+    selectedFamilyId === 'all' &&
+    searchCode.trim() === '' &&
+    filteredColors.length > INITIAL_JOTUN_ALL_LIMIT;
+
+  const displayedColors = useMemo(
+    () => (shouldCapJotun ? filteredColors.slice(0, INITIAL_JOTUN_ALL_LIMIT) : filteredColors),
+    [shouldCapJotun, filteredColors]
+  );
+
+  const handleBrandSwitch = (nextBrand: ColorStudioBrand) => {
+    if (nextBrand === activeBrand) return;
+    setSubmitted(false);
+    setErrorMsg('');
+    onChangeBrand(nextBrand);
+  };
+
+  const handleSelectSwatch = (shade: NormalizedShade) => {
     setSubmitted(false);
     if (compareMode && compareSlotTarget === 'compare') {
-      setCompareShade(shade);
+      setCompareByBrand((prev) => ({ ...prev, [activeBrand]: shade }));
     } else {
-      setPrimaryShade(shade);
+      setPrimaryByBrand((prev) => ({ ...prev, [activeBrand]: shade }));
     }
   };
 
   const handleSelectFinish = (nextFinish: WallFinishType) => {
     setFinish(nextFinish);
     if (selectedBase.finish !== nextFinish) {
-      const firstMatch = GLC_PLATINE_BASES.find((b) => b.finish === nextFinish);
-      if (firstMatch) setSelectedBaseId(firstMatch.id);
+      const firstMatch = basesList.find((b) => b.finish === nextFinish);
+      if (firstMatch) {
+        setBaseIdByBrand((prev) => ({ ...prev, [activeBrand]: firstMatch.id }));
+      }
     }
   };
 
   const handleSelectBase = (baseId: string) => {
-    setSelectedBaseId(baseId);
-    const found = GLC_PLATINE_BASES.find((b) => b.id === baseId);
+    setBaseIdByBrand((prev) => ({ ...prev, [activeBrand]: baseId }));
+    const found = basesList.find((b) => b.id === baseId);
     if (found) setFinish(found.finish);
   };
 
+  const formatShadeLabel = (shade: NormalizedShade) =>
+    shade.nameAr ? `${shade.code} (${shade.nameAr})` : shade.code;
+
   const orderColorSummary = compareMode
-    ? `${primaryShade.code} (أساسي) / للمقارنة: ${compareShade.code}`
-    : primaryShade.code;
+    ? `${formatShadeLabel(primaryShade)} (أساسي) / للمقارنة: ${formatShadeLabel(compareShade)}`
+    : formatShadeLabel(primaryShade);
 
   const whatsappUrl = `https://wa.me/${config.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(
-    `مرحباً ${config.storeName}، أرغب في تجهيز لون GLC بالكمبيوتر من كتالوج بلاتين:\n• كود اللون: ${primaryShade.code} (${familyNameById.get(primaryShade.familyId) || ''})\n• نوع الدهان: ${selectedBase.nameAr} (${selectedBase.finishLabelAr})\n• العبوة المطلوبة: ${sizeOption}`
+    `مرحباً ${config.storeName}، أرغب في تجهيز لون ${isJotun ? 'جوتن (JOTUN)' : 'GLC بلاتين'} بالكمبيوتر:\n• كود اللون: ${formatShadeLabel(primaryShade)} (${familyNameById.get(primaryShade.familyId) || ''})\n• نوع الدهان: ${selectedBase.nameAr} (${selectedBase.finishLabelAr})\n• العبوة المطلوبة: ${sizeOption}`
   )}`;
 
   const handleOrderSubmit = async (e: React.FormEvent) => {
@@ -138,9 +289,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       await submitInquiry({
         customerName: customerName.trim(),
         phone: phone.trim(),
-        subject: `تلوين كمبيوتر GLC بلاتين: كود ${primaryShade.code}`,
-        message: `الكود المطلوب: ${orderColorSummary}\nنوع المنتج: ${selectedBase.nameAr} (${selectedBase.finishLabelAr})\nالعبوة: ${sizeOption}`,
-        colorCode: `GLC ${primaryShade.code}`,
+        subject: `تلوين كمبيوتر ${brandTitleUpper}: كود ${formatShadeLabel(primaryShade)}`,
+        message: `الشركة: ${isJotun ? 'جوتن JOTUN' : 'GLC بلاتين'}\nالكود المطلوب: ${orderColorSummary}\nنوع المنتج: ${selectedBase.nameAr} (${selectedBase.finishLabelAr})\nالعبوة: ${sizeOption}`,
+        colorCode: `${brandTitleUpper} ${formatShadeLabel(primaryShade)}`,
       });
       setSubmitted(true);
       setCustomerName('');
@@ -156,48 +307,106 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 md:pb-12">
       {/* Top Studio Header Bar */}
       <div className="bg-slate-900 text-white border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-1 min-w-0">
-            <div className="flex items-center gap-2 text-xs text-amber-400 font-bold">
-              <span>GLC PAINTS</span>
-              <span aria-hidden="true">·</span>
-              <span>كارتيلا سوبر بلاتين المعتمدة</span>
-              <span aria-hidden="true">·</span>
-              <span className="font-mono-nums">{GLC_PLATINE_COLORS.length} كود لون</span>
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-amber-400 font-bold">
+                <span>{isJotun ? 'JOTUN EGYPT' : 'GLC PAINTS'}</span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  {isJotun ? 'كتالوج ألوان جوتن الداخلية الرسمي' : 'كارتيلا سوبر بلاتين المعتمدة'}
+                </span>
+                <span aria-hidden="true">·</span>
+                <span className="font-mono-nums">{allShades.length} كود لون</span>
+              </div>
+              <h1 className="text-lg sm:text-2xl font-extrabold text-white leading-snug">
+                {isJotun
+                  ? 'كمبيوتر ألوان جوتن (JOTUN) ومعاينة الحائط المباشرة'
+                  : 'كمبيوتر ألوان GLC ومعاينة الحائط المباشرة'}
+              </h1>
             </div>
-            <h1 className="text-lg sm:text-2xl font-extrabold text-white leading-snug">
-              كمبيوتر ألوان GLC ومعاينة الحائط المباشرة
-            </h1>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {isJotun ? (
+                <a
+                  href={JOTUN_CATALOG_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4 text-amber-400" />
+                  <span>كتالوج جوتن الرسمي</span>
+                </a>
+              ) : (
+                <a
+                  href={GLC_PLATINE_PDF_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download="GLC_Platine_Color_Card.pdf"
+                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors"
+                >
+                  <FileText className="w-4 h-4 text-amber-400" />
+                  <span>كتالوج بلاتين PDF</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                </a>
+              )}
+
+              <button
+                type="button"
+                onClick={isJotun ? onBrowseJotunProducts : onBrowseGlcProducts}
+                className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+              >
+                <Paintbrush className="w-4 h-4 text-amber-400" />
+                <span>{isJotun ? 'قسم دهانات جوتن' : 'منتجات GLC'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onBackHome}
+                className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 px-3.5 py-2 text-xs font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+              >
+                <ArrowRight className="w-4 h-4" />
+                <span>العودة للمتجر</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <a
-              href={GLC_PLATINE_PDF_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              download="GLC_Platine_Color_Card.pdf"
-              className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors"
-            >
-              <FileText className="w-4 h-4 text-amber-400" />
-              <span>كتالوج بلاتين PDF</span>
-              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-            </a>
-            <button
-              type="button"
-              onClick={onBrowseGlcProducts}
-              className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
-            >
-              <Paintbrush className="w-4 h-4 text-amber-400" />
-              <span>منتجات GLC</span>
-            </button>
-            <button
-              type="button"
-              onClick={onBackHome}
-              className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 px-3.5 py-2 text-xs font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
-            >
-              <ArrowRight className="w-4 h-4" />
-              <span>العودة للمتجر</span>
-            </button>
+          {/* Clean Brand Switcher Segmented Control: GLC vs JOTUN */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
+            <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/90 border border-slate-800">
+              <button
+                type="button"
+                onClick={() => handleBrandSwitch('glc')}
+                className={`min-h-[40px] px-4 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  activeBrand === 'glc'
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                }`}
+              >
+                GLC بلاتين{' '}
+                <span className="font-mono-nums opacity-80">
+                  ({GLC_NORMALIZED_SHADES.length})
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBrandSwitch('jotun')}
+                className={`min-h-[40px] px-4 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  activeBrand === 'jotun'
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                }`}
+              >
+                جوتن JOTUN{' '}
+                <span className="font-mono-nums opacity-80">
+                  ({JOTUN_NORMALIZED_SHADES.length})
+                </span>
+              </button>
+            </div>
+
+            <p className="text-[11px] sm:text-xs text-slate-400">
+              اختر الشركة واضغط على أي درجة لون لمشاهدتها فوراً على الحائط بالكمبيوتر
+            </p>
           </div>
         </div>
       </div>
@@ -209,7 +418,6 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           <section className="rounded-2xl bg-white border border-slate-200 p-3.5 sm:p-5 space-y-4 shadow-xs">
             {/* Wall Toolbar Controls */}
             <div className="flex flex-wrap items-center justify-between gap-2">
-              {/* Scene Selector */}
               <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg">
                 {(
                   [
@@ -233,7 +441,6 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 ))}
               </div>
 
-              {/* Lighting + Split Compare Toggles */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                   type="button"
@@ -288,8 +495,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 >
                   <div className="min-w-0">
                     <div className="text-[10px] text-slate-500">تغيير اللون الأساسي (يمين)</div>
-                    <div className="font-mono-nums text-xs font-extrabold text-slate-900">
+                    <div className="font-mono-nums text-xs font-extrabold text-slate-900 truncate">
                       {primaryShade.code}
+                      {primaryShade.nameAr ? ` · ${primaryShade.nameAr}` : ''}
                     </div>
                   </div>
                   <span
@@ -309,8 +517,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 >
                   <div className="min-w-0">
                     <div className="text-[10px] text-slate-500">تغيير لون المقارنة (يسار)</div>
-                    <div className="font-mono-nums text-xs font-extrabold text-slate-900">
+                    <div className="font-mono-nums text-xs font-extrabold text-slate-900 truncate">
                       {compareShade.code}
+                      {compareShade.nameAr ? ` · ${compareShade.nameAr}` : ''}
                     </div>
                   </div>
                   <span
@@ -323,14 +532,28 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
             {/* Architectural Live Wall Visualizer */}
             <GlcWallPreview
-              primaryShade={primaryShade}
-              compareShade={compareMode ? compareShade : null}
+              primaryShade={{
+                code: primaryShade.code,
+                hex: primaryShade.hex,
+                nameAr: primaryShade.nameAr,
+                brandLabel: brandTitleUpper,
+              }}
+              compareShade={
+                compareMode
+                  ? {
+                      code: compareShade.code,
+                      hex: compareShade.hex,
+                      nameAr: compareShade.nameAr,
+                      brandLabel: brandTitleUpper,
+                    }
+                  : null
+              }
               scene={scene}
               lighting={lighting}
               finish={finish}
             />
 
-            {/* Sheen / Finish Type Bar (PDF p.13: Matt · Silk · Semigloss) */}
+            {/* Sheen / Finish Type Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
               <span className="text-xs font-bold text-slate-700">درجة اللمعة على الحائط:</span>
               <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg">
@@ -358,17 +581,25 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             </div>
 
             {/* Active Swatch Specifications Summary */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div
                   className="w-12 h-12 rounded-xl border border-black/15 shrink-0 shadow-xs"
                   style={{ backgroundColor: primaryShade.hex }}
                 />
                 <div className="min-w-0 space-y-0.5">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono-nums text-base font-extrabold text-slate-900">
-                      GLC {primaryShade.code}
+                      {brandTitleUpper} {primaryShade.code}
                     </span>
+                    {primaryShade.nameAr && (
+                      <span className="text-sm font-extrabold text-blue-700">
+                        {primaryShade.nameAr}
+                      </span>
+                    )}
+                    {primaryShade.nameEn && (
+                      <span className="text-xs text-slate-500">({primaryShade.nameEn})</span>
+                    )}
                     <span className="text-xs text-slate-400 font-mono-nums">
                       {primaryShade.hex}
                     </span>
@@ -377,11 +608,27 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     {familyNameById.get(primaryShade.familyId)}
                     <span aria-hidden="true"> · </span>
                     {getToneBrightnessLabel(primaryShade.hex)}
-                    <span aria-hidden="true"> · </span>
-                    صفحة {primaryShade.pageNumber} بالكتالوج
+                    {primaryShade.pageNumber ? (
+                      <>
+                        <span aria-hidden="true"> · </span>
+                        صفحة {primaryShade.pageNumber} بالكتالوج
+                      </>
+                    ) : null}
                   </p>
                 </div>
               </div>
+
+              {primaryShade.url && (
+                <a
+                  href={primaryShade.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:underline whitespace-nowrap shrink-0"
+                >
+                  <span>صفحة اللون بجوتن</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
             </div>
           </section>
 
@@ -392,7 +639,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           >
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
-                تجهيز اللون بالكمبيوتر وطلبه الآن
+                تجهيز لون {isJotun ? 'جوتن' : 'GLC'} بالكمبيوتر وطلبه الآن
               </h2>
               {matchingStoreProduct && (
                 <button
@@ -408,14 +655,14 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="block text-xs font-bold text-slate-700">
-                  منتج GLC المطلوب للتلوين:
+                  منتج {brandTitleUpper} المطلوب للتلوين:
                 </label>
                 <select
                   value={selectedBaseId}
                   onChange={(e) => handleSelectBase(e.target.value)}
                   className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                 >
-                  {GLC_PLATINE_BASES.map((base) => (
+                  {basesList.map((base) => (
                     <option key={base.id} value={base.id}>
                       {base.nameAr} — {base.finishLabelAr}
                     </option>
@@ -427,10 +674,12 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 <label className="block text-xs font-bold text-slate-700">حجم العبوة:</label>
                 <select
                   value={sizeOption}
-                  onChange={(e) => setSizeOption(e.target.value)}
+                  onChange={(e) =>
+                    setSizeByBrand((prev) => ({ ...prev, [activeBrand]: e.target.value }))
+                  }
                   className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                 >
-                  {SIZE_OPTIONS.map((sz) => (
+                  {sizeOptions.map((sz) => (
                     <option key={sz} value={sz}>
                       {sz}
                     </option>
@@ -463,7 +712,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs font-bold text-emerald-800">
                 <Check className="w-4 h-4 shrink-0" />
                 <span>
-                  تم إرسال طلب تجهيز كود {primaryShade.code} لإدارة المتجر وسنتواصل معك فوراً!
+                  تم إرسال طلب تجهيز كود {brandTitleUpper} {primaryShade.code} لإدارة المتجر وسنتواصل
+                  معك فوراً!
                 </span>
               </div>
             )}
@@ -476,7 +726,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               >
                 <Send className="w-4 h-4" />
                 <span>
-                  {submitting ? 'جاري الإرسال...' : `طلب خلط كود ${primaryShade.code}`}
+                  {submitting
+                    ? 'جاري الإرسال...'
+                    : `طلب خلط كود ${primaryShade.code}`}
                 </span>
               </button>
 
@@ -487,8 +739,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 onClick={() =>
                   trackAnalyticsEvent({
                     eventType: 'whatsapp_click',
-                    targetId: `glc_color_${primaryShade.code}`,
-                    targetLabel: `طلب لون GLC ${primaryShade.code}`,
+                    targetId: `${activeBrand}_color_${primaryShade.code}`,
+                    targetLabel: `طلب لون ${brandTitleUpper} ${primaryShade.code}`,
                   })
                 }
                 className="min-h-[44px] mowan-btn-bevel inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs sm:text-sm font-bold text-white whitespace-nowrap shrink-0 transition-colors"
@@ -500,7 +752,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           </form>
         </div>
 
-        {/* LEFT / CATALOG GRID COLUMN (in RTL): Search + All 11 Family Filter Tabs + 132 Swatches */}
+        {/* LEFT / CATALOG GRID COLUMN (in RTL): Search + Family Filter Tabs + Swatches */}
         <div className="lg:col-span-6 space-y-4">
           <section className="rounded-2xl bg-white border border-slate-200 p-4 sm:p-5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -509,56 +761,63 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   اختر الدرجة لتظهر فوراً على الحائط
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5 font-mono-nums">
-                  معروض {filteredColors.length} من أصل {GLC_PLATINE_COLORS.length} لون في كارتيلا
-                  GLC بلاتين
+                  معروض {displayedColors.length} من أصل {filteredColors.length} لون{' '}
+                  {isJotun ? 'في كتالوج جوتن الداخلي' : 'في كارتيلا GLC بلاتين'}
                 </p>
               </div>
 
-              <div className="relative w-full sm:w-56">
+              <div className="relative w-full sm:w-64">
                 <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="search"
                   value={searchCode}
-                  onChange={(e) => setSearchCode(e.target.value)}
-                  placeholder="ابحث بالكود (مثلاً Y21010)..."
-                  className="w-full min-h-[42px] rounded-xl border border-slate-200 bg-slate-50 pr-9 pl-3 py-1.5 text-sm font-mono-nums text-slate-900 focus:outline-none focus:border-blue-600"
+                  onChange={(e) =>
+                    setSearchByBrand((prev) => ({ ...prev, [activeBrand]: e.target.value }))
+                  }
+                  placeholder={
+                    isJotun
+                      ? 'ابحث بالكود أو الاسم (مثلاً 7627 أو ريفرش)...'
+                      : 'ابحث بالكود (مثلاً Y21010)...'
+                  }
+                  className="w-full min-h-[42px] rounded-xl border border-slate-200 bg-slate-50 pr-9 pl-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
                 />
               </div>
             </div>
 
-            {/* 11 Authentic PDF Family Filter Buttons */}
+            {/* Color Family Filter Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
               <button
                 type="button"
-                onClick={() => setSelectedFamilyId('all')}
+                onClick={() =>
+                  setFamilyByBrand((prev) => ({ ...prev, [activeBrand]: 'all' }))
+                }
                 className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   selectedFamilyId === 'all'
                     ? 'bg-slate-900 text-amber-400'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                جميع الألوان ({GLC_PLATINE_COLORS.length})
+                جميع الألوان ({allShades.length})
               </button>
-              {GLC_COLOR_FAMILIES.map((fam) => {
+              {families.map((fam) => {
                 const active = selectedFamilyId === fam.id;
-                const firstSample = GLC_PLATINE_COLORS.find((c) => c.familyId === fam.id);
                 return (
                   <button
                     key={fam.id}
                     type="button"
-                    onClick={() => setSelectedFamilyId(fam.id)}
+                    onClick={() =>
+                      setFamilyByBrand((prev) => ({ ...prev, [activeBrand]: fam.id }))
+                    }
                     className={`min-h-[38px] inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                       active
                         ? 'bg-slate-900 text-white'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
-                    {firstSample && (
-                      <span
-                        className="w-3.5 h-3.5 rounded-sm border border-black/15 shrink-0"
-                        style={{ backgroundColor: firstSample.hex }}
-                      />
-                    )}
+                    <span
+                      className="w-3.5 h-3.5 rounded-sm border border-black/15 shrink-0"
+                      style={{ backgroundColor: fam.swatchHex }}
+                    />
                     <span>{fam.nameAr}</span>
                   </button>
                 );
@@ -570,72 +829,98 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           {filteredColors.length === 0 ? (
             <div className="rounded-2xl bg-white border border-slate-200 p-8 text-center space-y-3">
               <p className="text-sm font-bold text-slate-800">
-                لا توجد أكواد مطابقة للبحث &quot;{searchCode}&quot;
+                لا توجد ألوان مطابقة للبحث &quot;{searchCode}&quot;
               </p>
               <button
                 type="button"
                 onClick={() => {
-                  setSearchCode('');
-                  setSelectedFamilyId('all');
+                  setSearchByBrand((prev) => ({ ...prev, [activeBrand]: '' }));
+                  setFamilyByBrand((prev) => ({ ...prev, [activeBrand]: 'all' }));
                 }}
                 className="min-h-[40px] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold cursor-pointer"
               >
-                عرض جميع الـ 132 لون
+                عرض جميع ألوان {brandTitleUpper} ({allShades.length})
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 min-[460px]:grid-cols-4 sm:grid-cols-4 gap-2.5 sm:gap-3">
-              {filteredColors.map((shade) => {
-                const isPrimary = shade.code === primaryShade.code;
-                const isCompare = compareMode && shade.code === compareShade.code;
-                return (
-                  <button
-                    key={shade.code}
-                    type="button"
-                    onClick={() => handleSelectSwatch(shade)}
-                    className={`group rounded-xl border bg-white p-1.5 text-right transition-all cursor-pointer ${
-                      isPrimary
-                        ? 'border-blue-600 ring-2 ring-blue-600/25 shadow-sm'
-                        : isCompare
-                        ? 'border-amber-500 ring-2 ring-amber-400/35 shadow-sm'
-                        : 'border-slate-200 hover:border-slate-400'
-                    }`}
-                    aria-label={`اختيار لون GLC ${shade.code} لمعاينته على الحائط`}
-                  >
-                    <div
-                      className="relative h-16 sm:h-20 w-full rounded-lg border border-black/10 transition-transform duration-150 group-hover:scale-[1.02]"
-                      style={{ backgroundColor: shade.hex }}
+            <>
+              <div className="grid grid-cols-3 min-[460px]:grid-cols-4 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                {displayedColors.map((shade) => {
+                  const isPrimary = shade.code === primaryShade.code;
+                  const isCompare = compareMode && shade.code === compareShade.code;
+                  return (
+                    <button
+                      key={`${activeBrand}-${shade.code}`}
+                      type="button"
+                      onClick={() => handleSelectSwatch(shade)}
+                      className={`group rounded-xl border bg-white p-1.5 text-right transition-all cursor-pointer ${
+                        isPrimary
+                          ? 'border-blue-600 ring-2 ring-blue-600/25 shadow-sm'
+                          : isCompare
+                          ? 'border-amber-500 ring-2 ring-amber-400/35 shadow-sm'
+                          : 'border-slate-200 hover:border-slate-400'
+                      }`}
+                      aria-label={`اختيار لون ${brandTitleUpper} ${shade.code} ${shade.nameAr || ''} لمعاينته على الحائط`}
                     >
-                      {(isPrimary || isCompare) && (
-                        <span
-                          className={`absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-extrabold shadow-xs ${
-                            isPrimary
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-amber-400 text-slate-950'
-                          }`}
-                        >
-                          {isCompare && !isPrimary ? '2' : '1'}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-1.5 px-1 flex items-center justify-between gap-1">
-                      <span className="font-mono-nums text-xs sm:text-[13px] font-extrabold text-slate-900 tracking-tight">
-                        {shade.code}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-mono-nums hidden sm:inline">
-                        ص{shade.pageNumber}
-                      </span>
-                    </div>
+                      <div
+                        className="relative h-16 sm:h-20 w-full rounded-lg border border-black/10 transition-transform duration-150 group-hover:scale-[1.02]"
+                        style={{ backgroundColor: shade.hex }}
+                      >
+                        {(isPrimary || isCompare) && (
+                          <span
+                            className={`absolute top-1.5 left-1.5 w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-extrabold shadow-xs ${
+                              isPrimary
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-amber-400 text-slate-950'
+                            }`}
+                          >
+                            {isCompare && !isPrimary ? '2' : '1'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1.5 px-1 space-y-0.5">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-mono-nums text-xs sm:text-[13px] font-extrabold text-slate-900 tracking-tight truncate">
+                            {shade.code}
+                          </span>
+                          {shade.pageNumber && (
+                            <span className="text-[10px] text-slate-400 font-mono-nums hidden sm:inline shrink-0">
+                              ص{shade.pageNumber}
+                            </span>
+                          )}
+                        </div>
+                        {shade.nameAr && (
+                          <div className="text-[10px] sm:text-[11px] font-semibold text-slate-600 truncate">
+                            {shade.nameAr}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {shouldCapJotun && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllJotun(true)}
+                    className="min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 px-5 py-2.5 text-xs sm:text-sm font-extrabold transition-colors cursor-pointer"
+                  >
+                    <span>
+                      عرض جميع ألوان جوتن ({filteredColors.length} لون معتمد)
+                    </span>
                   </button>
-                );
-              })}
-            </div>
+                </div>
+              )}
+            </>
           )}
 
-          {/* Color Accuracy Disclaimer matching PDF page 3 */}
+          {/* Color Accuracy Disclaimer */}
           <p className="text-[11px] text-slate-500 leading-relaxed px-1">
-            قد تختلف درجة اللون المعروضة على الشاشة بنسبة طفيفة عن الدهان النهائي بسبب إعدادات الإضاءة
-            وسطوع الشاشة؛ يُعتمد كود GLC الرسمي عند التلوين الفعلي بماكينة الكمبيوتر بالمتجر.
+            قد تختلف درجة اللون المعروضة على الشاشة بنسبة طفيفة عن الدهان النهائي بسبب إعدادات
+            الإضاءة وسطوع الشاشة؛ يُعتمد كود {brandTitleUpper} الرسمي عند التلوين الفعلي بماكينة
+            الكمبيوتر بالمتجر.
           </p>
         </div>
       </div>
