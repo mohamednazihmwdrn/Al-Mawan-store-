@@ -216,4 +216,6 @@ export const CURATED_PAINT_SHADES = [
   { code: 'GLC N03000', name: 'أوف وايت محايد بلاتين', hex: '#F7F4F0', brand: 'GLC' },
   { code: 'JOTUN 12078', name: 'Comfort Grey — كمفرت غراي', hex: '#BEB9AF', brand: 'JOTUN' },
   { code: 'JOTUN 4477', name: 'Deco Blue — دكو بلو', hex: '#525C64', brand: 'JOTUN' },
+  { code: 'SIPES S089', name: 'سايبس بلاستيك S089', hex: '#FEEFCB', brand: 'SIPES' },
+  { code: 'SIPES 952', name: 'Turquoise — تركواز سايبس', hex: '#B3D5C3', brand: 'SIPES' },
 ];

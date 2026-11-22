@@ -20,7 +20,7 @@ import { CatalogAttachment } from '../types/store';
 interface ColorStudioModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenGlcColors?: (brand?: 'glc' | 'jotun') => void;
+  onOpenGlcColors?: (brand?: 'glc' | 'jotun' | 'sipes') => void;
 }
 
 export const ColorStudioModal: React.FC<ColorStudioModalProps> = ({
@@ -119,9 +119,9 @@ export const ColorStudioModal: React.FC<ColorStudioModalProps> = ({
         </div>
 
         <div className="p-5 sm:p-6 space-y-8">
-          {/* Featured GLC & JOTUN Interactive Wall Visualizer Launchers */}
+          {/* Featured GLC, JOTUN & SIPES Interactive Wall Visualizer Launchers */}
           {onOpenGlcColors && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
               <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 flex flex-col justify-between gap-4 border border-slate-800">
                 <div className="space-y-1.5 min-w-0">
                   <div className="text-xs font-bold text-amber-400">
@@ -169,6 +169,31 @@ export const ColorStudioModal: React.FC<ColorStudioModalProps> = ({
                 >
                   <Palette className="w-4 h-4 text-blue-700" />
                   <span>فتح ألوان جوتن ومعاينة الحائط</span>
+                </button>
+              </div>
+
+              <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 flex flex-col justify-between gap-4 border border-slate-800">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="text-xs font-bold text-amber-400">
+                    SIPES PAINTS · 6 أقسام متخصصة
+                  </div>
+                  <h3 className="text-base font-extrabold text-white">
+                    ألوان سايبس بالكمبيوتر ومعاينة الحائط (344 لون)
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    البلاستيك، اللاكيه، الجرافيـاتو، دوكو NC، الإيبوكسي وتخطيط الطرق بأكوادها المعتمدة.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenGlcColors('sipes');
+                  }}
+                  className="min-h-[44px] w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap transition-colors cursor-pointer"
+                >
+                  <Palette className="w-4 h-4" />
+                  <span>فتح ألوان سايبس (6 أقسام)</span>
                 </button>
               </div>
             </div>
