@@ -60,8 +60,12 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
     isVerifiedAdmin,
     signInOwnerGoogle,
     signInOwnerPassword,
+    signInOwnerMagicLink,
+    signUpOwnerPassword,
+    sendOwnerPasswordReset,
     signOutOwnerGoogle,
     seedMissingCatalog,
+    importGlcCatalogProducts,
     upsertProduct,
     deleteProduct,
     deleteAllProducts,
@@ -74,6 +78,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<OwnerTab>('overview');
   const [toastMsg, setToastMsg] = useState('');
   const [seeding, setSeeding] = useState(false);
+  const [importingGlc, setImportingGlc] = useState(false);
   const [showCloudLogin, setShowCloudLogin] = useState(false);
   const [authEmail, setAuthEmail] = useState(ADMIN_EMAIL);
   const [authPass, setAuthPass] = useState('');
@@ -183,6 +188,22 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
       showToast(e instanceof Error ? e.message : 'تعذر تهيئة الأقسام');
     } finally {
       setSeeding(false);
+    }
+  };
+
+  const handleImportGlc32 = async () => {
+    setImportingGlc(true);
+    try {
+      const addedCount = await importGlcCatalogProducts();
+      if (addedCount > 0) {
+        showToast(`تم نشر ${addedCount} منتج من تشكيلة GLC داخل قسم "منتجات GLC" (الأسعار مفتوحة للتعديل).`);
+      } else {
+        showToast('جميع منتجات GLC الـ 41 مضافة بالفعل في قسم "منتجات GLC".');
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'تعذر استيراد منتجات GLC');
+    } finally {
+      setImportingGlc(false);
     }
   };
 
@@ -487,45 +508,128 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                   setAuthSubmitting(false);
                 }
               }}
-              className="rounded-xl bg-slate-800/80 border border-slate-700 p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+              className="rounded-xl bg-slate-800/80 border border-slate-700 p-3.5 space-y-2.5"
             >
-              <input
-                type="email"
-                required
-                dir="ltr"
-                value={authEmail}
-                onChange={(e) => setAuthEmail(e.target.value)}
-                placeholder="البريد الإلكتروني للمالك"
-                className="rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-white sm:w-56"
-              />
-              <input
-                type="password"
-                required
-                dir="ltr"
-                value={authPass}
-                onChange={(e) => setAuthPass(e.target.value)}
-                placeholder="كلمة مرور حساب المالك"
-                className="rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-white sm:w-44"
-              />
-              <button
-                type="submit"
-                disabled={authSubmitting}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:bg-amber-400/60 text-slate-950 px-4 py-2 text-xs font-extrabold cursor-pointer shrink-0"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>{authSubmitting ? 'جاري التحقق...' : 'دخول المالك'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  signInOwnerGoogle().catch((e) =>
-                    showToast(e instanceof Error ? e.message : 'تعذر تسجيل الدخول عبر Google')
-                  )
-                }
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 text-xs font-bold cursor-pointer shrink-0"
-              >
-                <span>عبر Google</span>
-              </button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <input
+                  type="email"
+                  required
+                  dir="ltr"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="البريد الإلكتروني للمالك"
+                  className="rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-white sm:w-56"
+                />
+                <input
+                  type="password"
+                  dir="ltr"
+                  value={authPass}
+                  onChange={(e) => setAuthPass(e.target.value)}
+                  placeholder="كلمة المرور (أو استخدم رابط الإيميل)"
+                  className="rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-white sm:w-52"
+                />
+                <button
+                  type="submit"
+                  disabled={authSubmitting}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:bg-amber-400/60 text-slate-950 px-4 py-2 text-xs font-extrabold cursor-pointer shrink-0"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>{authSubmitting ? 'جاري التحقق...' : 'دخول المالك'}</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={authSubmitting}
+                  onClick={async () => {
+                    if (!authEmail.trim()) {
+                      showToast('اكتب بريدك الإلكتروني أولاً.');
+                      return;
+                    }
+                    setAuthSubmitting(true);
+                    try {
+                      await signInOwnerMagicLink(authEmail.trim());
+                      showToast(
+                        `تم إرسال رابط دخول فوري (بدون كلمة سر) إلى ${authEmail.trim()} — افتح رسائلك واضغط الرابط.`
+                      );
+                    } catch (err) {
+                      showToast(err instanceof Error ? err.message : 'تعذر إرسال رابط الدخول');
+                    } finally {
+                      setAuthSubmitting(false);
+                    }
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 text-xs font-bold cursor-pointer shrink-0"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>دخول برابط على الإيميل (بدون رقم سري)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    signInOwnerGoogle().catch((e) =>
+                      showToast(e instanceof Error ? e.message : 'تعذر تسجيل الدخول عبر Google')
+                    )
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 text-xs font-bold cursor-pointer shrink-0"
+                >
+                  <span>عبر Google</span>
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-300 pt-1">
+                <span>أول مرة تدخل أو نسيت كلمة المرور؟ اكتب البريد وكلمة مرور جديدة ثم اضغط:</span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={authSubmitting}
+                    onClick={async () => {
+                      if (!authEmail.trim() || !authPass) {
+                        showToast('اكتب البريد الإلكتروني وكلمة المرور الجديدة (6+ أحرف) أولاً.');
+                        return;
+                      }
+                      setAuthSubmitting(true);
+                      try {
+                        const loggedInNow = await signUpOwnerPassword(authEmail.trim(), authPass);
+                        setAuthPass('');
+                        if (loggedInNow) {
+                          setShowCloudLogin(false);
+                          showToast('تم إنشاء وتفعيل حساب المالك وتسجيل الدخول بنجاح!');
+                        } else {
+                          showToast(
+                            `تم إرسال رسالة تأكيد الحساب إلى ${authEmail.trim()} — افتح البريد واضغط تأكيد لتدخل مباشرة.`
+                          );
+                        }
+                      } catch (err) {
+                        showToast(err instanceof Error ? err.message : 'تعذر إنشاء الحساب');
+                      } finally {
+                        setAuthSubmitting(false);
+                      }
+                    }}
+                    className="text-amber-300 hover:underline font-bold cursor-pointer"
+                  >
+                    تسجيل كلمة مرور لأول مرة
+                  </button>
+                  <button
+                    type="button"
+                    disabled={authSubmitting}
+                    onClick={async () => {
+                      if (!authEmail.trim()) {
+                        showToast('اكتب بريدك الإلكتروني أولاً.');
+                        return;
+                      }
+                      setAuthSubmitting(true);
+                      try {
+                        await sendOwnerPasswordReset(authEmail.trim());
+                        showToast(`تم إرسال رابط تغيير كلمة المرور إلى ${authEmail.trim()}.`);
+                      } catch (err) {
+                        showToast(err instanceof Error ? err.message : 'تعذر إرسال رابط الاستعادة');
+                      } finally {
+                        setAuthSubmitting(false);
+                      }
+                    }}
+                    className="text-slate-300 hover:text-white hover:underline cursor-pointer"
+                  >
+                    نسيت كلمة المرور؟
+                  </button>
+                </div>
+              </div>
             </form>
           )}
 
@@ -1100,13 +1204,15 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">وصف المنتج (اختياري)</label>
+                  <label className="block text-xs font-bold text-slate-700">
+                    الوصف والتفاصيل الكاملة للمنتج (اختياري)
+                  </label>
                   <textarea
-                    rows={3}
+                    rows={7}
                     value={pDesc}
                     onChange={(e) => setPDesc(e.target.value)}
-                    placeholder="اكتب وصفاً بسيطاً وواضحاً لمواصفات واستخدامات المنتج..."
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm"
+                    placeholder="اكتب وصفاً تفصيلياً لمواصفات، مميزات، وطريقة استخدام المنتج..."
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm leading-relaxed"
                   />
                 </div>
 
@@ -1197,6 +1303,15 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                       <span>جدول</span>
                     </button>
                   </div>
+                  <button
+                    type="button"
+                    disabled={importingGlc}
+                    onClick={handleImportGlc32}
+                    className="min-h-[40px] inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 disabled:opacity-60 text-amber-900 px-3 py-2 text-xs font-extrabold cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{importingGlc ? 'جاري استيراد GLC...' : 'استيراد تشكيلة GLC (41 منتج)'}</span>
+                  </button>
                   {products.length > 0 && (
                     <button
                       type="button"
@@ -1253,12 +1368,12 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                       className="rounded-2xl border border-slate-200 p-4 flex flex-col justify-between space-y-3"
                     >
                       <div className="space-y-2">
-                        <div className="aspect-[4/3] rounded-xl bg-slate-100 overflow-hidden">
+                        <div className="aspect-[4/3] rounded-xl bg-white border border-slate-100 overflow-hidden">
                           <img
                             src={p.imageUrl}
                             alt={p.name}
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain p-1.5"
                           />
                         </div>
                         <div className="flex items-center justify-between text-xs">

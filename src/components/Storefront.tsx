@@ -33,6 +33,7 @@ interface StorefrontProps {
   onOpenProduct: (product: Product) => void;
   onOpenColorStudio: () => void;
   onOpenCart: () => void;
+  categoryJump?: { categoryId: string; subpageId?: string; nonce: number } | null;
 }
 
 function FeatureIcon({ icon }: { icon: StoreFeature['icon'] }) {
@@ -58,6 +59,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
   onOpenProduct,
   onOpenColorStudio,
   onOpenCart,
+  categoryJump,
 }) => {
   const {
     config,
@@ -80,6 +82,13 @@ export const Storefront: React.FC<StorefrontProps> = ({
   const [bannerIndex, setBannerIndex] = useState(0);
   const [isBannerPaused, setIsBannerPaused] = useState(false);
   const bannerTouchStartXRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!categoryJump) return;
+    setSelectedCategoryId(categoryJump.categoryId || 'all');
+    setSelectedSubpageId(categoryJump.subpageId || 'all');
+    setOffersOnly(false);
+  }, [categoryJump]);
 
   // Inquiry form state
   const [inqName, setInqName] = useState('');
@@ -253,14 +262,14 @@ export const Storefront: React.FC<StorefrontProps> = ({
           {/* 4:3 Chamfered Image Frame */}
           <div
             onClick={() => onOpenProduct(product)}
-            className="mowan-product-media relative aspect-[4/3] bg-slate-100 overflow-hidden cursor-pointer"
+            className="mowan-product-media relative aspect-[4/3] bg-white overflow-hidden cursor-pointer"
           >
             <img
               src={product.imageUrl}
               alt={product.name}
               referrerPolicy="no-referrer"
               loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-[1.03]"
             />
             {product.badge && (
               <div className="absolute bottom-0 right-0 bg-slate-950/90 text-amber-300 px-2.5 py-1 text-[10px] sm:text-xs font-bold tracking-tight border-t border-l border-amber-400/50">
@@ -277,7 +286,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
               aria-label={`عرض تفاصيل ${product.name}`}
             >
               <Eye className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">عرض سريع</span>
+              <span className="hidden sm:inline">التفاصيل الكاملة</span>
             </button>
           </div>
 

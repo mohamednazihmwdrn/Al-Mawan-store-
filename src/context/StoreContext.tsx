@@ -49,6 +49,15 @@ import {
   DEMO_CATALOG_IDS,
   DEMO_PRODUCT_IDS,
 } from '../data/defaults';
+import {
+  GLC_32_PRODUCTS,
+  GLC_32_PRODUCT_IDS,
+  GLC_ALL_PRODUCTS,
+  GLC_ALL_PRODUCT_IDS,
+  GLC_BATCH2_PRODUCTS,
+  GLC_BATCH2_PRODUCT_IDS,
+  GLC_SUBPAGES,
+} from '../data/glcCatalog';
 import { sanitizeId } from '../lib/imageUtils';
 import {
   AnalyticsEvent,
@@ -90,10 +99,14 @@ interface StoreContextValue {
   clearCart: () => void;
   signInOwnerGoogle: () => Promise<void>;
   signInOwnerPassword: (email: string, password: string) => Promise<void>;
+  signInOwnerMagicLink: (email: string) => Promise<void>;
+  signUpOwnerPassword: (email: string, password: string) => Promise<boolean>;
+  sendOwnerPasswordReset: (email: string) => Promise<void>;
   signOutOwnerGoogle: () => Promise<void>;
   saveConfig: (nextConfig: StoreConfig) => Promise<void>;
   restoreDefaultConfigAndCatalog: () => Promise<void>;
   seedMissingCatalog: () => Promise<void>;
+  importGlcCatalogProducts: () => Promise<number>;
   upsertBanner: (banner: Omit<Banner, 'createdAt' | 'updatedAt'>, isNew: boolean) => Promise<void>;
   deleteBanner: (id: string) => Promise<void>;
   deleteAllBanners: () => Promise<void>;
@@ -136,6 +149,12 @@ const CART_STORAGE_KEY = 'mowan_cart_v1';
 const LOCAL_PREVIEW_STORAGE_KEY = 'mowan_local_store_v1';
 const LOCAL_DEMO_PURGE_FLAG = 'mowan_demo_purged_v2';
 const CLOUD_DEMO_PURGE_FLAG = 'mowan_cloud_demo_purged_v2';
+const LOCAL_GLC32_SEED_FLAG = 'mowan_glc32_local_seeded_v1';
+const CLOUD_GLC32_SEED_FLAG = 'mowan_glc32_cloud_seeded_v1';
+const LOCAL_GLC_BATCH2_SEED_FLAG = 'mowan_glc_batch2_local_seeded_v1';
+const CLOUD_GLC_BATCH2_SEED_FLAG = 'mowan_glc_batch2_cloud_seeded_v1';
+const LOCAL_GLC32_DETAILS_V2_FLAG = 'mowan_glc32_details_v2';
+const CLOUD_GLC32_DETAILS_V2_FLAG = 'mowan_glc32_details_v2';
 
 const CLOUD_AUTH_REQUIRED_MSG =
   'لم يتم الحفظ في السحابة: يرجى تسجيل الدخول بحساب المالك عبر "تسجيل دخول السحابة" أعلى اللوحة لإتمام التعديل والحذف النهائي.';
@@ -165,10 +184,76 @@ interface LocalSnapshotState {
   inquiries: Inquiry[];
 }
 
+function mergeGlcSubpagesList(existing: Subpage[]): Subpage[] {
+  const existingIds = new Set(existing.map((s) => s.id));
+  const missing = GLC_SUBPAGES.filter((s) => !existingIds.has(s.id));
+  return missing.length > 0 ? [...existing, ...missing] : existing;
+}
+
+function mergeGlcProductsList(existing: Product[]): Product[] {
+  const existingIds = new Set(existing.map((p) => p.id));
+  const missing = GLC_32_PRODUCTS.filter((p) => !existingIds.has(p.id));
+  return missing.length > 0 ? [...existing, ...missing] : existing;
+}
+
+function mergeGlcBatch2ProductsList(existing: Product[]): Product[] {
+  const existingIds = new Set(existing.map((p) => p.id));
+  const missing = GLC_BATCH2_PRODUCTS.filter((p) => !existingIds.has(p.id));
+  return missing.length > 0 ? [...existing, ...missing] : existing;
+}
+
+const GLC_32_MAP = new Map(GLC_ALL_PRODUCTS.map((p) => [p.id, p]));
+
+function upgradeGlcDetailsInList(existing: Product[]): { list: Product[]; changed: boolean } {
+  let changed = false;
+  const next = existing.map((p) => {
+    const rich = GLC_32_MAP.get(p.id);
+    if (!rich) return p;
+    if (p.description && p.description.includes('المواصفات الفنية والتشغيل:')) {
+      return p;
+    }
+    changed = true;
+    return {
+      ...p,
+      description: rich.description,
+      specs: rich.specs,
+      sizes: rich.sizes,
+      unit: rich.unit,
+      badge: rich.badge,
+      subpageId: rich.subpageId,
+    };
+  });
+  return { list: changed ? next : existing, changed };
+}
+
 function readLocalSnapshot(): LocalSnapshotState {
   const shouldPurgeDemo = (() => {
     try {
       return localStorage.getItem(LOCAL_DEMO_PURGE_FLAG) !== '1';
+    } catch {
+      return false;
+    }
+  })();
+
+  const shouldSeedGlc32 = (() => {
+    try {
+      return localStorage.getItem(LOCAL_GLC32_SEED_FLAG) !== '1';
+    } catch {
+      return false;
+    }
+  })();
+
+  const shouldSeedGlcBatch2 = (() => {
+    try {
+      return localStorage.getItem(LOCAL_GLC_BATCH2_SEED_FLAG) !== '1';
+    } catch {
+      return false;
+    }
+  })();
+
+  const shouldUpgradeGlcDetails = (() => {
+    try {
+      return localStorage.getItem(LOCAL_GLC32_DETAILS_V2_FLAG) !== '1';
     } catch {
       return false;
     }
@@ -191,33 +276,57 @@ function readLocalSnapshot(): LocalSnapshotState {
       const rawBanners = Array.isArray(parsed.banners) ? parsed.banners : DEFAULT_BANNERS;
       const rawProducts = Array.isArray(parsed.products) ? parsed.products : DEFAULT_PRODUCTS;
       const rawCatalogs = Array.isArray(parsed.catalogs) ? parsed.catalogs : DEFAULT_CATALOGS;
+      let categories = Array.isArray(parsed.categories) ? parsed.categories : DEFAULT_CATEGORIES;
+      let subpages = Array.isArray(parsed.subpages) ? parsed.subpages : DEFAULT_SUBPAGES;
 
       const cleanBanners = shouldPurgeDemo
         ? rawBanners.filter((b) => !DEMO_BANNER_IDS.includes(b.id))
         : rawBanners;
-      const cleanProducts = shouldPurgeDemo
+      let cleanProducts = shouldPurgeDemo
         ? rawProducts.filter((p) => !DEMO_PRODUCT_IDS.includes(p.id))
         : rawProducts;
       const cleanCatalogs = shouldPurgeDemo
         ? rawCatalogs.filter((k) => !DEMO_CATALOG_IDS.includes(k.id))
         : rawCatalogs;
 
+      if (shouldSeedGlc32 || shouldSeedGlcBatch2) {
+        if (!categories.some((c) => c.id === 'cat_glc')) {
+          const glcCat = DEFAULT_CATEGORIES.find((c) => c.id === 'cat_glc');
+          if (glcCat) categories = [glcCat, ...categories];
+        }
+        subpages = mergeGlcSubpagesList(subpages);
+        if (shouldSeedGlc32) {
+          cleanProducts = mergeGlcProductsList(cleanProducts);
+        }
+        if (shouldSeedGlcBatch2) {
+          cleanProducts = mergeGlcBatch2ProductsList(cleanProducts);
+        }
+      }
+
+      if (shouldUpgradeGlcDetails) {
+        const upgraded = upgradeGlcDetailsInList(cleanProducts);
+        cleanProducts = upgraded.list;
+      }
+
       const nextState: LocalSnapshotState = {
         initialized: true,
         config: mergedConfig,
         banners: cleanBanners,
-        categories: Array.isArray(parsed.categories) ? parsed.categories : DEFAULT_CATEGORIES,
-        subpages: Array.isArray(parsed.subpages) ? parsed.subpages : DEFAULT_SUBPAGES,
+        categories,
+        subpages,
         products: cleanProducts,
         catalogs: cleanCatalogs,
         orders: Array.isArray(parsed.orders) ? parsed.orders : [],
         inquiries: Array.isArray(parsed.inquiries) ? parsed.inquiries : [],
       };
 
-      if (shouldPurgeDemo) {
+      if (shouldPurgeDemo || shouldSeedGlc32 || shouldSeedGlcBatch2 || shouldUpgradeGlcDetails) {
         try {
           localStorage.setItem(LOCAL_PREVIEW_STORAGE_KEY, JSON.stringify(nextState));
-          localStorage.setItem(LOCAL_DEMO_PURGE_FLAG, '1');
+          if (shouldPurgeDemo) localStorage.setItem(LOCAL_DEMO_PURGE_FLAG, '1');
+          if (shouldSeedGlc32) localStorage.setItem(LOCAL_GLC32_SEED_FLAG, '1');
+          if (shouldSeedGlcBatch2) localStorage.setItem(LOCAL_GLC_BATCH2_SEED_FLAG, '1');
+          if (shouldUpgradeGlcDetails) localStorage.setItem(LOCAL_GLC32_DETAILS_V2_FLAG, '1');
         } catch {
           // Ignore storage quota issues
         }
@@ -229,25 +338,33 @@ function readLocalSnapshot(): LocalSnapshotState {
     // Ignore corrupted cache
   }
 
-  if (shouldPurgeDemo) {
-    try {
-      localStorage.setItem(LOCAL_DEMO_PURGE_FLAG, '1');
-    } catch {
-      // Ignore storage quota issues
-    }
-  }
-
-  return {
+  const initialProducts = shouldSeedGlc32
+    ? GLC_ALL_PRODUCTS
+    : shouldSeedGlcBatch2
+    ? [...DEFAULT_PRODUCTS, ...GLC_BATCH2_PRODUCTS]
+    : DEFAULT_PRODUCTS;
+  const freshState: LocalSnapshotState = {
     initialized: true,
     config: DEFAULT_STORE_CONFIG,
     banners: DEFAULT_BANNERS,
     categories: DEFAULT_CATEGORIES,
     subpages: DEFAULT_SUBPAGES,
-    products: DEFAULT_PRODUCTS,
+    products: initialProducts,
     catalogs: DEFAULT_CATALOGS,
     orders: [],
     inquiries: [],
   };
+
+  try {
+    localStorage.setItem(LOCAL_DEMO_PURGE_FLAG, '1');
+    localStorage.setItem(LOCAL_GLC32_SEED_FLAG, '1');
+    localStorage.setItem(LOCAL_GLC_BATCH2_SEED_FLAG, '1');
+    localStorage.setItem(LOCAL_PREVIEW_STORAGE_KEY, JSON.stringify(freshState));
+  } catch {
+    // Ignore storage quota issues
+  }
+
+  return freshState;
 }
 
 function upsertItemInList<T extends { id: string }>(list: T[], item: T, prepend = false): T[] {
@@ -616,6 +733,152 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } catch {
         // Ignore storage error
       }
+
+      // One-time auto-seed of the 32 GLC catalog products into Supabase without overwriting existing rows
+      try {
+        if (localStorage.getItem(CLOUD_GLC32_SEED_FLAG) !== '1') {
+          const glcCat = DEFAULT_CATEGORIES.find((c) => c.id === 'cat_glc');
+          if (glcCat) {
+            await client
+              .from('categories')
+              .upsert(mapCategoryToDb(glcCat), { onConflict: 'id', ignoreDuplicates: true });
+          }
+          await client
+            .from('subpages')
+            .upsert(GLC_SUBPAGES.map(mapSubpageToDb), { onConflict: 'id', ignoreDuplicates: true });
+
+          const { data: existingRows, error: existingErr } = await client
+            .from('products')
+            .select('id')
+            .in('id', GLC_32_PRODUCT_IDS);
+
+          if (!existingErr && mounted) {
+            const existingIds = new Set((existingRows || []).map((r) => String((r as DbRow).id)));
+            const missing = GLC_32_PRODUCTS.filter((p) => !existingIds.has(p.id));
+            if (missing.length > 0) {
+              const { data: insertedRows, error: insErr } = await client
+                .from('products')
+                .upsert(missing.map(mapProductToDb), {
+                  onConflict: 'id',
+                  ignoreDuplicates: true,
+                })
+                .select('*');
+              if (!insErr && mounted) {
+                const inserted = insertedRows
+                  ? (insertedRows as DbRow[]).map(mapProductFromDb)
+                  : missing;
+                setCloudProducts((prev) => {
+                  const ids = new Set(prev.map((p) => p.id));
+                  const fresh = inserted.filter((p) => !ids.has(p.id));
+                  return fresh.length > 0 ? [...prev, ...fresh] : prev;
+                });
+                setCloudSubpages((prev) => mergeGlcSubpagesList(prev));
+                localStorage.setItem(CLOUD_GLC32_SEED_FLAG, '1');
+              }
+            } else {
+              localStorage.setItem(CLOUD_GLC32_SEED_FLAG, '1');
+            }
+          }
+        }
+      } catch {
+        // Ignore non-fatal cloud auto-seed error; owner can still trigger manually
+      }
+
+      // One-time auto-seed of Batch 2 (9 new unique GLC products) without touching existing or deleted Batch 1 items
+      try {
+        if (localStorage.getItem(CLOUD_GLC_BATCH2_SEED_FLAG) !== '1') {
+          const glcCat = DEFAULT_CATEGORIES.find((c) => c.id === 'cat_glc');
+          if (glcCat) {
+            await client
+              .from('categories')
+              .upsert(mapCategoryToDb(glcCat), { onConflict: 'id', ignoreDuplicates: true });
+          }
+          await client
+            .from('subpages')
+            .upsert(GLC_SUBPAGES.map(mapSubpageToDb), { onConflict: 'id', ignoreDuplicates: true });
+
+          const { data: existingBatch2, error: batch2Err } = await client
+            .from('products')
+            .select('id')
+            .in('id', GLC_BATCH2_PRODUCT_IDS);
+
+          if (!batch2Err && mounted) {
+            const existingIds = new Set((existingBatch2 || []).map((r) => String((r as DbRow).id)));
+            const missingBatch2 = GLC_BATCH2_PRODUCTS.filter((p) => !existingIds.has(p.id));
+            if (missingBatch2.length > 0) {
+              const { data: insertedRows, error: insErr } = await client
+                .from('products')
+                .upsert(missingBatch2.map(mapProductToDb), {
+                  onConflict: 'id',
+                  ignoreDuplicates: true,
+                })
+                .select('*');
+              if (!insErr && mounted) {
+                const inserted = insertedRows
+                  ? (insertedRows as DbRow[]).map(mapProductFromDb)
+                  : missingBatch2;
+                setCloudProducts((prev) => {
+                  const ids = new Set(prev.map((p) => p.id));
+                  const fresh = inserted.filter((p) => !ids.has(p.id));
+                  return fresh.length > 0 ? [...prev, ...fresh] : prev;
+                });
+                setCloudSubpages((prev) => mergeGlcSubpagesList(prev));
+                localStorage.setItem(CLOUD_GLC_BATCH2_SEED_FLAG, '1');
+              }
+            } else {
+              localStorage.setItem(CLOUD_GLC_BATCH2_SEED_FLAG, '1');
+            }
+          }
+        }
+      } catch {
+        // Ignore non-fatal cloud auto-seed error
+      }
+
+      // One-time auto-upgrade of existing short GLC descriptions in Supabase (preserves prices & deleted rows)
+      try {
+        if (localStorage.getItem(CLOUD_GLC32_DETAILS_V2_FLAG) !== '1') {
+          const { data: existingRows, error: checkErr } = await client
+            .from('products')
+            .select('id, description')
+            .in('id', GLC_32_PRODUCT_IDS);
+
+          if (!checkErr && existingRows && mounted) {
+            const toUpgrade = existingRows.filter((row) => {
+              const id = String((row as DbRow).id || '');
+              const desc = String((row as DbRow).description || '');
+              return GLC_32_MAP.has(id) && !desc.includes('المواصفات الفنية والتشغيل:');
+            });
+
+            if (toUpgrade.length > 0) {
+              await Promise.all(
+                toUpgrade.map((row) => {
+                  const id = String((row as DbRow).id);
+                  const rich = GLC_32_MAP.get(id)!;
+                  return client
+                    .from('products')
+                    .update({
+                      description: rich.description,
+                      specs: rich.specs,
+                      sizes: rich.sizes,
+                      unit: rich.unit,
+                      badge: rich.badge,
+                      subpage_id: rich.subpageId,
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', id);
+                })
+              );
+
+              if (mounted) {
+                setCloudProducts((prev) => upgradeGlcDetailsInList(prev).list);
+              }
+            }
+            localStorage.setItem(CLOUD_GLC32_DETAILS_V2_FLAG, '1');
+          }
+        }
+      } catch {
+        // Ignore non-fatal upgrade error
+      }
     };
 
     loadAdminData();
@@ -704,9 +967,75 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('أضف مفاتيح Supabase أولاً لتسجيل الدخول.');
     }
+    const cleanEmail = email.trim().toLowerCase();
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: cleanEmail,
       password,
+    });
+    if (error) {
+      if (error.message.toLowerCase().includes('invalid login credentials')) {
+        throw new Error(
+          'البريد أو كلمة المرور غير صحيحة. يمكنك الدخول فوراً عبر "رابط دخول على الإيميل" بدون كلمة سر أو إنشاء كلمة سر جديدة.'
+        );
+      }
+      if (error.message.toLowerCase().includes('email not confirmed')) {
+        throw new Error(
+          'يرجى تأكيد البريد الإلكتروني أولاً من الرسالة المرسلة إلى إيميلك أو عبر رابط الدخول السريع.'
+        );
+      }
+      throw new Error(error.message);
+    }
+  }, []);
+
+  const signInOwnerMagicLink = useCallback(async (email: string) => {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('أضف مفاتيح Supabase أولاً لتسجيل الدخول.');
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    if (!ADMIN_EMAILS.includes(cleanEmail)) {
+      throw new Error('هذا البريد غير مسجل ضمن حسابات مالك المتجر المصرح لها.');
+    }
+    const { error } = await supabase.auth.signInWithOtp({
+      email: cleanEmail,
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error) throw new Error(error.message);
+  }, []);
+
+  const signUpOwnerPassword = useCallback(async (email: string, password: string) => {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('أضف مفاتيح Supabase أولاً لتسجيل الدخول.');
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    if (!ADMIN_EMAILS.includes(cleanEmail)) {
+      throw new Error('هذا البريد غير مسجل ضمن حسابات مالك المتجر المصرح لها.');
+    }
+    if (password.length < 6) {
+      throw new Error('يرجى كتابة كلمة مرور من 6 أحرف أو أرقام على الأقل.');
+    }
+    const { data, error } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error) throw new Error(error.message);
+    return Boolean(data.session);
+  }, []);
+
+  const sendOwnerPasswordReset = useCallback(async (email: string) => {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('أضف مفاتيح Supabase أولاً لتسجيل الدخول.');
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    if (!ADMIN_EMAILS.includes(cleanEmail)) {
+      throw new Error('هذا البريد غير مسجل ضمن حسابات مالك المتجر المصرح لها.');
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: window.location.origin,
     });
     if (error) throw new Error(error.message);
   }, []);
@@ -877,6 +1206,86 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setHasCloudConfig(true);
     setConfig(DEFAULT_STORE_CONFIG);
   }, [cloudCategories.length]);
+
+  // Imports missing GLC catalog products (leaves already-added or user-priced products completely untouched)
+  const importGlcCatalogProducts = useCallback(async () => {
+    await materializeDefaultsIfUnseeded();
+
+    if (!supabase || !isSupabaseConfigured) {
+      const existingIds = new Set(cloudProducts.map((p) => p.id));
+      const missing = GLC_ALL_PRODUCTS.filter((p) => !existingIds.has(p.id));
+      setCloudCategories((prev) => {
+        if (prev.some((c) => c.id === 'cat_glc')) return prev;
+        const glcCat = DEFAULT_CATEGORIES.find((c) => c.id === 'cat_glc');
+        return glcCat ? [glcCat, ...prev] : prev;
+      });
+      setCloudSubpages((prev) => mergeGlcSubpagesList(prev));
+      if (missing.length > 0) {
+        setCloudProducts((prev) => [...prev, ...missing]);
+      }
+      try {
+        localStorage.setItem(LOCAL_GLC32_SEED_FLAG, '1');
+        localStorage.setItem(LOCAL_GLC_BATCH2_SEED_FLAG, '1');
+      } catch {
+        // Ignore storage error
+      }
+      return missing.length;
+    }
+
+    const client = supabase;
+    const glcCat = DEFAULT_CATEGORIES.find((c) => c.id === 'cat_glc');
+    if (glcCat) {
+      const { error: catErr } = await client
+        .from('categories')
+        .upsert(mapCategoryToDb(glcCat), { onConflict: 'id', ignoreDuplicates: true });
+      if (catErr) throw normalizeSupabaseError(catErr.message);
+    }
+
+    const { error: subErr } = await client
+      .from('subpages')
+      .upsert(GLC_SUBPAGES.map(mapSubpageToDb), { onConflict: 'id', ignoreDuplicates: true });
+    if (subErr) throw normalizeSupabaseError(subErr.message);
+
+    const { data: existingRows, error: checkErr } = await client
+      .from('products')
+      .select('id')
+      .in('id', GLC_ALL_PRODUCT_IDS);
+    if (checkErr) throw normalizeSupabaseError(checkErr.message);
+
+    const existingIds = new Set((existingRows || []).map((r) => String((r as DbRow).id)));
+    const missing = GLC_ALL_PRODUCTS.filter((p) => !existingIds.has(p.id));
+
+    if (missing.length > 0) {
+      const { data: insertedRows, error: insErr } = await client
+        .from('products')
+        .upsert(missing.map(mapProductToDb), {
+          onConflict: 'id',
+          ignoreDuplicates: true,
+        })
+        .select('*');
+      if (insErr) throw normalizeSupabaseError(insErr.message);
+
+      const inserted = insertedRows ? (insertedRows as DbRow[]).map(mapProductFromDb) : missing;
+      setCloudProducts((prev) => {
+        const ids = new Set(prev.map((p) => p.id));
+        const fresh = inserted.filter((p) => !ids.has(p.id));
+        return fresh.length > 0 ? [...prev, ...fresh] : prev;
+      });
+    }
+
+    setCloudCategories((prev) => {
+      if (prev.some((c) => c.id === 'cat_glc')) return prev;
+      return glcCat ? [glcCat, ...prev] : prev;
+    });
+    setCloudSubpages((prev) => mergeGlcSubpagesList(prev));
+    try {
+      localStorage.setItem(CLOUD_GLC32_SEED_FLAG, '1');
+      localStorage.setItem(CLOUD_GLC_BATCH2_SEED_FLAG, '1');
+    } catch {
+      // Ignore storage error
+    }
+    return missing.length;
+  }, [cloudProducts, materializeDefaultsIfUnseeded]);
 
   const upsertBanner = useCallback(
     async (banner: Omit<Banner, 'createdAt' | 'updatedAt'>, _isNew: boolean) => {
@@ -1402,10 +1811,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         clearCart,
         signInOwnerGoogle,
         signInOwnerPassword,
+        signInOwnerMagicLink,
+        signUpOwnerPassword,
+        sendOwnerPasswordReset,
         signOutOwnerGoogle,
         saveConfig,
         restoreDefaultConfigAndCatalog,
         seedMissingCatalog,
+        importGlcCatalogProducts,
         upsertBanner,
         deleteBanner,
         deleteAllBanners,

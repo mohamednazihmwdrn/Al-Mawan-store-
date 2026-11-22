@@ -5,6 +5,7 @@ import productGrinderImg from '../assets/images/product_angle_grinder_1794818520
 import productRollerKitImg from '../assets/images/product_paint_roller_kit_1794818521444.jpg';
 import productLockImg from '../assets/images/product_ahram_mortise_lock_1794818522987.jpg';
 import productWaterproofImg from '../assets/images/product_cmb_waterproof_1794818522808.jpg';
+import { GLC_SUBPAGES } from './glcCatalog';
 import {
   Banner,
   Category,
@@ -149,13 +150,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
 ];
 
 export const DEFAULT_SUBPAGES: Subpage[] = [
-  {
-    id: 'sub_glc_plastic',
-    categoryId: 'cat_glc',
-    name: 'بويات بلاستك ولاكية',
-    description: 'دهانات داخلية وخارجية قابلة للغسيل ومعاجين تأسيس معتمدة',
-    imageUrl: productSealerImg,
-  },
+  ...GLC_SUBPAGES,
   {
     id: 'sub_paints_interior',
     categoryId: 'cat_paints',

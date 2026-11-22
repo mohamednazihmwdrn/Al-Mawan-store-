@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { Settings } from 'lucide-react';
-import { StoreProvider } from './context/StoreContext';
+import { StoreProvider, useStore } from './context/StoreContext';
 import { Header } from './components/Header';
 import { Storefront } from './components/Storefront';
 import { CartDrawer } from './components/CartDrawer';
-import { ProductDetailModal } from './components/ProductDetailModal';
+import { ProductDetailPage } from './components/ProductDetailPage';
 import { ColorStudioModal } from './components/ColorStudioModal';
 import { OwnerAuthModal } from './components/OwnerAuthModal';
 import { OwnerDashboard } from './components/OwnerDashboard';
@@ -21,14 +21,40 @@ const PAGE_LABELS: Record<StorefrontPage, string> = {
   contact: 'تواصل معنا',
 };
 
+function readProductIdFromHash(): string | null {
+  try {
+    const hash = window.location.hash || '';
+    if (hash.startsWith('#product=')) {
+      const id = decodeURIComponent(hash.slice('#product='.length)).trim();
+      return id || null;
+    }
+  } catch {
+    // Ignore malformed hash
+  }
+  return null;
+}
+
 function AppShell() {
+  const { products } = useStore();
   const [ownerUnlocked, setOwnerUnlocked] = useState(false);
   const [viewMode, setViewMode] = useState<'storefront' | 'dashboard'>('storefront');
   const [activePage, setActivePage] = useState<StorefrontPage>('home');
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [colorStudioOpen, setColorStudioOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(() =>
+    readProductIdFromHash()
+  );
+  const [categoryJump, setCategoryJump] = useState<{
+    categoryId: string;
+    subpageId?: string;
+    nonce: number;
+  } | null>(null);
+
+  const selectedProduct = useMemo(
+    () => (selectedProductId ? products.find((p) => p.id === selectedProductId) ?? null : null),
+    [products, selectedProductId]
+  );
 
   const handleTriggerOwnerAuth = () => {
     if (ownerUnlocked) {
@@ -50,13 +76,25 @@ function AppShell() {
   }, [isDashboardView]);
 
   useEffect(() => {
-    if (isDashboardView) return;
+    if (isDashboardView || selectedProductId) return;
     trackAnalyticsEvent({
       eventType: 'page_view',
       targetId: activePage,
       targetLabel: PAGE_LABELS[activePage],
     });
-  }, [activePage, isDashboardView]);
+  }, [activePage, isDashboardView, selectedProductId]);
+
+  useEffect(() => {
+    const onHashOrPop = () => {
+      setSelectedProductId(readProductIdFromHash());
+    };
+    window.addEventListener('popstate', onHashOrPop);
+    window.addEventListener('hashchange', onHashOrPop);
+    return () => {
+      window.removeEventListener('popstate', onHashOrPop);
+      window.removeEventListener('hashchange', onHashOrPop);
+    };
+  }, []);
 
   const handleOpenColorStudio = () => {
     setColorStudioOpen(true);
@@ -69,16 +107,58 @@ function AppShell() {
     }
   };
 
-  const handleOpenProduct = (product: Product) => {
-    setSelectedProduct(product);
-    if (!isDashboardView) {
-      trackAnalyticsEvent({
-        eventType: 'product_view',
-        targetId: product.id,
-        targetLabel: product.name,
-      });
+  const handleOpenProduct = useCallback(
+    (product: Product) => {
+      setSelectedProductId(product.id);
+      try {
+        const nextHash = `#product=${encodeURIComponent(product.id)}`;
+        if (window.location.hash !== nextHash) {
+          window.history.pushState({ productId: product.id }, '', nextHash);
+        }
+      } catch {
+        // Ignore history restrictions in embedded frames
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (!isDashboardView) {
+        trackAnalyticsEvent({
+          eventType: 'product_view',
+          targetId: product.id,
+          targetLabel: product.name,
+        });
+      }
+    },
+    [isDashboardView]
+  );
+
+  const handleCloseProductPage = useCallback(() => {
+    setSelectedProductId(null);
+    try {
+      if (window.location.hash.startsWith('#product=')) {
+        window.history.pushState(null, '', window.location.pathname + window.location.search);
+      }
+    } catch {
+      // Ignore history restrictions
     }
-  };
+  }, []);
+
+  const handleSelectPage = useCallback(
+    (page: StorefrontPage) => {
+      handleCloseProductPage();
+      setActivePage(page);
+    },
+    [handleCloseProductPage]
+  );
+
+  const handleOpenCategoryFromProduct = useCallback(
+    (categoryId: string, subpageId?: string) => {
+      handleCloseProductPage();
+      setCategoryJump({ categoryId, subpageId, nonce: Date.now() });
+      setActivePage('categories');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [handleCloseProductPage]
+  );
 
   return (
     <>
@@ -109,7 +189,7 @@ function AppShell() {
           >
             <Header
               activePage={activePage}
-              onSelectPage={setActivePage}
+              onSelectPage={handleSelectPage}
               onOpenCart={() => setCartOpen(true)}
               onOpenColorStudio={handleOpenColorStudio}
               onTriggerOwnerAuth={handleTriggerOwnerAuth}
@@ -129,23 +209,28 @@ function AppShell() {
               </div>
             )}
 
-            <Storefront
-              activePage={activePage}
-              onSelectPage={setActivePage}
-              onOpenProduct={handleOpenProduct}
-              onOpenColorStudio={handleOpenColorStudio}
-              onOpenCart={() => setCartOpen(true)}
-            />
+            {selectedProduct ? (
+              <ProductDetailPage
+                product={selectedProduct}
+                onBack={handleCloseProductPage}
+                onOpenProduct={handleOpenProduct}
+                onOpenCategory={handleOpenCategoryFromProduct}
+              />
+            ) : (
+              <Storefront
+                activePage={activePage}
+                onSelectPage={handleSelectPage}
+                onOpenProduct={handleOpenProduct}
+                onOpenColorStudio={handleOpenColorStudio}
+                onOpenCart={() => setCartOpen(true)}
+                categoryJump={categoryJump}
+              />
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
-
-      <ProductDetailModal
-        product={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
-      />
 
       <ColorStudioModal
         isOpen={colorStudioOpen}
