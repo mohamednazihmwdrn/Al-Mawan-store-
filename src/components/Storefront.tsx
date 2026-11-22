@@ -32,9 +32,21 @@ interface StorefrontProps {
   onSelectPage: (page: StorefrontPage) => void;
   onOpenProduct: (product: Product) => void;
   onOpenColorStudio: () => void;
+  onOpenGlcColors: () => void;
   onOpenCart: () => void;
   categoryJump?: { categoryId: string; subpageId?: string; nonce: number } | null;
 }
+
+const GLC_PREVIEW_CHIPS = [
+  { code: 'N03000', hex: '#F7F4F0' },
+  { code: 'Y05020', hex: '#F6F0E4' },
+  { code: 'Y21010', hex: '#E9D8B7' },
+  { code: 'Y31510', hex: '#DEC8AB' },
+  { code: 'Y70515', hex: '#FCD5C3' },
+  { code: 'B12020', hex: '#90B5BF' },
+  { code: 'G32020', hex: '#ACBF9C' },
+  { code: 'R10200', hex: '#ECBAB9' },
+] as const;
 
 function FeatureIcon({ icon }: { icon: StoreFeature['icon'] }) {
   switch (icon) {
@@ -58,6 +70,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
   onSelectPage,
   onOpenProduct,
   onOpenColorStudio,
+  onOpenGlcColors,
   onOpenCart,
   categoryJump,
 }) => {
@@ -565,6 +578,44 @@ export const Storefront: React.FC<StorefrontProps> = ({
                           )
                         )}
                       </div>
+
+                      {section.id === 'cat_glc' && config.visibility.colorStudio && (
+                        <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          <div className="space-y-1 min-w-0">
+                            <div className="text-[11px] font-bold text-amber-400">
+                              GLC PAINTS · تلوين بالكمبيوتر · 132 لون من كارتيلا بلاتين
+                            </div>
+                            <h3 className="text-sm sm:text-base font-extrabold text-white">
+                              استعرض جميع ألوان GLC بأكوادها وجرّبها مباشرة على الحائط
+                            </h3>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 shrink-0">
+                            <div className="flex items-center gap-1.5">
+                              {GLC_PREVIEW_CHIPS.map((chip) => (
+                                <button
+                                  key={chip.code}
+                                  type="button"
+                                  onClick={onOpenGlcColors}
+                                  title={`معاينة لون GLC ${chip.code} على الحائط`}
+                                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
+                                  style={{ backgroundColor: chip.hex }}
+                                  aria-label={`معاينة لون GLC ${chip.code}`}
+                                />
+                              ))}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={onOpenGlcColors}
+                              className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                            >
+                              <Palette className="w-4 h-4" />
+                              <span>معاينة الحائط وأكواد GLC</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -713,6 +764,46 @@ export const Storefront: React.FC<StorefrontProps> = ({
                         </motion.div>
                       )}
                     </AnimatePresence>
+                  </section>
+                )}
+
+                {/* Dedicated GLC Computer Colors & Wall Visualizer Banner inside GLC Category */}
+                {selectedCategoryId === 'cat_glc' && config.visibility.colorStudio && (
+                  <section className="rounded-2xl bg-slate-900 text-white p-4 sm:p-6 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="text-xs font-bold text-amber-400">
+                        كتالوج ألوان GLC سوبر بلاتين · تلوين بالكمبيوتر
+                      </div>
+                      <h2 className="text-base sm:text-xl font-extrabold text-white">
+                        132 درجة لونية بأكوادها الرسمية مع خاصية العرض على الحائط
+                      </h2>
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        اضغط على أي درجة لون لتظهر فوراً على حائط غرفة المعيشة أو النوم أو مقارنة لونين قبل طلب التجهيز بالكمبيوتر.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        {GLC_PREVIEW_CHIPS.slice(0, 6).map((chip) => (
+                          <button
+                            key={chip.code}
+                            type="button"
+                            onClick={onOpenGlcColors}
+                            className="w-8 h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer"
+                            style={{ backgroundColor: chip.hex }}
+                            aria-label={`معاينة كود ${chip.code}`}
+                          />
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={onOpenGlcColors}
+                        className="min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                      >
+                        <Palette className="w-4 h-4" />
+                        <span>فتح كمبيوتر ألوان GLC ومعاينة الحائط</span>
+                      </button>
+                    </div>
                   </section>
                 )}
 
@@ -1234,10 +1325,17 @@ export const Storefront: React.FC<StorefrontProps> = ({
               </button>
               <button
                 type="button"
+                onClick={onOpenGlcColors}
+                className="hover:text-amber-400 cursor-pointer py-1"
+              >
+                كمبيوتر ألوان GLC
+              </button>
+              <button
+                type="button"
                 onClick={onOpenColorStudio}
                 className="hover:text-amber-400 cursor-pointer py-1"
               >
-                كمبيوتر الألوان
+                الكتالوجات
               </button>
               {config.visibility.contact && (
                 <button
@@ -1314,11 +1412,13 @@ export const Storefront: React.FC<StorefrontProps> = ({
         </button>
         <button
           type="button"
-          onClick={onOpenColorStudio}
-          className="min-h-[44px] flex flex-col items-center justify-center gap-0.5 hover:text-amber-400 cursor-pointer"
+          onClick={onOpenGlcColors}
+          className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+            activePage === 'glc_colors' ? 'text-amber-400' : 'hover:text-amber-400'
+          }`}
         >
           <Palette className="w-4 h-4" />
-          <span>الألوان</span>
+          <span>ألوان GLC</span>
         </button>
         <button
           type="button"

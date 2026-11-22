@@ -153,6 +153,8 @@ const LOCAL_GLC32_SEED_FLAG = 'mowan_glc32_local_seeded_v1';
 const CLOUD_GLC32_SEED_FLAG = 'mowan_glc32_cloud_seeded_v1';
 const LOCAL_GLC_BATCH2_SEED_FLAG = 'mowan_glc_batch2_local_seeded_v1';
 const CLOUD_GLC_BATCH2_SEED_FLAG = 'mowan_glc_batch2_cloud_seeded_v1';
+const LOCAL_GLC_PLATINE_CATALOG_FLAG = 'mowan_glc_platine_catalog_v1';
+const CLOUD_GLC_PLATINE_CATALOG_FLAG = 'mowan_glc_platine_catalog_v1';
 const LOCAL_GLC32_DETAILS_V2_FLAG = 'mowan_glc32_details_v2';
 const CLOUD_GLC32_DETAILS_V2_FLAG = 'mowan_glc32_details_v2';
 
@@ -251,6 +253,14 @@ function readLocalSnapshot(): LocalSnapshotState {
     }
   })();
 
+  const shouldSeedGlcPlatineCatalog = (() => {
+    try {
+      return localStorage.getItem(LOCAL_GLC_PLATINE_CATALOG_FLAG) !== '1';
+    } catch {
+      return false;
+    }
+  })();
+
   const shouldUpgradeGlcDetails = (() => {
     try {
       return localStorage.getItem(LOCAL_GLC32_DETAILS_V2_FLAG) !== '1';
@@ -285,9 +295,17 @@ function readLocalSnapshot(): LocalSnapshotState {
       let cleanProducts = shouldPurgeDemo
         ? rawProducts.filter((p) => !DEMO_PRODUCT_IDS.includes(p.id))
         : rawProducts;
-      const cleanCatalogs = shouldPurgeDemo
+      let cleanCatalogs = shouldPurgeDemo
         ? rawCatalogs.filter((k) => !DEMO_CATALOG_IDS.includes(k.id))
         : rawCatalogs;
+
+      if (shouldSeedGlcPlatineCatalog) {
+        const existingCatIds = new Set(cleanCatalogs.map((c) => c.id));
+        const missingCats = DEFAULT_CATALOGS.filter((c) => !existingCatIds.has(c.id));
+        if (missingCats.length > 0) {
+          cleanCatalogs = [...missingCats, ...cleanCatalogs];
+        }
+      }
 
       if (shouldSeedGlc32 || shouldSeedGlcBatch2) {
         if (!categories.some((c) => c.id === 'cat_glc')) {
@@ -320,12 +338,20 @@ function readLocalSnapshot(): LocalSnapshotState {
         inquiries: Array.isArray(parsed.inquiries) ? parsed.inquiries : [],
       };
 
-      if (shouldPurgeDemo || shouldSeedGlc32 || shouldSeedGlcBatch2 || shouldUpgradeGlcDetails) {
+      if (
+        shouldPurgeDemo ||
+        shouldSeedGlc32 ||
+        shouldSeedGlcBatch2 ||
+        shouldSeedGlcPlatineCatalog ||
+        shouldUpgradeGlcDetails
+      ) {
         try {
           localStorage.setItem(LOCAL_PREVIEW_STORAGE_KEY, JSON.stringify(nextState));
           if (shouldPurgeDemo) localStorage.setItem(LOCAL_DEMO_PURGE_FLAG, '1');
           if (shouldSeedGlc32) localStorage.setItem(LOCAL_GLC32_SEED_FLAG, '1');
           if (shouldSeedGlcBatch2) localStorage.setItem(LOCAL_GLC_BATCH2_SEED_FLAG, '1');
+          if (shouldSeedGlcPlatineCatalog)
+            localStorage.setItem(LOCAL_GLC_PLATINE_CATALOG_FLAG, '1');
           if (shouldUpgradeGlcDetails) localStorage.setItem(LOCAL_GLC32_DETAILS_V2_FLAG, '1');
         } catch {
           // Ignore storage quota issues
@@ -832,6 +858,41 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       } catch {
         // Ignore non-fatal cloud auto-seed error
+      }
+
+      // One-time non-destructive cloud seed of the GLC Platine 132-Color PDF Catalog
+      try {
+        if (localStorage.getItem(CLOUD_GLC_PLATINE_CATALOG_FLAG) !== '1' && DEFAULT_CATALOGS.length > 0) {
+          const platineCatalog = DEFAULT_CATALOGS[0];
+          const { data: existingCatlg, error: checkCatlgErr } = await client
+            .from('catalogs')
+            .select('id')
+            .eq('id', platineCatalog.id);
+          if (!checkCatlgErr && mounted) {
+            if (!existingCatlg || existingCatlg.length === 0) {
+              const { data: insCatlg, error: insCatlgErr } = await client
+                .from('catalogs')
+                .upsert(mapCatalogToDb(platineCatalog), {
+                  onConflict: 'id',
+                  ignoreDuplicates: true,
+                })
+                .select('*');
+              if (!insCatlgErr && mounted) {
+                const mapped = insCatlg?.[0]
+                  ? mapCatalogFromDb(insCatlg[0] as DbRow)
+                  : platineCatalog;
+                setCloudCatalogs((prev) =>
+                  prev.some((c) => c.id === mapped.id) ? prev : [mapped, ...prev]
+                );
+                localStorage.setItem(CLOUD_GLC_PLATINE_CATALOG_FLAG, '1');
+              }
+            } else {
+              localStorage.setItem(CLOUD_GLC_PLATINE_CATALOG_FLAG, '1');
+            }
+          }
+        }
+      } catch {
+        // Ignore non-fatal catalog auto-seed error
       }
 
       // One-time auto-upgrade of existing short GLC descriptions in Supabase (preserves prices & deleted rows)

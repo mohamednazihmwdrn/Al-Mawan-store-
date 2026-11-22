@@ -6,6 +6,7 @@ import { Header } from './components/Header';
 import { Storefront } from './components/Storefront';
 import { CartDrawer } from './components/CartDrawer';
 import { ProductDetailPage } from './components/ProductDetailPage';
+import { GlcColorStudioPage } from './components/GlcColorStudioPage';
 import { ColorStudioModal } from './components/ColorStudioModal';
 import { OwnerAuthModal } from './components/OwnerAuthModal';
 import { OwnerDashboard } from './components/OwnerDashboard';
@@ -16,6 +17,7 @@ import { Product, StorefrontPage } from './types/store';
 const PAGE_LABELS: Record<StorefrontPage, string> = {
   home: 'الرئيسية والمنتجات',
   categories: 'الأقسام والبحث',
+  glc_colors: 'كمبيوتر ألوان GLC',
   brands: 'العلامات التجارية',
   about: 'عن المتجر',
   contact: 'تواصل معنا',
@@ -150,6 +152,13 @@ function AppShell() {
     [handleCloseProductPage]
   );
 
+  const handleOpenGlcColors = useCallback(() => {
+    handleCloseProductPage();
+    setColorStudioOpen(false);
+    setActivePage('glc_colors');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [handleCloseProductPage]);
+
   const handleOpenCategoryFromProduct = useCallback(
     (categoryId: string, subpageId?: string) => {
       handleCloseProductPage();
@@ -216,12 +225,19 @@ function AppShell() {
                 onOpenProduct={handleOpenProduct}
                 onOpenCategory={handleOpenCategoryFromProduct}
               />
+            ) : activePage === 'glc_colors' ? (
+              <GlcColorStudioPage
+                onBackHome={() => handleSelectPage('home')}
+                onBrowseGlcProducts={() => handleOpenCategoryFromProduct('cat_glc')}
+                onOpenProduct={handleOpenProduct}
+              />
             ) : (
               <Storefront
                 activePage={activePage}
                 onSelectPage={handleSelectPage}
                 onOpenProduct={handleOpenProduct}
                 onOpenColorStudio={handleOpenColorStudio}
+                onOpenGlcColors={handleOpenGlcColors}
                 onOpenCart={() => setCartOpen(true)}
                 categoryJump={categoryJump}
               />
@@ -235,6 +251,7 @@ function AppShell() {
       <ColorStudioModal
         isOpen={colorStudioOpen}
         onClose={() => setColorStudioOpen(false)}
+        onOpenGlcColors={handleOpenGlcColors}
       />
 
       <OwnerAuthModal

@@ -83,6 +83,13 @@ export const Header: React.FC<HeaderProps> = ({
       visible: true,
     },
     {
+      id: 'glc_colors',
+      label: 'كمبيوتر ألوان GLC بلاتين',
+      subtitle: '132 لون بأكوادها مع خاصية عرض الحائط المباشر',
+      icon: <Palette className="w-5 h-5 shrink-0" />,
+      visible: config.visibility.colorStudio,
+    },
+    {
       id: 'brands',
       label: 'العلامات التجارية والشركاء',
       subtitle: `${config.brands.length} علامة وتوكيل معتمد`,
@@ -108,8 +115,8 @@ export const Header: React.FC<HeaderProps> = ({
   const desktopNavItems: { label: string; page: StorefrontPage; visible: boolean }[] = [
     { label: 'المنتجات', page: 'home', visible: true },
     { label: 'الأقسام والبحث', page: 'categories', visible: true },
+    { label: 'ألوان GLC', page: 'glc_colors', visible: config.visibility.colorStudio },
     { label: 'العلامات التجارية', page: 'brands', visible: config.visibility.brands && config.brands.length > 0 },
-    { label: 'عن المتجر', page: 'about', visible: true },
     { label: 'تواصل معنا', page: 'contact', visible: config.visibility.contact },
   ];
 

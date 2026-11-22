@@ -185,7 +185,25 @@ export const DEFAULT_BANNERS: Banner[] = [];
 
 export const DEFAULT_PRODUCTS: Product[] = [];
 
-export const DEFAULT_CATALOGS: ColorCatalog[] = [];
+export const DEFAULT_CATALOGS: ColorCatalog[] = [
+  {
+    id: 'catlg_glc_platine',
+    title: 'كتالوج GLC سوبر بلاتين — 132 لون بالكمبيوتر',
+    brand: 'GLC',
+    fileType: 'pdf',
+    fileUrl: '/assets/aistudio/GLC_Platine_Color_Card_b12cf5c6.pdf',
+    attachments: [
+      {
+        id: 'att_glc_platine_pdf',
+        type: 'pdf',
+        url: '/assets/aistudio/GLC_Platine_Color_Card_b12cf5c6.pdf',
+        name: 'GLC Platine Color Card (132 Colors).pdf',
+      },
+    ],
+    notes:
+      'كارتيلا ألوان سوبر بلاتين الرسمية من GLC (132 درجة لونية معتمدة بالكمبيوتر لدهانات لاكشري مط 7000، داي ستون 7070، جلتكس 15000 و20000 و25000).',
+  },
+];
 
 export const CURATED_PAINT_SHADES = [
   { code: 'JOTUN 1001', name: 'Egg White — أوف وايت كلاسيك', hex: '#F3EEE4', brand: 'JOTUN' },

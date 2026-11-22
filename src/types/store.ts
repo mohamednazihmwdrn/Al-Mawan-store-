@@ -175,7 +175,13 @@ export interface CartItem {
   quantity: number;
 }
 
-export type StorefrontPage = 'home' | 'categories' | 'brands' | 'about' | 'contact';
+export type StorefrontPage =
+  | 'home'
+  | 'categories'
+  | 'glc_colors'
+  | 'brands'
+  | 'about'
+  | 'contact';
 
 export type OwnerTab =
   | 'overview'

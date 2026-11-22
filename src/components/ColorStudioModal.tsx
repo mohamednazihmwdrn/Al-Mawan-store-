@@ -20,9 +20,14 @@ import { CatalogAttachment } from '../types/store';
 interface ColorStudioModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenGlcColors?: () => void;
 }
 
-export const ColorStudioModal: React.FC<ColorStudioModalProps> = ({ isOpen, onClose }) => {
+export const ColorStudioModal: React.FC<ColorStudioModalProps> = ({
+  isOpen,
+  onClose,
+  onOpenGlcColors,
+}) => {
   const { catalogs, config, submitInquiry } = useStore();
   const [selectedShade, setSelectedShade] = useState(CURATED_PAINT_SHADES[0]);
   const [customCode, setCustomCode] = useState('');
@@ -114,6 +119,34 @@ export const ColorStudioModal: React.FC<ColorStudioModalProps> = ({ isOpen, onCl
         </div>
 
         <div className="p-5 sm:p-6 space-y-8">
+          {/* Featured GLC Platine 132-Color Computer & Wall Visualizer Entry */}
+          {onOpenGlcColors && (
+            <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-800">
+              <div className="space-y-1.5 min-w-0">
+                <div className="text-xs font-bold text-amber-400">
+                  GLC PAINTS · كارتيلا سوبر بلاتين
+                </div>
+                <h3 className="text-base sm:text-lg font-extrabold text-white">
+                  عرض ألوان GLC بالكمبيوتر ومعاينة الحائط (132 لون بأكوادها)
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  اضغط على أي كود لون من كتالوج بلاتين لتشاهد تطبيقه مباشرة على الحائط مع مقارنة لونين ودرجة اللمعة.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenGlcColors();
+                }}
+                className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+              >
+                <Palette className="w-4 h-4" />
+                <span>فتح معاينة الحائط و132 لون</span>
+              </button>
+            </div>
+          )}
+
           {/* Owner uploaded PDF / Image Catalogs */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
