@@ -96,7 +96,6 @@ export const DEFAULT_STORE_CONFIG: StoreConfig = {
   ],
   brands: [
     { id: 'br_jotun', code: 'JOTUN', nameAr: 'دهانات جوتن', color: 'navy', logoUrl: '' },
-    { id: 'br_pachin', code: 'PACHIN', nameAr: 'باكين للدهانات', color: 'blue', logoUrl: '' },
     { id: 'br_sipes', code: 'SIPES', nameAr: 'بويات سايبس', color: 'red', logoUrl: '' },
     { id: 'br_glc', code: 'GLC', nameAr: 'جي إل سي للدهانات', color: 'red', logoUrl: '' },
     { id: 'br_cmb', code: 'CMB', nameAr: 'كيماويات البناء الحديث CMB', color: 'blue', logoUrl: '' },
@@ -125,7 +124,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   {
     id: 'cat_paints',
     name: 'دهانات وكمبيوتر الألوان',
-    description: 'جوتن، باكين، سايبس وميدو بتلوين كمبيوتر فوري',
+    description: 'جوتن، سايبس، سكيب وميدو بتلوين كمبيوتر فوري',
     imageUrl: productJotunImg,
     sortOrder: 7,
   },
@@ -159,7 +158,7 @@ export const DEFAULT_SUBPAGES: Subpage[] = [
     id: 'sub_paints_interior',
     categoryId: 'cat_paints',
     name: 'دهانات داخلية فاخرة',
-    description: 'درجات جوتن فينوماستيك وباكين المطفي ونصف اللامع',
+    description: 'درجات جوتن فينوماستيك وسكيب وسايبس المطفي ونصف اللامع',
     imageUrl: productJotunImg,
   },
   {
@@ -235,6 +234,100 @@ export const DEFAULT_CATALOGS: ColorCatalog[] = [
     ],
     notes:
       'الكتالوجات الرسمية لشركة كيماويات البناء الحديث (CMB): درجات مارمكس S40، ملونات ألواني (CMB 01–12)، كيما جرافياتو وكيم بليكو، كاشو وفلفت ومارميتون، وأنظمة كيمابوكسي وأخشاب فيرونا.',
+  },
+  {
+    id: 'catlg_graffiato_laser_6',
+    title: 'كتالوج جرافيـاتو ليزر (6 صور · كود 1002 – 1220)',
+    brand: 'جرافيـاتو ليزر',
+    fileType: 'image',
+    fileUrl: '/assets/aistudio/IMG-20261123-WA0000_005ab66e.jpg',
+    attachments: [
+      {
+        id: 'att_glaser_1',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0000_005ab66e.jpg',
+        name: 'لوحة 1 ليزر: 1002 – 1030',
+      },
+      {
+        id: 'att_glaser_2',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0004_ad851d76.jpg',
+        name: 'لوحة 2 ليزر: 1032 – 1060',
+      },
+      {
+        id: 'att_glaser_3',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0006_dec831a2.jpg',
+        name: 'لوحة 3 ليزر: 1062 – 1100',
+      },
+      {
+        id: 'att_glaser_4',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0002_9b1c2be6.jpg',
+        name: 'لوحة 4 ليزر: 1102 – 1140',
+      },
+      {
+        id: 'att_glaser_5',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0003_abc9f93d.jpg',
+        name: 'لوحة 5 ليزر: 1142 – 1180',
+      },
+      {
+        id: 'att_glaser_6',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0005_d5bdc02e.jpg',
+        name: 'لوحة 6 ليزر: 1182 – 1220',
+      },
+    ],
+    notes:
+      'الـ 6 لوحات الأصلية لكتالوج جرافيـاتو كيماستون بالليزر (110 كود: 1002 إلى 1220) شاملة شرائح الليزر اللامعة.',
+  },
+  {
+    id: 'catlg_graffiato_classic_6',
+    title: 'كتالوج جرافيـاتو وزخرفي بدون ليزر (6 صور · 90 كود)',
+    brand: 'جرافيـاتو بدون ليزر',
+    fileType: 'image',
+    fileUrl: '/assets/aistudio/IMG-20261123-WA0012_c3329536.jpg',
+    attachments: [
+      {
+        id: 'att_gclassic_1',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0012_c3329536.jpg',
+        name: 'لوحة 1: جوتاشيلد 6050 – 6078',
+      },
+      {
+        id: 'att_gclassic_2',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0011_f5285068.jpg',
+        name: 'لوحة 2: جوتاشيلد 6080 – 6108',
+      },
+      {
+        id: 'att_gclassic_3',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0009_0477aa1d.jpg',
+        name: 'لوحة 3: مارفكس R50 – R64',
+      },
+      {
+        id: 'att_gclassic_4',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0007_3bfadf15.jpg',
+        name: 'لوحة 4: جيماتكس X11 – X25',
+      },
+      {
+        id: 'att_gclassic_5',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0008_04ce3587.jpg',
+        name: 'لوحة 5: ماربل 5001 – 5029',
+      },
+      {
+        id: 'att_gclassic_6',
+        type: 'image',
+        url: '/assets/aistudio/IMG-20261123-WA0010_8dbae9d4.jpg',
+        name: 'لوحة 6: ماربل 5031 – 5059',
+      },
+    ],
+    notes:
+      'الـ 6 لوحات الأصلية بدون ليزر: جوتاشيلد للواجهات (6050–6108)، مارفكس (R50–R64)، جيماتكس (X11–X25)، وماربل (5001–5059).',
   },
 ];
 

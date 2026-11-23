@@ -26,6 +26,7 @@ import { trackAnalyticsEvent } from '../lib/analytics';
 interface ProductDetailPageProps {
   product: Product;
   onBack: () => void;
+  onGoHome?: () => void;
   onOpenProduct: (product: Product) => void;
   onOpenCategory: (categoryId: string, subpageId?: string) => void;
 }
@@ -136,6 +137,7 @@ function parseProductDescription(product: Product): ParsedProductDetails {
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   product,
   onBack,
+  onGoHome,
   onOpenProduct,
   onOpenCategory,
 }) => {
@@ -209,7 +211,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           >
             <button
               type="button"
-              onClick={onBack}
+              onClick={onGoHome || onBack}
               className="hover:text-amber-400 font-semibold transition-colors cursor-pointer shrink-0"
             >
               الرئيسية
@@ -250,7 +252,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             className="min-h-[44px] self-start sm:self-auto inline-flex items-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 text-xs sm:text-sm font-bold text-amber-400 transition-colors cursor-pointer shrink-0"
           >
             <ArrowRight className="w-4 h-4" />
-            <span>العودة للمنتجات</span>
+            <span>العودة للصفحة السابقة</span>
           </button>
         </div>
       </div>

@@ -13,6 +13,7 @@ export interface WallPreviewShade {
   nameAr?: string;
   brandLabel?: string;
   texture?: WallTextureType;
+  laserGlitter?: boolean;
 }
 
 interface GlcWallPreviewProps {
@@ -22,12 +23,13 @@ interface GlcWallPreviewProps {
   lighting: WallLightingMode;
   finish: WallFinishType;
   texture?: WallTextureType;
+  hasLaserGlitter?: boolean;
 }
 
 export const TEXTURE_GRADE_LABELS_AR: Record<GraffiatoTextureGrade, string> = {
-  fine: 'ناعم (FMC)',
-  medium: 'متوسط الخشونة (MC)',
-  coarse: 'خشن بأخاديد طولية',
+  fine: 'ناعم',
+  medium: 'وسط',
+  coarse: 'خشن',
 };
 
 export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
@@ -37,6 +39,7 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
   lighting,
   finish,
   texture = 'smooth',
+  hasLaserGlitter = false,
 }) => {
   const uid = React.useId().replace(/:/g, '');
   const isSplit = Boolean(compareShade);
@@ -49,6 +52,11 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
       ? compareShade.texture
       : activeTexture;
 
+  const primaryGlitter = Boolean(hasLaserGlitter || primaryShade.laserGlitter);
+  const compareGlitter = Boolean(
+    compareShade ? compareShade.laserGlitter ?? hasLaserGlitter : false
+  );
+
   const texturePatternUrl = (t: WallTextureType) => {
     if (t === 'fine') return `url(#${uid}-tex-fine)`;
     if (t === 'medium') return `url(#${uid}-tex-medium)`;
@@ -58,6 +66,7 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
 
   const primaryTexUrl = texturePatternUrl(activeTexture);
   const compareTexUrl = texturePatternUrl(compareTexture);
+  const laserPatternUrl = `url(#${uid}-laser-glitter)`;
 
   const sheenOpacity = finish === 'semigloss' ? 0.24 : finish === 'silk' ? 0.13 : 0.03;
 
@@ -146,6 +155,20 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
             <circle cx="51" cy="70" r="1.2" fill="#ffffff" fillOpacity="0.24" />
             <circle cx="14" cy="80" r="1.4" fill="#0f172a" fillOpacity="0.21" />
             <circle cx="39" cy="84" r="1.2" fill="#0f172a" fillOpacity="0.2" />
+          </pattern>
+
+          {/* 4. Laser Metallic Crystal Glitter Flecks (ليزر جرافياتو كيماستون) */}
+          <pattern id={`${uid}-laser-glitter`} width="48" height="48" patternUnits="userSpaceOnUse">
+            <polygon points="8,4 9.6,7 8,10 6.4,7" fill="#ffffff" fillOpacity="0.88" />
+            <polygon points="24,14 25.8,17.2 24,20.4 22.2,17.2" fill="#FEF08A" fillOpacity="0.72" />
+            <polygon points="40,7 41.3,9.5 40,12 38.7,9.5" fill="#ffffff" fillOpacity="0.8" />
+            <polygon points="15,30 16.5,33 15,36 13.5,33" fill="#ffffff" fillOpacity="0.85" />
+            <polygon points="34,36 35.8,39 34,42 32.2,39" fill="#FDE68A" fillOpacity="0.75" />
+            <circle cx="5" cy="22" r="0.85" fill="#ffffff" fillOpacity="0.85" />
+            <circle cx="29" cy="6" r="0.75" fill="#0f172a" fillOpacity="0.22" />
+            <circle cx="44" cy="24" r="0.9" fill="#ffffff" fillOpacity="0.82" />
+            <circle cx="20" cy="43" r="0.8" fill="#0f172a" fillOpacity="0.2" />
+            <circle cx="42" cy="44" r="0.7" fill="#ffffff" fillOpacity="0.78" />
           </pattern>
 
           {/* Side Wall Shadow Multiplier */}
@@ -291,6 +314,16 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
                 pointerEvents="none"
               />
             )}
+            {(isSplit ? compareGlitter : primaryGlitter) && (
+              <rect
+                x="160"
+                y="72"
+                width="290"
+                height="360"
+                fill={laserPatternUrl}
+                pointerEvents="none"
+              />
+            )}
             {/* Ambient Depth Shade on Rear Wing */}
             <rect x="160" y="72" width="290" height="360" fill="#0f172a" fillOpacity="0.1" pointerEvents="none" />
             {/* Left Side Return of Rear Wing */}
@@ -338,6 +371,16 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
                 pointerEvents="none"
               />
             )}
+            {primaryGlitter && (
+              <rect
+                x="438"
+                y="48"
+                width="392"
+                height="384"
+                fill={laserPatternUrl}
+                pointerEvents="none"
+              />
+            )}
             <rect
               x="438"
               y="48"
@@ -349,6 +392,7 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
             {/* Right Angled Perspective Facade Return */}
             <polygon points="830,48 860,68 860,432 830,432" fill={primaryShade.hex} />
             {primaryTexUrl && <polygon points="830,48 860,68 860,432 830,432" fill={primaryTexUrl} />}
+            {primaryGlitter && <polygon points="830,48 860,68 860,432 830,432" fill={laserPatternUrl} />}
             <polygon points="830,48 860,68 860,432 830,432" fill="#0f172a" fillOpacity="0.24" />
 
             {/* Crisp Charcoal Roof Fascia Trim & Mid Floor Architectural Cantilever Band */}
@@ -400,6 +444,16 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
                 width="380"
                 height="104"
                 fill={isSplit ? compareTexUrl : primaryTexUrl}
+                pointerEvents="none"
+              />
+            )}
+            {(isSplit ? compareGlitter : primaryGlitter) && (
+              <rect
+                x="36"
+                y="328"
+                width="380"
+                height="104"
+                fill={laserPatternUrl}
                 pointerEvents="none"
               />
             )}
@@ -464,6 +518,9 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
                 {primaryTexUrl && (
                   <rect x="0" y="0" width="480" height="432" fill={primaryTexUrl} pointerEvents="none" />
                 )}
+                {primaryGlitter && (
+                  <rect x="0" y="0" width="480" height="432" fill={laserPatternUrl} pointerEvents="none" />
+                )}
                 <rect
                   x="480"
                   y="0"
@@ -474,6 +531,9 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
                 />
                 {compareTexUrl && (
                   <rect x="480" y="0" width="480" height="432" fill={compareTexUrl} pointerEvents="none" />
+                )}
+                {compareGlitter && (
+                  <rect x="480" y="0" width="480" height="432" fill={laserPatternUrl} pointerEvents="none" />
                 )}
               </>
             ) : (
@@ -488,6 +548,9 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
                 />
                 {primaryTexUrl && (
                   <rect x="0" y="0" width="960" height="432" fill={primaryTexUrl} pointerEvents="none" />
+                )}
+                {primaryGlitter && (
+                  <rect x="0" y="0" width="960" height="432" fill={laserPatternUrl} pointerEvents="none" />
                 )}
               </>
             )}

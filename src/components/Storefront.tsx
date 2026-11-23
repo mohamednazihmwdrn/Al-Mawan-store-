@@ -30,12 +30,20 @@ import { PWAInstallButton } from './PWAInstallButton';
 
 interface StorefrontProps {
   activePage: StorefrontPage;
+  selectedCategoryId: string;
+  selectedSubpageId: string;
+  offersOnly: boolean;
+  selectedBrandCode: string;
   onSelectPage: (page: StorefrontPage) => void;
+  onBack: () => void;
   onOpenProduct: (product: Product) => void;
   onOpenColorStudio: () => void;
   onOpenGlcColors: (brand?: ColorStudioBrand) => void;
   onOpenCart: () => void;
-  categoryJump?: { categoryId: string; subpageId?: string; nonce: number } | null;
+  onSelectCategoryFilter: (categoryId: string, subpageId?: string, navigateToCategories?: boolean) => void;
+  onToggleOffersOnly: () => void;
+  onResetFilters: () => void;
+  onSelectBrandCode: (brandCode: string) => void;
 }
 
 const GLC_PREVIEW_CHIPS = [
@@ -123,12 +131,20 @@ function FeatureIcon({ icon }: { icon: StoreFeature['icon'] }) {
 
 export const Storefront: React.FC<StorefrontProps> = ({
   activePage,
+  selectedCategoryId,
+  selectedSubpageId,
+  offersOnly,
+  selectedBrandCode,
   onSelectPage,
+  onBack,
   onOpenProduct,
   onOpenColorStudio,
   onOpenGlcColors,
   onOpenCart,
-  categoryJump,
+  onSelectCategoryFilter,
+  onToggleOffersOnly,
+  onResetFilters,
+  onSelectBrandCode,
 }) => {
   const {
     config,
@@ -143,21 +159,10 @@ export const Storefront: React.FC<StorefrontProps> = ({
 
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
-  const [selectedSubpageId, setSelectedSubpageId] = useState<string>('all');
-  const [offersOnly, setOffersOnly] = useState(false);
-  const [selectedBrandCode, setSelectedBrandCode] = useState<string>('');
   const [addedId, setAddedId] = useState<string | null>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
   const [isBannerPaused, setIsBannerPaused] = useState(false);
   const bannerTouchStartXRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!categoryJump) return;
-    setSelectedCategoryId(categoryJump.categoryId || 'all');
-    setSelectedSubpageId(categoryJump.subpageId || 'all');
-    setOffersOnly(false);
-  }, [categoryJump]);
 
   // Inquiry form state
   const [inqName, setInqName] = useState('');
@@ -264,10 +269,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
       return;
     }
     if (banner.actionType === 'category' && banner.actionTarget) {
-      setSelectedCategoryId(banner.actionTarget);
-      setSelectedSubpageId('all');
-      setOffersOnly(false);
-      navigatePage('categories');
+      onSelectCategoryFilter(banner.actionTarget, 'all', true);
     }
   };
 
@@ -479,11 +481,11 @@ export const Storefront: React.FC<StorefrontProps> = ({
         </div>
         <button
           type="button"
-          onClick={() => navigatePage('home')}
+          onClick={onBack}
           className="min-h-[44px] self-start sm:self-auto inline-flex items-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 text-xs sm:text-sm font-bold text-amber-400 transition-colors cursor-pointer shrink-0"
         >
           <ArrowRight className="w-4 h-4" />
-          <span>العودة لعرض المنتجات</span>
+          <span>العودة للصفحة السابقة</span>
         </button>
       </div>
     </div>
@@ -608,15 +610,12 @@ export const Storefront: React.FC<StorefrontProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              setSelectedCategoryId(section.id);
-                              setSelectedSubpageId('all');
-                              setOffersOnly(false);
                               trackAnalyticsEvent({
                                 eventType: 'category_view',
                                 targetId: section.id,
                                 targetLabel: section.name,
                               });
-                              navigatePage('categories');
+                              onSelectCategoryFilter(section.id, 'all', true);
                             }}
                             className="min-h-[44px] inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-blue-700 hover:text-blue-800 px-2 shrink-0 cursor-pointer transition-colors"
                           >
@@ -866,6 +865,96 @@ export const Storefront: React.FC<StorefrontProps> = ({
                   ))
                 )}
 
+                {config.visibility.colorStudio && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-amber-400/50 flex flex-col justify-between gap-4">
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="text-[11px] font-bold text-amber-400">
+                          جرافيـاتو ليزر · 6 صور أصلية (1002 – 1220) · خشن · وسط · ناعم
+                        </div>
+                        <h3 className="text-sm sm:text-base font-extrabold text-white">
+                          كتالوج جرافيـاتو ليزر (110 كود) ومعاينة واجهة البيت
+                        </h3>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          استعرض 6 لوحات ليزر أصلية بأكوادها وشاهد الملمس الخشن والوسط والناعم والليزر على واجهة البيت.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-1.5">
+                          {[
+                            { code: '1004', hex: '#BDBAB0' },
+                            { code: '1016', hex: '#BFB690' },
+                            { code: '1046', hex: '#C4967E' },
+                            { code: '1052', hex: '#B5A576' },
+                            { code: '1118', hex: '#1D7D9E' },
+                            { code: '1198', hex: '#172C59' },
+                          ].map((chip) => (
+                            <button
+                              key={chip.code}
+                              type="button"
+                              onClick={() => onOpenGlcColors('graffiato_laser')}
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
+                              style={{ backgroundColor: chip.hex }}
+                              aria-label={`معاينة جرافيـاتو ليزر ${chip.code}`}
+                            />
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onOpenGlcColors('graffiato_laser')}
+                          className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                        >
+                          <Palette className="w-4 h-4" />
+                          <span>فتح جرافيـاتو ليزر (6 صور)</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col justify-between gap-4">
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="text-[11px] font-bold text-amber-400">
+                          جرافيـاتو بدون ليزر · 6 صور أصلية (90 كود) · خشن · وسط · ناعم
+                        </div>
+                        <h3 className="text-sm sm:text-base font-extrabold text-white">
+                          كتالوج جرافيـاتو بدون ليزر (جوتاشيلد · مارفكس · جيماتكس · ماربل)
+                        </h3>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          تصفح اللوحات الـ 6 الأصلية وجرّب الملمس الخشن والوسط والناعم على واجهة البيت مباشرة.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-1.5">
+                          {[
+                            { code: '6050', hex: '#DBD7C4' },
+                            { code: '6064', hex: '#BD603A' },
+                            { code: 'R50', hex: '#DFD6B9' },
+                            { code: 'X11', hex: '#D4BF78' },
+                            { code: '5001', hex: '#DDD0AE' },
+                            { code: '5055', hex: '#53AF55' },
+                          ].map((chip) => (
+                            <button
+                              key={chip.code}
+                              type="button"
+                              onClick={() => onOpenGlcColors('graffiato_classic')}
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
+                              style={{ backgroundColor: chip.hex }}
+                              aria-label={`معاينة جرافيـاتو بدون ليزر ${chip.code}`}
+                            />
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onOpenGlcColors('graffiato_classic')}
+                          className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-white hover:bg-slate-100 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                        >
+                          <Palette className="w-4 h-4 text-slate-800" />
+                          <span>فتح جرافيـاتو بدون ليزر (6 صور)</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {config.visibility.colorStudio &&
                   !homeCategorySections.some(
                     (s) =>
@@ -927,10 +1016,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                       {selectedCategoryId !== 'all' && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setSelectedCategoryId('all');
-                            setSelectedSubpageId('all');
-                          }}
+                          onClick={() => onSelectCategoryFilter('all', 'all', false)}
                           className="min-h-[36px] text-xs font-bold text-blue-700 hover:underline cursor-pointer"
                         >
                           عرض جميع الأقسام ←
@@ -950,9 +1036,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                               type="button"
                               onClick={() => {
                                 const nextId = isSelected ? 'all' : cat.id;
-                                setSelectedCategoryId(nextId);
-                                setSelectedSubpageId('all');
-                                setOffersOnly(false);
+                                onSelectCategoryFilter(nextId, 'all', false);
                                 if (nextId !== 'all') {
                                   trackAnalyticsEvent({
                                     eventType: 'category_view',
@@ -1014,7 +1098,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                             </span>
                             <button
                               type="button"
-                              onClick={() => setSelectedSubpageId('all')}
+                              onClick={() => onSelectCategoryFilter(selectedCategoryId, 'all', false)}
                               className={`min-h-[40px] px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                                 selectedSubpageId === 'all'
                                   ? 'bg-blue-600 text-white'
@@ -1027,7 +1111,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                               <button
                                 key={sub.id}
                                 type="button"
-                                onClick={() => setSelectedSubpageId(sub.id)}
+                                onClick={() => onSelectCategoryFilter(selectedCategoryId, sub.id, false)}
                                 className={`min-h-[40px] px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                                   selectedSubpageId === sub.id
                                     ? 'bg-blue-600 text-white'
@@ -1311,11 +1395,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                         <div className="flex items-center gap-1 p-1 bg-slate-200/75 rounded-xl overflow-x-auto no-scrollbar shrink-0">
                           <button
                             type="button"
-                            onClick={() => {
-                              setOffersOnly(false);
-                              setSelectedCategoryId('all');
-                              setSelectedSubpageId('all');
-                            }}
+                            onClick={onResetFilters}
                             className={`min-h-[40px] px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
                               !offersOnly && selectedCategoryId === 'all'
                                 ? 'bg-white text-slate-900 shadow-xs'
@@ -1326,7 +1406,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={() => setOffersOnly((v) => !v)}
+                            onClick={onToggleOffersOnly}
                             className={`min-h-[40px] px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
                               offersOnly
                                 ? 'bg-amber-400 text-slate-950 shadow-xs'
@@ -1366,9 +1446,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                           type="button"
                           onClick={() => {
                             setSearchQuery('');
-                            setSelectedCategoryId('all');
-                            setSelectedSubpageId('all');
-                            setOffersOnly(false);
+                            onResetFilters();
                           }}
                           className="min-h-[44px] mowan-btn-bevel bg-slate-900 text-white px-5 py-2.5 text-xs font-bold hover:bg-slate-800 cursor-pointer"
                         >
@@ -1417,7 +1495,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                     {selectedBrandCode && (
                       <button
                         type="button"
-                        onClick={() => setSelectedBrandCode('')}
+                        onClick={() => onSelectBrandCode('')}
                         className="text-xs font-bold text-amber-400 hover:underline cursor-pointer"
                       >
                         إلغاء تحديد الماركة ({selectedBrandCode})
@@ -1433,7 +1511,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                           key={brand.id}
                           type="button"
                           onClick={() =>
-                            setSelectedBrandCode(active ? '' : brand.code)
+                            onSelectBrandCode(active ? '' : brand.code)
                           }
                           className={`min-h-[72px] mowan-cat-core border p-3 flex flex-col items-center justify-center text-center gap-1.5 transition-colors cursor-pointer ${
                             active
@@ -1875,6 +1953,20 @@ export const Storefront: React.FC<StorefrontProps> = ({
                 className="hover:text-amber-400 cursor-pointer py-1"
               >
                 كمبيوتر ألوان CMB
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenGlcColors('graffiato_laser')}
+                className="hover:text-amber-400 cursor-pointer py-1"
+              >
+                جرافيـاتو ليزر
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenGlcColors('graffiato_classic')}
+                className="hover:text-amber-400 cursor-pointer py-1"
+              >
+                جرافيـاتو بدون ليزر
               </button>
               <button
                 type="button"

@@ -34,6 +34,7 @@ import { OwnerBannersTab, OwnerCatalogsTab, OwnerCategoriesTab } from './owner/O
 import { OwnerBrandsFeaturesTab, OwnerSiteSettingsTab } from './owner/OwnerSettingsTab';
 import { OwnerAnalyticsSection } from './owner/OwnerAnalyticsSection';
 import { ConfirmActionModal } from './ConfirmActionModal';
+import { GLC_ALL_PRODUCTS } from '../data/glcCatalog';
 
 interface OwnerDashboardProps {
   onPreviewCustomer: () => void;
@@ -198,7 +199,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
       if (addedCount > 0) {
         showToast(`تم نشر ${addedCount} منتج من تشكيلة GLC داخل قسم "منتجات GLC" (الأسعار مفتوحة للتعديل).`);
       } else {
-        showToast('جميع منتجات GLC الـ 41 مضافة بالفعل في قسم "منتجات GLC".');
+        showToast(`جميع منتجات GLC الـ ${GLC_ALL_PRODUCTS.length} مضافة بالفعل في قسم "منتجات GLC".`);
       }
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'تعذر استيراد منتجات GLC');

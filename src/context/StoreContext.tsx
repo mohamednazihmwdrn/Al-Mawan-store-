@@ -54,6 +54,8 @@ import {
   MULTI_BRAND_PRODUCTS,
   MULTI_BRAND_PRODUCT_IDS,
   MULTI_BRAND_SUBPAGES,
+  MULTI_BRAND_V2_NEW_PRODUCT_IDS,
+  MULTI_BRAND_V2_PRODUCTS,
 } from '../data/brandCatalogs';
 import {
   GLC_32_PRODUCTS,
@@ -62,6 +64,8 @@ import {
   GLC_ALL_PRODUCT_IDS,
   GLC_BATCH2_PRODUCTS,
   GLC_BATCH2_PRODUCT_IDS,
+  GLC_BATCH3_PRODUCTS,
+  GLC_BATCH3_PRODUCT_IDS,
   GLC_SUBPAGES,
 } from '../data/glcCatalog';
 import { sanitizeId } from '../lib/imageUtils';
@@ -159,12 +163,43 @@ const LOCAL_GLC32_SEED_FLAG = 'mowan_glc32_local_seeded_v1';
 const CLOUD_GLC32_SEED_FLAG = 'mowan_glc32_cloud_seeded_v1';
 const LOCAL_GLC_BATCH2_SEED_FLAG = 'mowan_glc_batch2_local_seeded_v1';
 const CLOUD_GLC_BATCH2_SEED_FLAG = 'mowan_glc_batch2_cloud_seeded_v1';
+const LOCAL_GLC_BATCH3_SEED_FLAG = 'mowan_glc_batch3_local_v1';
+const CLOUD_GLC_BATCH3_SEED_FLAG = 'mowan_glc_batch3_cloud_v1';
 const LOCAL_GLC_PLATINE_CATALOG_FLAG = 'mowan_glc_platine_catalog_v1';
 const CLOUD_GLC_PLATINE_CATALOG_FLAG = 'mowan_glc_platine_catalog_v1';
 const LOCAL_GLC32_DETAILS_V2_FLAG = 'mowan_glc32_details_v2';
 const CLOUD_GLC32_DETAILS_V2_FLAG = 'mowan_glc32_details_v2';
 const LOCAL_MULTI_BRAND_SEED_V1_FLAG = 'mowan_multi_brand_local_v1';
 const CLOUD_MULTI_BRAND_SEED_V1_FLAG = 'mowan_multi_brand_cloud_v1';
+const LOCAL_MULTI_BRAND_SEED_V2_FLAG = 'mowan_multi_brand_local_v2';
+const CLOUD_MULTI_BRAND_SEED_V2_FLAG = 'mowan_multi_brand_cloud_v2';
+const LOCAL_PURGE_PACHIN_FLAG = 'mowan_purge_pachin_v1';
+const CLOUD_PURGE_PACHIN_FLAG = 'mowan_cloud_purge_pachin_v1';
+const LOCAL_GRAFFIATO_CATALOGS_V1_FLAG = 'mowan_graffiato_catalogs_v1';
+const CLOUD_GRAFFIATO_CATALOGS_V1_FLAG = 'mowan_cloud_graffiato_catalogs_v1';
+
+const PACHIN_SUBPAGE_PURGE_IDS = [
+  'sub_pachin_enamel',
+  'sub_pachin_plastic',
+  'sub_pachin_putty_wood',
+];
+const PACHIN_PRODUCT_PURGE_IDS = [
+  'pachin_syntal_909_gloss',
+  'pachin_syntal_matt',
+  'pachin_sanitone_1kg',
+  'pachin_sanitone_small_gallon',
+  'pachin_sanitone_double_gallon',
+  'pachin_red_oxide_primer',
+  'pachin_777_plastic',
+  'pachin_808_silk',
+  'pachin_555_economy',
+  'pachin_777_sealer',
+  'pachin_acrylic_putty',
+  'pachin_wood_varnish',
+];
+const PACHIN_SUBPAGE_PURGE_SET = new Set(PACHIN_SUBPAGE_PURGE_IDS);
+const PACHIN_PRODUCT_PURGE_SET = new Set(PACHIN_PRODUCT_PURGE_IDS);
+const GRAFFIATO_CATALOG_IDS = ['catlg_graffiato_laser_6', 'catlg_graffiato_classic_6'];
 
 const CLOUD_AUTH_REQUIRED_MSG =
   'لم يتم الحفظ في السحابة: يرجى تسجيل الدخول بحساب المالك عبر "تسجيل دخول السحابة" أعلى اللوحة لإتمام التعديل والحذف النهائي.';
@@ -212,6 +247,12 @@ function mergeGlcBatch2ProductsList(existing: Product[]): Product[] {
   return missing.length > 0 ? [...existing, ...missing] : existing;
 }
 
+function mergeGlcBatch3ProductsList(existing: Product[]): Product[] {
+  const existingIds = new Set(existing.map((p) => p.id));
+  const missing = GLC_BATCH3_PRODUCTS.filter((p) => !existingIds.has(p.id));
+  return missing.length > 0 ? [...existing, ...missing] : existing;
+}
+
 const GLC_32_MAP = new Map(GLC_ALL_PRODUCTS.map((p) => [p.id, p]));
 
 function upgradeGlcDetailsInList(existing: Product[]): { list: Product[]; changed: boolean } {
@@ -243,7 +284,8 @@ const BUILTIN_SORT_ORDER_MAP = new Map(
 function mergeMultiBrandCatalog(
   existingCategories: Category[],
   existingSubpages: Subpage[],
-  existingProducts: Product[]
+  existingProducts: Product[],
+  productsToAdd: Product[] = MULTI_BRAND_PRODUCTS
 ): {
   categories: Category[];
   subpages: Subpage[];
@@ -264,7 +306,7 @@ function mergeMultiBrandCatalog(
     missingSubs.length > 0 ? [...existingSubpages, ...missingSubs] : existingSubpages;
 
   const prodIds = new Set(existingProducts.map((p) => p.id));
-  const missingProds = MULTI_BRAND_PRODUCTS.filter((p) => !prodIds.has(p.id));
+  const missingProds = productsToAdd.filter((p) => !prodIds.has(p.id));
   const mergedProducts =
     missingProds.length > 0 ? [...existingProducts, ...missingProds] : existingProducts;
 
@@ -300,6 +342,14 @@ function readLocalSnapshot(): LocalSnapshotState {
     }
   })();
 
+  const shouldSeedGlcBatch3 = (() => {
+    try {
+      return localStorage.getItem(LOCAL_GLC_BATCH3_SEED_FLAG) !== '1';
+    } catch {
+      return false;
+    }
+  })();
+
   const shouldSeedGlcPlatineCatalog = (() => {
     try {
       return localStorage.getItem(LOCAL_GLC_PLATINE_CATALOG_FLAG) !== '1';
@@ -316,9 +366,33 @@ function readLocalSnapshot(): LocalSnapshotState {
     }
   })();
 
-  const shouldSeedMultiBrand = (() => {
+  const shouldSeedMultiBrandV1 = (() => {
     try {
       return localStorage.getItem(LOCAL_MULTI_BRAND_SEED_V1_FLAG) !== '1';
+    } catch {
+      return false;
+    }
+  })();
+
+  const shouldSeedMultiBrandV2 = (() => {
+    try {
+      return localStorage.getItem(LOCAL_MULTI_BRAND_SEED_V2_FLAG) !== '1';
+    } catch {
+      return false;
+    }
+  })();
+
+  const shouldPurgePachin = (() => {
+    try {
+      return localStorage.getItem(LOCAL_PURGE_PACHIN_FLAG) !== '1';
+    } catch {
+      return false;
+    }
+  })();
+
+  const shouldSeedGraffiatoCatalogs = (() => {
+    try {
+      return localStorage.getItem(LOCAL_GRAFFIATO_CATALOGS_V1_FLAG) !== '1';
     } catch {
       return false;
     }
@@ -362,7 +436,7 @@ function readLocalSnapshot(): LocalSnapshotState {
         }
       }
 
-      if (shouldSeedGlc32 || shouldSeedGlcBatch2) {
+      if (shouldSeedGlc32 || shouldSeedGlcBatch2 || shouldSeedGlcBatch3) {
         if (!categories.some((c) => c.id === 'cat_glc')) {
           const glcCat = DEFAULT_CATEGORIES.find((c) => c.id === 'cat_glc');
           if (glcCat) categories = [glcCat, ...categories];
@@ -374,6 +448,9 @@ function readLocalSnapshot(): LocalSnapshotState {
         if (shouldSeedGlcBatch2) {
           cleanProducts = mergeGlcBatch2ProductsList(cleanProducts);
         }
+        if (shouldSeedGlcBatch3) {
+          cleanProducts = mergeGlcBatch3ProductsList(cleanProducts);
+        }
       }
 
       if (shouldUpgradeGlcDetails) {
@@ -381,11 +458,71 @@ function readLocalSnapshot(): LocalSnapshotState {
         cleanProducts = upgraded.list;
       }
 
-      if (shouldSeedMultiBrand) {
-        const mergedMulti = mergeMultiBrandCatalog(categories, subpages, cleanProducts);
+      if (shouldSeedMultiBrandV1 || shouldSeedMultiBrandV2) {
+        const targetMultiProducts = shouldSeedMultiBrandV1
+          ? MULTI_BRAND_PRODUCTS
+          : MULTI_BRAND_V2_PRODUCTS;
+        const mergedMulti = mergeMultiBrandCatalog(
+          categories,
+          subpages,
+          cleanProducts,
+          targetMultiProducts
+        );
         categories = mergedMulti.categories;
         subpages = mergedMulti.subpages;
         cleanProducts = mergedMulti.products;
+      }
+
+      if (shouldSeedGraffiatoCatalogs) {
+        const existingCatIds = new Set(cleanCatalogs.map((c) => c.id));
+        const missingGraffiatoCats = DEFAULT_CATALOGS.filter(
+          (c) => GRAFFIATO_CATALOG_IDS.includes(c.id) && !existingCatIds.has(c.id)
+        );
+        if (missingGraffiatoCats.length > 0) {
+          cleanCatalogs = [...missingGraffiatoCats, ...cleanCatalogs];
+        }
+      }
+
+      if (shouldPurgePachin) {
+        categories = categories
+          .filter((c) => c.id !== 'cat_pachin')
+          .map((c) => {
+            const ord = BUILTIN_SORT_ORDER_MAP.get(c.id);
+            const nextDesc =
+              c.id === 'cat_paints' && c.description
+                ? c.description.replace('باكين، ', '')
+                : c.description;
+            return {
+              ...c,
+              ...(nextDesc !== undefined ? { description: nextDesc } : {}),
+              ...(ord !== undefined ? { sortOrder: ord } : {}),
+            };
+          })
+          .sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99));
+
+        subpages = subpages
+          .filter((s) => s.categoryId !== 'cat_pachin' && !PACHIN_SUBPAGE_PURGE_SET.has(s.id))
+          .map((s) =>
+            s.id === 'sub_paints_interior' && s.description
+              ? { ...s, description: s.description.replace(' وباكين', '') }
+              : s
+          );
+
+        cleanProducts = cleanProducts.filter(
+          (p) =>
+            !PACHIN_PRODUCT_PURGE_SET.has(p.id) &&
+            p.categoryId !== 'cat_pachin' &&
+            (p.brandName || '').trim().toUpperCase() !== 'PACHIN'
+        );
+
+        if (Array.isArray(mergedConfig.brands)) {
+          mergedConfig.brands = mergedConfig.brands.filter(
+            (b) =>
+              b.id !== 'br_pachin' &&
+              (b.code || '').trim().toUpperCase() !== 'PACHIN' &&
+              !(b.nameAr || '').includes('باكين')
+          );
+        }
       }
 
       const nextState: LocalSnapshotState = {
@@ -404,19 +541,28 @@ function readLocalSnapshot(): LocalSnapshotState {
         shouldPurgeDemo ||
         shouldSeedGlc32 ||
         shouldSeedGlcBatch2 ||
+        shouldSeedGlcBatch3 ||
         shouldSeedGlcPlatineCatalog ||
         shouldUpgradeGlcDetails ||
-        shouldSeedMultiBrand
+        shouldSeedMultiBrandV1 ||
+        shouldSeedMultiBrandV2 ||
+        shouldPurgePachin ||
+        shouldSeedGraffiatoCatalogs
       ) {
         try {
           localStorage.setItem(LOCAL_PREVIEW_STORAGE_KEY, JSON.stringify(nextState));
           if (shouldPurgeDemo) localStorage.setItem(LOCAL_DEMO_PURGE_FLAG, '1');
           if (shouldSeedGlc32) localStorage.setItem(LOCAL_GLC32_SEED_FLAG, '1');
           if (shouldSeedGlcBatch2) localStorage.setItem(LOCAL_GLC_BATCH2_SEED_FLAG, '1');
+          if (shouldSeedGlcBatch3) localStorage.setItem(LOCAL_GLC_BATCH3_SEED_FLAG, '1');
           if (shouldSeedGlcPlatineCatalog)
             localStorage.setItem(LOCAL_GLC_PLATINE_CATALOG_FLAG, '1');
           if (shouldUpgradeGlcDetails) localStorage.setItem(LOCAL_GLC32_DETAILS_V2_FLAG, '1');
-          if (shouldSeedMultiBrand) localStorage.setItem(LOCAL_MULTI_BRAND_SEED_V1_FLAG, '1');
+          if (shouldSeedMultiBrandV1) localStorage.setItem(LOCAL_MULTI_BRAND_SEED_V1_FLAG, '1');
+          if (shouldSeedMultiBrandV2) localStorage.setItem(LOCAL_MULTI_BRAND_SEED_V2_FLAG, '1');
+          if (shouldPurgePachin) localStorage.setItem(LOCAL_PURGE_PACHIN_FLAG, '1');
+          if (shouldSeedGraffiatoCatalogs)
+            localStorage.setItem(LOCAL_GRAFFIATO_CATALOGS_V1_FLAG, '1');
         } catch {
           // Ignore storage quota issues
         }
@@ -428,11 +574,19 @@ function readLocalSnapshot(): LocalSnapshotState {
     // Ignore corrupted cache
   }
 
-  const baseGlcProducts = shouldSeedGlc32
-    ? GLC_ALL_PRODUCTS
-    : shouldSeedGlcBatch2
-    ? [...DEFAULT_PRODUCTS, ...GLC_BATCH2_PRODUCTS]
-    : DEFAULT_PRODUCTS;
+  const baseGlcProducts: Product[] = shouldSeedGlc32
+    ? [...GLC_32_PRODUCTS]
+    : [...DEFAULT_PRODUCTS];
+  if (shouldSeedGlc32 || shouldSeedGlcBatch2) {
+    for (const p of GLC_BATCH2_PRODUCTS) {
+      if (!baseGlcProducts.some((x) => x.id === p.id)) baseGlcProducts.push(p);
+    }
+  }
+  if (shouldSeedGlc32 || shouldSeedGlcBatch3) {
+    for (const p of GLC_BATCH3_PRODUCTS) {
+      if (!baseGlcProducts.some((x) => x.id === p.id)) baseGlcProducts.push(p);
+    }
+  }
   const initialProducts = [...baseGlcProducts, ...MULTI_BRAND_PRODUCTS];
   const freshState: LocalSnapshotState = {
     initialized: true,
@@ -450,7 +604,13 @@ function readLocalSnapshot(): LocalSnapshotState {
     localStorage.setItem(LOCAL_DEMO_PURGE_FLAG, '1');
     localStorage.setItem(LOCAL_GLC32_SEED_FLAG, '1');
     localStorage.setItem(LOCAL_GLC_BATCH2_SEED_FLAG, '1');
+    localStorage.setItem(LOCAL_GLC_BATCH3_SEED_FLAG, '1');
+    localStorage.setItem(LOCAL_GLC_PLATINE_CATALOG_FLAG, '1');
+    localStorage.setItem(LOCAL_GLC32_DETAILS_V2_FLAG, '1');
     localStorage.setItem(LOCAL_MULTI_BRAND_SEED_V1_FLAG, '1');
+    localStorage.setItem(LOCAL_MULTI_BRAND_SEED_V2_FLAG, '1');
+    localStorage.setItem(LOCAL_PURGE_PACHIN_FLAG, '1');
+    localStorage.setItem(LOCAL_GRAFFIATO_CATALOGS_V1_FLAG, '1');
     localStorage.setItem(LOCAL_PREVIEW_STORAGE_KEY, JSON.stringify(freshState));
   } catch {
     // Ignore storage quota issues
@@ -1007,9 +1167,61 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // Ignore non-fatal upgrade error
       }
 
-      // One-time non-destructive cloud seed of JOTUN, SIPES, CMB, SCIB & SAVETO categories right under GLC
+      // One-time auto-seed of Batch 3 (GLC Enamel/Lakieh products) without touching existing or deleted items
       try {
-        if (localStorage.getItem(CLOUD_MULTI_BRAND_SEED_V1_FLAG) !== '1') {
+        if (localStorage.getItem(CLOUD_GLC_BATCH3_SEED_FLAG) !== '1') {
+          const glcCat = DEFAULT_CATEGORIES.find((c) => c.id === 'cat_glc');
+          if (glcCat) {
+            await client
+              .from('categories')
+              .upsert(mapCategoryToDb(glcCat), { onConflict: 'id', ignoreDuplicates: true });
+          }
+          await client
+            .from('subpages')
+            .upsert(GLC_SUBPAGES.map(mapSubpageToDb), { onConflict: 'id', ignoreDuplicates: true });
+
+          const { data: existingBatch3, error: batch3Err } = await client
+            .from('products')
+            .select('id')
+            .in('id', GLC_BATCH3_PRODUCT_IDS);
+
+          if (!batch3Err && mounted) {
+            const existingIds = new Set((existingBatch3 || []).map((r) => String((r as DbRow).id)));
+            const missingBatch3 = GLC_BATCH3_PRODUCTS.filter((p) => !existingIds.has(p.id));
+            if (missingBatch3.length > 0) {
+              const { data: insertedRows, error: insErr } = await client
+                .from('products')
+                .upsert(missingBatch3.map(mapProductToDb), {
+                  onConflict: 'id',
+                  ignoreDuplicates: true,
+                })
+                .select('*');
+              if (!insErr && mounted) {
+                const inserted = insertedRows
+                  ? (insertedRows as DbRow[]).map(mapProductFromDb)
+                  : missingBatch3;
+                setCloudProducts((prev) => {
+                  const ids = new Set(prev.map((p) => p.id));
+                  const fresh = inserted.filter((p) => !ids.has(p.id));
+                  return fresh.length > 0 ? [...prev, ...fresh] : prev;
+                });
+                setCloudSubpages((prev) => mergeGlcSubpagesList(prev));
+                localStorage.setItem(CLOUD_GLC_BATCH3_SEED_FLAG, '1');
+              }
+            } else {
+              localStorage.setItem(CLOUD_GLC_BATCH3_SEED_FLAG, '1');
+            }
+          }
+        }
+      } catch {
+        // Ignore non-fatal cloud auto-seed error
+      }
+
+      // One-time non-destructive cloud seed of JOTUN, SIPES, CMB, SCIB & SAVETO categories + V1/V2 products right under GLC
+      try {
+        const needMultiV1 = localStorage.getItem(CLOUD_MULTI_BRAND_SEED_V1_FLAG) !== '1';
+        const needMultiV2 = localStorage.getItem(CLOUD_MULTI_BRAND_SEED_V2_FLAG) !== '1';
+        if (needMultiV1 || needMultiV2) {
           await client
             .from('categories')
             .upsert(MULTI_BRAND_CATEGORIES.map(mapCategoryToDb), {
@@ -1017,7 +1229,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               ignoreDuplicates: true,
             });
 
-          // Align sort_order on existing built-in categories so the 5 brands appear immediately under GLC
+          // Align sort_order on existing built-in categories so brands appear in order right under GLC
           await Promise.all(
             DEFAULT_CATEGORIES.map((cat) =>
               client
@@ -1034,16 +1246,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               ignoreDuplicates: true,
             });
 
+          const checkIds = needMultiV1 ? MULTI_BRAND_PRODUCT_IDS : MULTI_BRAND_V2_NEW_PRODUCT_IDS;
+          const sourceProds = needMultiV1 ? MULTI_BRAND_PRODUCTS : MULTI_BRAND_V2_PRODUCTS;
+
           const { data: existingMultiRows, error: multiCheckErr } = await client
             .from('products')
             .select('id')
-            .in('id', MULTI_BRAND_PRODUCT_IDS);
+            .in('id', checkIds);
 
           if (!multiCheckErr && mounted) {
             const existingIds = new Set(
               (existingMultiRows || []).map((r) => String((r as DbRow).id))
             );
-            const missingMulti = MULTI_BRAND_PRODUCTS.filter((p) => !existingIds.has(p.id));
+            const missingMulti = sourceProds.filter((p) => !existingIds.has(p.id));
             let insertedProducts: Product[] = [];
             if (missingMulti.length > 0) {
               const { data: insRows, error: insMultiErr } = await client
@@ -1083,11 +1298,145 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 });
               }
               localStorage.setItem(CLOUD_MULTI_BRAND_SEED_V1_FLAG, '1');
+              localStorage.setItem(CLOUD_MULTI_BRAND_SEED_V2_FLAG, '1');
             }
           }
         }
       } catch {
         // Ignore non-fatal cloud auto-seed error
+      }
+
+      // One-time non-destructive cloud purge of PACHIN products, subpages, category & brand entry
+      try {
+        if (localStorage.getItem(CLOUD_PURGE_PACHIN_FLAG) !== '1') {
+          await Promise.all([
+            client.from('products').delete().in('id', PACHIN_PRODUCT_PURGE_IDS),
+            client.from('products').delete().eq('category_id', 'cat_pachin'),
+            client.from('subpages').delete().in('id', PACHIN_SUBPAGE_PURGE_IDS),
+            client.from('subpages').delete().eq('category_id', 'cat_pachin'),
+            client.from('categories').delete().eq('id', 'cat_pachin'),
+          ]);
+
+          await Promise.all(
+            DEFAULT_CATEGORIES.map((cat) =>
+              client
+                .from('categories')
+                .update({ sort_order: cat.sortOrder, updated_at: new Date().toISOString() })
+                .eq('id', cat.id)
+            )
+          );
+
+          const { data: cfgRow } = await client
+            .from('store_config')
+            .select('id, brands')
+            .eq('id', 'main')
+            .maybeSingle();
+
+          if (cfgRow && Array.isArray((cfgRow as DbRow).brands)) {
+            const currentBrands = (cfgRow as DbRow).brands as Array<{
+              id?: string;
+              code?: string;
+              nameAr?: string;
+              name?: string;
+            }>;
+            const filteredBrands = currentBrands.filter(
+              (b) =>
+                b.id !== 'br_pachin' &&
+                (b.code || '').trim().toUpperCase() !== 'PACHIN' &&
+                (b.name || '').trim().toUpperCase() !== 'PACHIN' &&
+                !(b.nameAr || '').includes('باكين')
+            );
+            if (filteredBrands.length !== currentBrands.length) {
+              await client
+                .from('store_config')
+                .update({ brands: filteredBrands, updated_at: new Date().toISOString() })
+                .eq('id', 'main');
+            }
+          }
+
+          if (mounted) {
+            setCloudProducts((prev) =>
+              prev.filter(
+                (p) =>
+                  !PACHIN_PRODUCT_PURGE_SET.has(p.id) &&
+                  p.categoryId !== 'cat_pachin' &&
+                  (p.brandName || '').trim().toUpperCase() !== 'PACHIN'
+              )
+            );
+            setCloudSubpages((prev) =>
+              prev.filter(
+                (s) => s.categoryId !== 'cat_pachin' && !PACHIN_SUBPAGE_PURGE_SET.has(s.id)
+              )
+            );
+            setCloudCategories((prev) =>
+              prev
+                .filter((c) => c.id !== 'cat_pachin')
+                .map((c) => {
+                  const ord = BUILTIN_SORT_ORDER_MAP.get(c.id);
+                  return ord !== undefined ? { ...c, sortOrder: ord } : c;
+                })
+                .sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99))
+            );
+            setConfig((prev) => ({
+              ...prev,
+              brands: (prev.brands || []).filter(
+                (b) =>
+                  b.id !== 'br_pachin' &&
+                  (b.code || '').trim().toUpperCase() !== 'PACHIN' &&
+                  !(b.nameAr || '').includes('باكين')
+              ),
+            }));
+            localStorage.setItem(CLOUD_PURGE_PACHIN_FLAG, '1');
+          }
+        }
+      } catch {
+        // Ignore non-fatal cloud purge error
+      }
+
+      // One-time non-destructive cloud seed of the two dedicated 6-photo Graffiato catalogs (Laser vs Non-Laser)
+      try {
+        if (localStorage.getItem(CLOUD_GRAFFIATO_CATALOGS_V1_FLAG) !== '1') {
+          const graffiatoDefaults = DEFAULT_CATALOGS.filter((c) =>
+            GRAFFIATO_CATALOG_IDS.includes(c.id)
+          );
+          if (graffiatoDefaults.length > 0) {
+            const { data: existingGraffiato, error: grafCheckErr } = await client
+              .from('catalogs')
+              .select('id')
+              .in('id', GRAFFIATO_CATALOG_IDS);
+
+            if (!grafCheckErr && mounted) {
+              const existingIds = new Set(
+                (existingGraffiato || []).map((r) => String((r as DbRow).id))
+              );
+              const missingGraffiato = graffiatoDefaults.filter((c) => !existingIds.has(c.id));
+              if (missingGraffiato.length > 0) {
+                const { data: insRows, error: insGrafErr } = await client
+                  .from('catalogs')
+                  .upsert(missingGraffiato.map(mapCatalogToDb), {
+                    onConflict: 'id',
+                    ignoreDuplicates: true,
+                  })
+                  .select('*');
+                if (!insGrafErr && mounted) {
+                  const inserted = insRows
+                    ? (insRows as DbRow[]).map(mapCatalogFromDb)
+                    : missingGraffiato;
+                  setCloudCatalogs((prev) => {
+                    const ids = new Set(prev.map((c) => c.id));
+                    const fresh = inserted.filter((c) => !ids.has(c.id));
+                    return fresh.length > 0 ? [...fresh, ...prev] : prev;
+                  });
+                  localStorage.setItem(CLOUD_GRAFFIATO_CATALOGS_V1_FLAG, '1');
+                }
+              } else {
+                localStorage.setItem(CLOUD_GRAFFIATO_CATALOGS_V1_FLAG, '1');
+              }
+            }
+          }
+        }
+      } catch {
+        // Ignore non-fatal Graffiato catalog auto-seed error
       }
     };
 
@@ -1437,6 +1786,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         localStorage.setItem(LOCAL_GLC32_SEED_FLAG, '1');
         localStorage.setItem(LOCAL_GLC_BATCH2_SEED_FLAG, '1');
+        localStorage.setItem(LOCAL_GLC_BATCH3_SEED_FLAG, '1');
       } catch {
         // Ignore storage error
       }
@@ -1492,6 +1842,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       localStorage.setItem(CLOUD_GLC32_SEED_FLAG, '1');
       localStorage.setItem(CLOUD_GLC_BATCH2_SEED_FLAG, '1');
+      localStorage.setItem(CLOUD_GLC_BATCH3_SEED_FLAG, '1');
     } catch {
       // Ignore storage error
     }

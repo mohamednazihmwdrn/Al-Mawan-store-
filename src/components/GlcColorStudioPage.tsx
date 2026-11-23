@@ -1,16 +1,22 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Columns2,
   ExternalLink,
   FileText,
+  Images,
   Lamp,
+  Maximize2,
   MessageCircle,
   Paintbrush,
   Search,
   Send,
+  Sparkles,
   Sun,
+  X,
 } from 'lucide-react';
 import {
   GLC_COLOR_FAMILIES,
@@ -51,6 +57,17 @@ import {
   SIPES_PRODUCT_BASES,
   SipesSectionId,
 } from '../data/sipesColors';
+import {
+  GRAFFIATO_CLASSIC_BASES,
+  GRAFFIATO_CLASSIC_BOARD_IMAGES,
+  GRAFFIATO_CLASSIC_COLORS,
+  GRAFFIATO_CLASSIC_FAMILIES,
+  GRAFFIATO_LASER_BASES,
+  GRAFFIATO_LASER_BOARD_IMAGES,
+  GRAFFIATO_LASER_COLORS,
+  GRAFFIATO_LASER_FAMILIES,
+  GraffiatoBoardImage,
+} from '../data/graffiatoCatalogColors';
 import { useStore } from '../context/StoreContext';
 import { Product } from '../types/store';
 import { trackAnalyticsEvent } from '../lib/analytics';
@@ -63,7 +80,15 @@ import {
   WallTextureType,
 } from './GlcWallPreview';
 
-export type ColorStudioBrand = 'glc' | 'jotun' | 'sipes' | 'saveto' | 'scib' | 'cmb';
+export type ColorStudioBrand =
+  | 'glc'
+  | 'jotun'
+  | 'sipes'
+  | 'saveto'
+  | 'scib'
+  | 'cmb'
+  | 'graffiato_laser'
+  | 'graffiato_classic';
 
 interface GlcColorStudioPageProps {
   activeBrand: ColorStudioBrand;
@@ -84,6 +109,9 @@ interface NormalizedShade {
   familyId: string;
   sectionShortAr?: string;
   textureGrade?: GraffiatoTextureGrade;
+  isLaser?: boolean;
+  isLaserWide?: boolean;
+  boardImage?: string;
   nameAr?: string;
   nameEn?: string;
   pageNumber?: number;
@@ -97,6 +125,7 @@ interface NormalizedBase {
   nameAr: string;
   finish: WallFinishType;
   finishLabelAr: string;
+  grade?: GraffiatoTextureGrade;
 }
 
 const GLC_SIZE_OPTIONS = [
@@ -231,6 +260,44 @@ const CMB_NORMALIZED_SHADES: NormalizedShade[] = CMB_COLORS.map((c) => ({
   pageNumber: c.pageNumber,
 }));
 
+const GRAFFIATO_LASER_SHADES: NormalizedShade[] = GRAFFIATO_LASER_COLORS.map((c) => ({
+  code: c.code,
+  hex: c.hex,
+  familyId: c.familyId,
+  sectionShortAr: c.isLaserWide ? 'ليزر لامع' : 'كيماستون ليزر',
+  textureGrade: c.textureGrade,
+  isLaser: c.isLaser,
+  isLaserWide: c.isLaserWide,
+  boardImage: c.boardImage,
+  nameAr: c.nameAr,
+  pageNumber: c.pageNumber,
+}));
+
+const GRAFFIATO_CLASSIC_SHADES: NormalizedShade[] = GRAFFIATO_CLASSIC_COLORS.map((c) => ({
+  code: c.code,
+  hex: c.hex,
+  familyId: c.familyId,
+  sectionShortAr:
+    c.familyId === 'jotashield_tex'
+      ? 'جوتاشيلد'
+      : c.familyId === 'marvex'
+      ? 'مارفكس'
+      : c.familyId === 'jematex'
+      ? 'جيماتكس'
+      : 'ماربل',
+  textureGrade: c.textureGrade,
+  isLaser: false,
+  boardImage: c.boardImage,
+  nameAr: c.nameAr,
+  pageNumber: c.pageNumber,
+}));
+
+const GRAFFIATO_TEXTURE_SIZE_OPTIONS = [
+  'بستلة 20 كجم (خشن / وسط / ناعم)',
+  'بستلة 15 كجم',
+  'بستلة 25 كجم (واجهات خارجية)',
+] as const;
+
 function getGraffiatoBaseIdForGrade(grade?: GraffiatoTextureGrade): string {
   if (grade === 'fine') return 'sipes_graffiato_fine';
   if (grade === 'medium') return 'sipes_graffiato_medium';
@@ -247,6 +314,18 @@ function getCmbGraviatoBaseIdForGrade(grade?: GraffiatoTextureGrade): string {
   if (grade === 'fine') return 'cmb_kema_graviato_fine';
   if (grade === 'medium') return 'cmb_kema_graviato_medium';
   return 'cmb_kema_graviato_coarse';
+}
+
+function getLaserBaseIdForGrade(grade?: GraffiatoTextureGrade): string {
+  if (grade === 'fine') return 'gl_fine';
+  if (grade === 'medium') return 'gl_medium';
+  return 'gl_coarse';
+}
+
+function getClassicBaseIdForGrade(grade?: GraffiatoTextureGrade): string {
+  if (grade === 'fine') return 'gc_fine';
+  if (grade === 'medium') return 'gc_medium';
+  return 'gc_coarse';
 }
 
 export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
@@ -271,12 +350,18 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     saveto: 'all',
     scib: 'all',
     cmb: 'all',
+    graffiato_laser: 'all',
+    graffiato_classic: 'all',
   });
   const [graffiatoGradeFilter, setGraffiatoGradeFilter] = useState<
     'all' | GraffiatoTextureGrade
   >('all');
   const [savetoGradeFilter, setSavetoGradeFilter] = useState<'all' | GraffiatoTextureGrade>('all');
   const [cmbGradeFilter, setCmbGradeFilter] = useState<'all' | GraffiatoTextureGrade>('all');
+  const [laserOnlyFilter, setLaserOnlyFilter] = useState(false);
+  const [classicGradeFilter, setClassicGradeFilter] = useState<'all' | GraffiatoTextureGrade>(
+    'all'
+  );
   const [searchByBrand, setSearchByBrand] = useState<Record<ColorStudioBrand, string>>({
     glc: '',
     jotun: '',
@@ -284,9 +369,15 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     saveto: '',
     scib: '',
     cmb: '',
+    graffiato_laser: '',
+    graffiato_classic: '',
   });
   const [showAllJotun, setShowAllJotun] = useState(false);
   const [showAllScib, setShowAllScib] = useState(false);
+  const [boardLightbox, setBoardLightbox] = useState<{
+    boards: GraffiatoBoardImage[];
+    index: number;
+  } | null>(null);
 
   const [primaryByBrand, setPrimaryByBrand] = useState<Record<ColorStudioBrand, NormalizedShade>>(
     () => ({
@@ -303,6 +394,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         SCIB_NORMALIZED_SHADES.find((c) => c.code === '9436') || SCIB_NORMALIZED_SHADES[0],
       cmb:
         CMB_NORMALIZED_SHADES.find((c) => c.code === '011') || CMB_NORMALIZED_SHADES[0],
+      graffiato_laser:
+        GRAFFIATO_LASER_SHADES.find((c) => c.code === '1016') || GRAFFIATO_LASER_SHADES[0],
+      graffiato_classic:
+        GRAFFIATO_CLASSIC_SHADES.find((c) => c.code === 'R 50') || GRAFFIATO_CLASSIC_SHADES[0],
     })
   );
   const [compareByBrand, setCompareByBrand] = useState<Record<ColorStudioBrand, NormalizedShade>>(
@@ -320,15 +415,31 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         SCIB_NORMALIZED_SHADES.find((c) => c.code === '7420') || SCIB_NORMALIZED_SHADES[1],
       cmb:
         CMB_NORMALIZED_SHADES.find((c) => c.code === '347') || CMB_NORMALIZED_SHADES[1],
+      graffiato_laser:
+        GRAFFIATO_LASER_SHADES.find((c) => c.code === '1002') || GRAFFIATO_LASER_SHADES[1],
+      graffiato_classic:
+        GRAFFIATO_CLASSIC_SHADES.find((c) => c.code === '6050') || GRAFFIATO_CLASSIC_SHADES[1],
     })
   );
 
   const [compareMode, setCompareMode] = useState(false);
   const [compareSlotTarget, setCompareSlotTarget] = useState<'primary' | 'compare'>('compare');
-  const [scene, setScene] = useState<RoomSceneType>('living');
+  const [scene, setScene] = useState<RoomSceneType>(() =>
+    activeBrand === 'graffiato_laser' ||
+    activeBrand === 'graffiato_classic' ||
+    activeBrand === 'saveto'
+      ? 'exterior'
+      : 'living'
+  );
   const [lighting, setLighting] = useState<WallLightingMode>('daylight');
   const [finish, setFinish] = useState<WallFinishType>('matt');
-  const [wallTexture, setWallTexture] = useState<WallTextureType>('smooth');
+  const [wallTexture, setWallTexture] = useState<WallTextureType>(() =>
+    activeBrand === 'graffiato_laser' ||
+    activeBrand === 'graffiato_classic' ||
+    activeBrand === 'saveto'
+      ? 'coarse'
+      : 'smooth'
+  );
 
   const [baseIdByBrand, setBaseIdByBrand] = useState<Record<ColorStudioBrand, string>>({
     glc: GLC_PLATINE_BASES[0].id,
@@ -337,6 +448,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     saveto: SAVETO_PRODUCT_BASES[0].id,
     scib: SCIB_PRODUCT_BASES[0].id,
     cmb: CMB_PRODUCT_BASES[0].id,
+    graffiato_laser: GRAFFIATO_LASER_BASES[0].id,
+    graffiato_classic: GRAFFIATO_CLASSIC_BASES[0].id,
   });
   const [sizeByBrand, setSizeByBrand] = useState<Record<ColorStudioBrand, string>>({
     glc: GLC_SIZE_OPTIONS[2],
@@ -345,6 +458,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     saveto: SAVETO_SIZE_OPTIONS[0],
     scib: SCIB_SIZE_OPTIONS[2],
     cmb: CMB_SIZE_OPTIONS_BY_SECTION.all[2],
+    graffiato_laser: GRAFFIATO_TEXTURE_SIZE_OPTIONS[0],
+    graffiato_classic: GRAFFIATO_TEXTURE_SIZE_OPTIONS[0],
   });
 
   const [customerName, setCustomerName] = useState('');
@@ -358,6 +473,21 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   const isSaveto = activeBrand === 'saveto';
   const isScib = activeBrand === 'scib';
   const isCmb = activeBrand === 'cmb';
+  const isGraffiatoLaser = activeBrand === 'graffiato_laser';
+  const isGraffiatoClassic = activeBrand === 'graffiato_classic';
+  const isDedicatedGraffiato = isGraffiatoLaser || isGraffiatoClassic;
+
+  // Ensure direct navigation into Laser / Non-Laser Graffiato starts directly on the exterior house facade
+  useEffect(() => {
+    if (
+      activeBrand === 'graffiato_laser' ||
+      activeBrand === 'graffiato_classic' ||
+      activeBrand === 'saveto'
+    ) {
+      setScene((prev) => (prev === 'wall' ? 'wall' : 'exterior'));
+      setWallTexture((prev) => (prev === 'smooth' ? 'coarse' : prev));
+    }
+  }, [activeBrand]);
 
   const brandTitleUpper = isJotun
     ? 'JOTUN'
@@ -369,6 +499,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ? 'SCIB'
     : isCmb
     ? 'CMB'
+    : isGraffiatoLaser
+    ? 'كيماستون ليزر'
+    : isGraffiatoClassic
+    ? 'جرافيـاتو بدون ليزر'
     : 'GLC';
   const brandTitleAr = isJotun
     ? 'جوتن (JOTUN)'
@@ -380,6 +514,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ? 'سكيب (SCIB)'
     : isCmb
     ? 'كيماويات البناء الحديث (CMB)'
+    : isGraffiatoLaser
+    ? 'جرافيـاتو ليزر — جوريكا مصر (6 لوحات)'
+    : isGraffiatoClassic
+    ? 'جرافيـاتو وزخرفي بدون ليزر (6 لوحات)'
     : 'GLC بلاتين';
 
   const allShades = isJotun
@@ -392,6 +530,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ? SCIB_NORMALIZED_SHADES
     : isCmb
     ? CMB_NORMALIZED_SHADES
+    : isGraffiatoLaser
+    ? GRAFFIATO_LASER_SHADES
+    : isGraffiatoClassic
+    ? GRAFFIATO_CLASSIC_SHADES
     : GLC_NORMALIZED_SHADES;
 
   const primaryShade = primaryByBrand[activeBrand];
@@ -401,11 +543,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
   const isGraffiatoMode =
     isSaveto ||
+    isDedicatedGraffiato ||
     (isSipes && (selectedFamilyId === 'graffiato' || primaryShade.familyId === 'graffiato')) ||
     (isCmb && (selectedFamilyId === 'graviato' || primaryShade.familyId === 'graviato'));
 
   const activeWallTexture: WallTextureType =
-    (isSaveto || (isCmb && primaryShade.familyId === 'graviato')) && wallTexture === 'smooth'
+    (isSaveto || isDedicatedGraffiato || (isCmb && primaryShade.familyId === 'graviato')) &&
+    wallTexture === 'smooth'
       ? primaryShade.textureGrade || 'coarse'
       : wallTexture;
 
@@ -442,6 +586,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ? SCIB_PRODUCT_BASES
     : isCmb
     ? CMB_PRODUCT_BASES
+    : isGraffiatoLaser
+    ? GRAFFIATO_LASER_BASES
+    : isGraffiatoClassic
+    ? GRAFFIATO_CLASSIC_BASES
     : GLC_PLATINE_BASES;
 
   const sizeOptions: readonly string[] = isJotun
@@ -456,6 +604,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     : isCmb
     ? CMB_SIZE_OPTIONS_BY_SECTION[(selectedFamilyId as CmbSectionId) || 'all'] ||
       CMB_SIZE_OPTIONS_BY_SECTION.all
+    : isDedicatedGraffiato
+    ? GRAFFIATO_TEXTURE_SIZE_OPTIONS
     : GLC_SIZE_OPTIONS;
 
   const selectedBaseId = baseIdByBrand[activeBrand];
@@ -503,13 +653,29 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         count: CMB_NORMALIZED_SHADES.filter((c) => c.familyId === s.id).length,
       }));
     }
+    if (isGraffiatoLaser) {
+      return GRAFFIATO_LASER_FAMILIES.map((f) => ({
+        id: f.id,
+        nameAr: f.nameAr,
+        swatchHex: f.swatchHex,
+        count: GRAFFIATO_LASER_SHADES.filter((c) => c.familyId === f.id).length,
+      }));
+    }
+    if (isGraffiatoClassic) {
+      return GRAFFIATO_CLASSIC_FAMILIES.map((f) => ({
+        id: f.id,
+        nameAr: f.nameAr,
+        swatchHex: f.swatchHex,
+        count: GRAFFIATO_CLASSIC_SHADES.filter((c) => c.familyId === f.id).length,
+      }));
+    }
     return GLC_COLOR_FAMILIES.map((f) => ({
       id: f.id,
       nameAr: f.nameAr,
       swatchHex: GLC_PLATINE_COLORS.find((c) => c.familyId === f.id)?.hex || '#CBD5E1',
       count: GLC_NORMALIZED_SHADES.filter((c) => c.familyId === f.id).length,
     }));
-  }, [isCmb, isJotun, isSaveto, isScib, isSipes]);
+  }, [isCmb, isGraffiatoClassic, isGraffiatoLaser, isJotun, isSaveto, isScib, isSipes]);
 
   const familyNameById = useMemo(
     () => new Map(families.map((f) => [f.id, f.nameAr])),
@@ -596,6 +762,16 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       ) {
         return false;
       }
+      if (isGraffiatoLaser && laserOnlyFilter && !c.isLaserWide) {
+        return false;
+      }
+      if (
+        isGraffiatoClassic &&
+        classicGradeFilter !== 'all' &&
+        c.textureGrade !== classicGradeFilter
+      ) {
+        return false;
+      }
       if (q) {
         const famName = (familyNameById.get(c.familyId) || '').toLowerCase();
         const texName = c.textureGrade ? TEXTURE_GRADE_LABELS_AR[c.textureGrade].toLowerCase() : '';
@@ -610,9 +786,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     isSipes,
     isSaveto,
     isCmb,
+    isGraffiatoLaser,
+    isGraffiatoClassic,
     graffiatoGradeFilter,
     savetoGradeFilter,
     cmbGradeFilter,
+    laserOnlyFilter,
+    classicGradeFilter,
     searchCode,
     familyNameById,
   ]);
@@ -643,9 +823,17 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     if (nextBrand === activeBrand) return;
     setSubmitted(false);
     setErrorMsg('');
-    if (nextBrand === 'saveto') {
+    if (
+      nextBrand === 'saveto' ||
+      nextBrand === 'graffiato_laser' ||
+      nextBrand === 'graffiato_classic'
+    ) {
       setScene('exterior');
-      setWallTexture(primaryByBrand.saveto.textureGrade || 'coarse');
+      const nextTex =
+        nextBrand === 'graffiato_laser'
+          ? 'coarse'
+          : primaryByBrand[nextBrand].textureGrade || 'coarse';
+      setWallTexture(nextTex);
       setFinish('matt');
     } else if (nextBrand === 'sipes' && familyByBrand.sipes === 'graffiato') {
       setScene('exterior');
@@ -756,6 +944,19 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           setSizeByBrand((prev) => ({ ...prev, cmb: nextSizes[0] }));
         }
       }
+    } else if (isGraffiatoClassic && nextFamilyId !== 'all') {
+      setScene('exterior');
+      const famDefaultGrade: GraffiatoTextureGrade =
+        nextFamilyId === 'marvex' || nextFamilyId === 'jematex'
+          ? 'coarse'
+          : nextFamilyId === 'jotashield_tex'
+          ? 'medium'
+          : 'fine';
+      setWallTexture(famDefaultGrade);
+      setBaseIdByBrand((prev) => ({
+        ...prev,
+        graffiato_classic: getClassicBaseIdForGrade(famDefaultGrade),
+      }));
     }
   };
 
@@ -766,13 +967,26 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       if (
         (isSipes && shade.familyId === 'graffiato') ||
         (isCmb && shade.familyId === 'graviato') ||
-        isSaveto
+        isSaveto ||
+        isDedicatedGraffiato
       ) {
         setScene('exterior');
       }
     } else {
       setPrimaryByBrand((prev) => ({ ...prev, [activeBrand]: shade }));
-      if (isSaveto) {
+      if (isDedicatedGraffiato) {
+        setScene('exterior');
+        // Keep customer's chosen خشن / وسط / ناعم texture if already selected, otherwise adopt shade default
+        const currentOrShadeGrade: GraffiatoTextureGrade =
+          activeWallTexture !== 'smooth' ? activeWallTexture : shade.textureGrade || 'coarse';
+        setWallTexture(currentOrShadeGrade);
+        setBaseIdByBrand((prev) => ({
+          ...prev,
+          [activeBrand]: isGraffiatoLaser
+            ? getLaserBaseIdForGrade(currentOrShadeGrade)
+            : getClassicBaseIdForGrade(currentOrShadeGrade),
+        }));
+      } else if (isSaveto) {
         setScene('exterior');
         const nextGrade = shade.textureGrade || 'coarse';
         setWallTexture(nextGrade);
@@ -839,7 +1053,23 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
   const handleSelectTexture = (nextTex: WallTextureType) => {
     setWallTexture(nextTex);
-    if (isSaveto && nextTex !== 'smooth') {
+    if (isGraffiatoLaser && nextTex !== 'smooth') {
+      setBaseIdByBrand((prev) => ({
+        ...prev,
+        graffiato_laser: getLaserBaseIdForGrade(nextTex),
+      }));
+      if (scene !== 'exterior' && scene !== 'wall') {
+        setScene('exterior');
+      }
+    } else if (isGraffiatoClassic && nextTex !== 'smooth') {
+      setBaseIdByBrand((prev) => ({
+        ...prev,
+        graffiato_classic: getClassicBaseIdForGrade(nextTex),
+      }));
+      if (scene !== 'exterior' && scene !== 'wall') {
+        setScene('exterior');
+      }
+    } else if (isSaveto && nextTex !== 'smooth') {
       setBaseIdByBrand((prev) => ({
         ...prev,
         saveto: getSavetoBaseIdForGrade(nextTex),
@@ -873,14 +1103,18 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     if (
       baseId === 'sipes_graffiato_fine' ||
       baseId === 'saveto_smooth_render' ||
-      baseId === 'cmb_kema_graviato_fine'
+      baseId === 'cmb_kema_graviato_fine' ||
+      baseId === 'gl_fine' ||
+      baseId === 'gc_fine'
     ) {
       setWallTexture('fine');
       setScene('exterior');
     } else if (
       baseId === 'sipes_graffiato_medium' ||
       baseId === 'saveto_vetotouch_textura' ||
-      baseId === 'cmb_kema_graviato_medium'
+      baseId === 'cmb_kema_graviato_medium' ||
+      baseId === 'gl_medium' ||
+      baseId === 'gc_medium'
     ) {
       setWallTexture('medium');
       setScene('exterior');
@@ -888,7 +1122,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       baseId === 'sipes_graffiato_coarse' ||
       baseId === 'saveto_saviatto_coarse' ||
       baseId === 'saveto_vetotouch_graviatto' ||
-      baseId === 'cmb_kema_graviato_coarse'
+      baseId === 'cmb_kema_graviato_coarse' ||
+      baseId === 'gl_coarse' ||
+      baseId === 'gc_coarse'
     ) {
       setWallTexture('coarse');
       setScene('exterior');
@@ -963,6 +1199,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     ? 'SCIB PAINTS'
                     : isCmb
                     ? 'CMB EGYPT'
+                    : isGraffiatoLaser
+                    ? 'جرافيـاتو ليزر · جوريكا مصر'
+                    : isGraffiatoClassic
+                    ? 'جرافيـاتو بدون ليزر · واجهات'
                     : 'GLC PAINTS'}
                 </span>
                 <span aria-hidden="true">·</span>
@@ -972,11 +1212,15 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     : isSipes
                     ? 'كتالوجات سايبس الرسمية (داخلية وخارجية)'
                     : isSaveto
-                    ? 'جرافيـاتو سافيتو وسافياتو للواجهات (خشن · متوسط · ناعم)'
+                    ? 'جرافيـاتو سافيتو وسافياتو للواجهات (خشن · وسط · ناعم)'
                     : isScib
                     ? 'كتالوج ألوان سكيب الرسمي (Colour Catalogue)'
                     : isCmb
                     ? 'كتالوجات ألوان ومنتجات كيماويات البناء الحديث'
+                    : isGraffiatoLaser
+                    ? '6 لوحات أصلية (1002 – 1220) · تشطيب بالليزر (خشن · وسط · ناعم)'
+                    : isGraffiatoClassic
+                    ? '6 لوحات أصلية (جوتاشيلد · مارفكس · جيماتكس · ماربل) بدون ليزر'
                     : 'كارتيلا سوبر بلاتين المعتمدة'}
                 </span>
                 <span aria-hidden="true">·</span>
@@ -988,11 +1232,15 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   : isSipes
                   ? 'كمبيوتر ألوان سايبس (SIPES) — الواجهات الخارجية والحوائط'
                   : isSaveto
-                  ? 'كتالوج جرافيـاتو وواجهات سافيتو (SAVETO) — خشن 3مم · متوسط 2مم · ناعم 1مم'
+                  ? 'كتالوج جرافيـاتو وواجهات سافيتو (SAVETO) — خشن 3مم · وسط 2مم · ناعم 1مم'
                   : isScib
                   ? 'كمبيوتر ألوان سكيب (SCIB) ومعاينة الحائط المباشرة (2,221 لون)'
                   : isCmb
                   ? 'كتالوج ألوان ومنتجات CMB (مارمكس · ألواني · كيماتون · كيما جرافياتو · كيمابوكسي)'
+                  : isGraffiatoLaser
+                  ? 'كتالوج جرافيـاتو ليزر (6 صور أصلية) — عرض خشن ووسط وناعم على واجهة البيت'
+                  : isGraffiatoClassic
+                  ? 'كتالوج جرافيـاتو وزخرفي بدون ليزر (6 صور أصلية) — عرض خشن ووسط وناعم على واجهة البيت'
                   : 'كمبيوتر ألوان GLC ومعاينة الحائط المباشرة'}
               </h1>
             </div>
@@ -1042,6 +1290,24 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   <span>كتالوج {SIPES_SECTION_SHORT_AR[activeSipesSection.id]} PDF</span>
                   <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                 </a>
+              ) : isDedicatedGraffiato ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setBoardLightbox({
+                      boards: isGraffiatoLaser
+                        ? GRAFFIATO_LASER_BOARD_IMAGES
+                        : GRAFFIATO_CLASSIC_BOARD_IMAGES,
+                      index: 0,
+                    })
+                  }
+                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                >
+                  <Images className="w-4 h-4 text-amber-400" />
+                  <span>
+                    {isGraffiatoLaser ? 'تصفح 6 صور ليزر الأصلية' : 'تصفح 6 صور بدون ليزر'}
+                  </span>
+                </button>
               ) : isSaveto ? null : (
                 <a
                   href={GLC_PLATINE_PDF_URL}
@@ -1056,38 +1322,40 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 </a>
               )}
 
-              <button
-                type="button"
-                onClick={
-                  isJotun
-                    ? onBrowseJotunProducts
-                    : isSipes
-                    ? onBrowseSipesProducts
-                    : isSaveto
-                    ? onBrowseSavetoProducts
-                    : isScib
-                    ? onBrowseScibProducts
-                    : isCmb
-                    ? onBrowseCmbProducts
-                    : onBrowseGlcProducts
-                }
-                className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
-              >
-                <Paintbrush className="w-4 h-4 text-amber-400" />
-                <span>
-                  {isJotun
-                    ? 'قسم دهانات جوتن'
-                    : isSipes
-                    ? 'قسم دهانات سايبس'
-                    : isSaveto
-                    ? 'منتجات سافيتو'
-                    : isScib
-                    ? 'قسم دهانات سكيب'
-                    : isCmb
-                    ? 'منتجات CMB'
-                    : 'منتجات GLC'}
-                </span>
-              </button>
+              {!isDedicatedGraffiato && (
+                <button
+                  type="button"
+                  onClick={
+                    isJotun
+                      ? onBrowseJotunProducts
+                      : isSipes
+                      ? onBrowseSipesProducts
+                      : isSaveto
+                      ? onBrowseSavetoProducts
+                      : isScib
+                      ? onBrowseScibProducts
+                      : isCmb
+                      ? onBrowseCmbProducts
+                      : onBrowseGlcProducts
+                  }
+                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                >
+                  <Paintbrush className="w-4 h-4 text-amber-400" />
+                  <span>
+                    {isJotun
+                      ? 'قسم دهانات جوتن'
+                      : isSipes
+                      ? 'قسم دهانات سايبس'
+                      : isSaveto
+                      ? 'منتجات سافيتو'
+                      : isScib
+                      ? 'قسم دهانات سكيب'
+                      : isCmb
+                      ? 'منتجات CMB'
+                      : 'منتجات GLC'}
+                  </span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -1095,12 +1363,12 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 px-3.5 py-2 text-xs font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
               >
                 <ArrowRight className="w-4 h-4" />
-                <span>العودة للمتجر</span>
+                <span>العودة للصفحة السابقة</span>
               </button>
             </div>
           </div>
 
-          {/* Clean Brand Switcher Segmented Control: GLC, JOTUN, SIPES, SCIB, CMB, SAVETO */}
+          {/* Clean Brand & Catalog Switcher Segmented Control */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
             <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/90 border border-slate-800 overflow-x-auto no-scrollbar max-w-full">
               <button
@@ -1187,10 +1455,41 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   ({SAVETO_NORMALIZED_SHADES.length})
                 </span>
               </button>
+              <button
+                type="button"
+                onClick={() => handleBrandSwitch('graffiato_laser')}
+                className={`min-h-[40px] inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  activeBrand === 'graffiato_laser'
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'text-amber-300 hover:text-white hover:bg-slate-800/70'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <span>جرافيـاتو ليزر</span>
+                <span className="font-mono-nums opacity-80">
+                  ({GRAFFIATO_LASER_SHADES.length})
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBrandSwitch('graffiato_classic')}
+                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  activeBrand === 'graffiato_classic'
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'text-slate-200 hover:text-white hover:bg-slate-800/70'
+                }`}
+              >
+                جرافيـاتو بدون ليزر{' '}
+                <span className="font-mono-nums opacity-80">
+                  ({GRAFFIATO_CLASSIC_SHADES.length})
+                </span>
+              </button>
             </div>
 
             <p className="text-[11px] sm:text-xs text-slate-400">
-              اختر الشركة والقسم واضغط على أي درجة لون لمشاهدتها فوراً على الواجهة الخارجية أو الغرفة
+              {isDedicatedGraffiato
+                ? 'اضغط على أي كود لمشاهدته فوراً على واجهة البيت مع التبديل بين الملمس الخشن والوسط والناعم'
+                : 'اختر الشركة والقسم واضغط على أي درجة لون لمشاهدتها فوراً على الواجهة الخارجية أو الغرفة'}
             </p>
           </div>
         </div>
@@ -1206,13 +1505,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg overflow-x-auto no-scrollbar max-w-full">
                 {(isGraffiatoMode
                   ? ([
-                      { id: 'exterior', label: 'واجهة مبنى خارجية' },
+                      { id: 'exterior', label: 'واجهة البيت' },
                       { id: 'wall', label: 'تكبير ملمس الواجهة' },
                     ] as const)
                   : ([
                       { id: 'living', label: 'غرفة معيشة' },
                       { id: 'bedroom', label: 'غرفة نوم' },
-                      { id: 'exterior', label: 'واجهة خارجية' },
+                      { id: 'exterior', label: 'واجهة البيت' },
                       { id: 'wall', label: 'حائط كامل' },
                     ] as const)
                 ).map((item) => (
@@ -1336,6 +1635,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 nameAr: primaryShade.nameAr || primaryShade.nameEn,
                 brandLabel: brandTitleUpper,
                 texture: activeWallTexture,
+                laserGlitter: isGraffiatoLaser || Boolean(primaryShade.isLaser),
               }}
               compareShade={
                 compareMode
@@ -1344,7 +1644,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       hex: compareShade.hex,
                       nameAr: compareShade.nameAr || compareShade.nameEn,
                       brandLabel: brandTitleUpper,
-                      texture: compareShade.textureGrade || activeWallTexture,
+                      texture: activeWallTexture,
+                      laserGlitter: isGraffiatoLaser || Boolean(compareShade.isLaser),
                     }
                   : null
               }
@@ -1352,6 +1653,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               lighting={lighting}
               finish={finish}
               texture={activeWallTexture}
+              hasLaserGlitter={isGraffiatoLaser}
             />
 
             {/* Graffiato Texture Controls when in Graffiato / Exterior mode, or Sheen Controls otherwise */}
@@ -1360,22 +1662,22 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 <span className="text-xs font-bold text-slate-700">
                   {isSaveto
                     ? 'ملمس وخشونة واجهة سافيتو:'
-                    : 'ملمس الجرافيـاتو على الواجهة:'}
+                    : 'خشونة الملمس على واجهة البيت:'}
                 </span>
-                <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg overflow-x-auto no-scrollbar">
+                <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-lg">
                   {(
                     [
                       {
                         id: 'coarse',
-                        label: isSaveto ? 'خشن 3–4 مم (سافياتو)' : 'خشن (أخاديد طولية)',
+                        label: isSaveto ? 'خشن 3–4مم' : 'خشن',
                       },
                       {
                         id: 'medium',
-                        label: isSaveto ? 'متوسط 2 مم (تيكستورا)' : 'متوسط (MC)',
+                        label: isSaveto ? 'وسط 2مم' : 'وسط',
                       },
                       {
                         id: 'fine',
-                        label: isSaveto ? 'ناعم 1–1.5 مم (سموث)' : 'ناعم (FMC)',
+                        label: isSaveto ? 'ناعم 1مم' : 'ناعم',
                       },
                     ] as const
                   ).map((item) => (
@@ -1383,9 +1685,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       key={item.id}
                       type="button"
                       onClick={() => handleSelectTexture(item.id)}
-                      className={`min-h-[34px] px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                      className={`min-h-[38px] px-3 py-1 rounded-md text-xs sm:text-sm font-extrabold whitespace-nowrap transition-colors cursor-pointer ${
                         activeWallTexture === item.id
-                          ? 'bg-slate-900 text-amber-400'
+                          ? 'bg-slate-900 text-amber-400 shadow-xs'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
@@ -1509,6 +1811,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   ? 'سكيب'
                   : isCmb
                   ? 'CMB'
+                  : isGraffiatoLaser
+                  ? 'جرافيـاتو ليزر'
+                  : isGraffiatoClassic
+                  ? 'جرافيـاتو بدون ليزر'
                   : 'GLC'}{' '}
                 بالكمبيوتر وطلبه الآن
               </h2>
@@ -1629,9 +1935,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                  {isSaveto ||
-                  (selectedFamilyId === 'graffiato' && isSipes) ||
-                  (selectedFamilyId === 'graviato' && isCmb)
+                  {isGraffiatoLaser
+                    ? 'اختر كود الجرافيـاتو بالليزر ليظهر فوراً على واجهة البيت'
+                    : isGraffiatoClassic
+                    ? 'اختر كود الجرافيـاتو بدون ليزر ليظهر على واجهة البيت'
+                    : isSaveto ||
+                      (selectedFamilyId === 'graffiato' && isSipes) ||
+                      (selectedFamilyId === 'graviato' && isCmb)
                     ? 'اختر لون وملمس الواجهة ليظهر فوراً على المبنى الخارجي'
                     : 'اختر الدرجة لتظهر فوراً في المعاينة'}
                 </h2>
@@ -1647,6 +1957,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     ? 'في كتالوج سكيب الرسمي'
                     : isCmb
                     ? 'في أقسام ومنتجات CMB المعتمدة'
+                    : isGraffiatoLaser
+                    ? 'في كتالوج الليزر (6 لوحات أصلية · 1002–1220)'
+                    : isGraffiatoClassic
+                    ? 'في كتالوج بدون ليزر (6 لوحات · جوتاشيلد · مارفكس · جيماتكس · ماربل)'
                     : 'في كارتيلا GLC بلاتين'}
                 </p>
               </div>
@@ -1670,6 +1984,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       ? 'ابحث بكود سكيب أو الاسم (مثلاً 9436 أو 7420)...'
                       : isCmb
                       ? 'ابحث بكود CMB أو المنتج (مثلاً 347 أو CMB 06 أو كيمابوكسي)...'
+                      : isGraffiatoLaser
+                      ? 'ابحث بكود الليزر (مثلاً 1004 أو 1016 أو 1150)...'
+                      : isGraffiatoClassic
+                      ? 'ابحث بالكود (مثلاً 6050 أو R50 أو X11 أو 5001)...'
                       : 'ابحث بالكود (مثلاً Y21010)...'
                   }
                   className="w-full min-h-[42px] rounded-xl border border-slate-200 bg-slate-50 pr-9 pl-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
@@ -1714,7 +2032,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       style={{ backgroundColor: fam.swatchHex }}
                     />
                     <span>{fam.nameAr}</span>
-                    {(isSipes || isSaveto || isCmb || isScib) && (
+                    {(isSipes || isSaveto || isCmb || isScib || isDedicatedGraffiato) && (
                       <span
                         className={`font-mono-nums text-[11px] ${
                           active ? 'text-amber-300' : 'text-slate-500'
@@ -1727,6 +2045,170 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 );
               })}
             </div>
+
+            {/* Dedicated 6-Photo Real Catalog Strip + Controls for Laser Graffiato */}
+            {isGraffiatoLaser && (
+              <div className="pt-3 border-t border-slate-100 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                    <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span>صور كتالوج الليزر الأصلية (6 لوحات — اضغط للتكبير):</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setLaserOnlyFilter(false)}
+                      className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
+                        !laserOnlyFilter
+                          ? 'bg-slate-900 text-amber-400'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      كل الأكواد (110)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLaserOnlyFilter(true)}
+                      className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
+                        laserOnlyFilter
+                          ? 'bg-amber-400 text-slate-950'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      شرائح الليزر العريضة فقط (10)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  {GRAFFIATO_LASER_BOARD_IMAGES.map((board, idx) => (
+                    <div
+                      key={board.id}
+                      className={`rounded-xl border overflow-hidden bg-slate-50 flex flex-col ${
+                        selectedFamilyId === board.id
+                          ? 'border-blue-600 ring-2 ring-blue-600/20'
+                          : 'border-slate-200'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setBoardLightbox({
+                            boards: GRAFFIATO_LASER_BOARD_IMAGES,
+                            index: idx,
+                          })
+                        }
+                        className="relative aspect-[3/4] w-full overflow-hidden group cursor-pointer"
+                        aria-label={`تكبير ${board.titleAr}`}
+                      >
+                        <img
+                          src={board.url}
+                          alt={board.titleAr}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <span className="absolute bottom-1 left-1 w-6 h-6 rounded-md bg-slate-950/75 text-white flex items-center justify-center">
+                          <Maximize2 className="w-3 h-3" />
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectFamily(board.id)}
+                        className="py-1.5 px-1 text-[10px] font-extrabold text-slate-800 hover:text-blue-700 font-mono-nums truncate cursor-pointer"
+                      >
+                        {board.codeRange}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Dedicated 6-Photo Real Catalog Strip + Controls for Non-Laser Graffiato */}
+            {isGraffiatoClassic && (
+              <div className="pt-3 border-t border-slate-100 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                    <Images className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>صور كتالوج بدون ليزر (6 لوحات — جوتاشيلد · مارفكس · جيماتكس · ماربل):</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {(
+                      [
+                        { id: 'all', label: 'الكل (90)' },
+                        { id: 'coarse', label: 'خشن (مارفكس / جيماتكس)' },
+                        { id: 'medium', label: 'وسط (جوتاشيلد)' },
+                        { id: 'fine', label: 'ناعم (ماربل)' },
+                      ] as const
+                    ).map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => {
+                          setClassicGradeFilter(g.id);
+                          if (g.id !== 'all') {
+                            handleSelectTexture(g.id);
+                          }
+                        }}
+                        className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
+                          classicGradeFilter === g.id
+                            ? 'bg-amber-400 text-slate-950'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  {GRAFFIATO_CLASSIC_BOARD_IMAGES.map((board, idx) => {
+                    const targetFam =
+                      board.id === 'classic_j1' || board.id === 'classic_j2'
+                        ? 'jotashield_tex'
+                        : board.id === 'classic_marvex'
+                        ? 'marvex'
+                        : board.id === 'classic_jematex'
+                        ? 'jematex'
+                        : 'marble';
+                    return (
+                      <div
+                        key={board.id}
+                        className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50 flex flex-col"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setBoardLightbox({
+                              boards: GRAFFIATO_CLASSIC_BOARD_IMAGES,
+                              index: idx,
+                            })
+                          }
+                          className="relative aspect-[3/4] w-full overflow-hidden group cursor-pointer"
+                          aria-label={`تكبير ${board.titleAr}`}
+                        >
+                          <img
+                            src={board.url}
+                            alt={board.titleAr}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                          <span className="absolute bottom-1 left-1 w-6 h-6 rounded-md bg-slate-950/75 text-white flex items-center justify-center">
+                            <Maximize2 className="w-3 h-3" />
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectFamily(targetFam)}
+                          className="py-1.5 px-1 text-[10px] font-extrabold text-slate-800 hover:text-blue-700 font-mono-nums truncate cursor-pointer"
+                        >
+                          {board.codeRange}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Saveto Graffiato & Colored Renders Grade Filter (Coarse 3-4mm / Medium 2mm / Fine 1-1.5mm) */}
             {isSaveto && (
@@ -1955,11 +2437,26 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                               className="absolute inset-0 pointer-events-none"
                               style={{
                                 backgroundImage:
-                                  GRAFFIATO_SWATCH_SVG_PATTERNS[shade.textureGrade],
+                                  GRAFFIATO_SWATCH_SVG_PATTERNS[
+                                    isDedicatedGraffiato && activeWallTexture !== 'smooth'
+                                      ? activeWallTexture
+                                      : shade.textureGrade
+                                  ],
                               }}
                             />
+                            {shade.isLaserWide && (
+                              <span className="absolute top-1 right-1 px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 text-[9px] font-extrabold leading-none pointer-events-none">
+                                ليزر
+                              </span>
+                            )}
                             <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-slate-950/75 text-white text-[9px] font-bold leading-none pointer-events-none">
-                              {shade.textureGrade === 'fine'
+                              {isDedicatedGraffiato
+                                ? activeWallTexture === 'fine'
+                                  ? 'ناعم'
+                                  : activeWallTexture === 'medium'
+                                  ? 'وسط'
+                                  : 'خشن'
+                                : shade.textureGrade === 'fine'
                                 ? isSaveto
                                   ? 'ناعم 1مم'
                                   : 'ناعم FMC'
@@ -1992,13 +2489,14 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                           </span>
                           {shade.pageNumber && (
                             <span className="text-[10px] text-slate-400 font-mono-nums hidden sm:inline shrink-0">
-                              ص{shade.pageNumber}
+                              ل{shade.pageNumber}
                             </span>
                           )}
                         </div>
                         {(shade.nameAr ||
                           shade.nameEn ||
-                          ((isSipes || isCmb) && selectedFamilyId === 'all')) && (
+                          ((isSipes || isCmb || isDedicatedGraffiato) &&
+                            selectedFamilyId === 'all')) && (
                           <div className="text-[10px] sm:text-[11px] font-semibold text-slate-600 truncate">
                             {shade.nameAr
                               ? (isSipes || isCmb) &&
@@ -2045,6 +2543,103 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Original Photographed 6-Board Lightbox */}
+      {boardLightbox && boardLightbox.boards[boardLightbox.index] && (
+        <div
+          onClick={() => setBoardLightbox(null)}
+          className="fixed inset-0 z-50 bg-slate-950/92 flex flex-col justify-between p-3 sm:p-6"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center justify-between gap-3 text-white max-w-5xl w-full mx-auto"
+          >
+            <div className="min-w-0">
+              <h4 className="text-sm sm:text-base font-bold truncate">
+                {boardLightbox.boards[boardLightbox.index].titleAr}
+              </h4>
+              <p className="text-xs text-slate-300 font-mono-nums">
+                لوحة {boardLightbox.index + 1} من {boardLightbox.boards.length}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setBoardLightbox(null)}
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white cursor-pointer"
+              aria-label="إغلاق"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 flex items-center justify-center max-w-5xl w-full mx-auto my-3 min-h-0"
+          >
+            <button
+              type="button"
+              onClick={() =>
+                setBoardLightbox((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        index: (prev.index - 1 + prev.boards.length) % prev.boards.length,
+                      }
+                    : null
+                )
+              }
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-slate-900/80 hover:bg-slate-800 text-white border border-slate-700 cursor-pointer shrink-0"
+              aria-label="اللوحة السابقة"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+
+            <img
+              src={boardLightbox.boards[boardLightbox.index].url}
+              alt={boardLightbox.boards[boardLightbox.index].titleAr}
+              className="max-h-[75vh] max-w-full object-contain rounded-xl mx-2"
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setBoardLightbox((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        index: (prev.index + 1) % prev.boards.length,
+                      }
+                    : null
+                )
+              }
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-slate-900/80 hover:bg-slate-800 text-white border border-slate-700 cursor-pointer shrink-0"
+              aria-label="اللوحة التالية"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center justify-center gap-2 overflow-x-auto no-scrollbar max-w-5xl w-full mx-auto"
+          >
+            {boardLightbox.boards.map((b, i) => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => setBoardLightbox((prev) => (prev ? { ...prev, index: i } : null))}
+                className={`w-14 h-16 rounded-lg overflow-hidden border-2 shrink-0 cursor-pointer ${
+                  i === boardLightbox.index
+                    ? 'border-amber-400 opacity-100'
+                    : 'border-slate-700 opacity-60 hover:opacity-100'
+                }`}
+              >
+                <img src={b.url} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

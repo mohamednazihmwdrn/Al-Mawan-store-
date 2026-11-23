@@ -911,7 +911,7 @@ export const OwnerCatalogsTab: React.FC<{
             type="text"
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
-            placeholder="الشركة / الماركة (JOTUN, GLC, PACHIN...)"
+            placeholder="الشركة / الماركة (JOTUN, GLC, SIPES...)"
             className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm"
           />
         </div>

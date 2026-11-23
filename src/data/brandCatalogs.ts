@@ -10,7 +10,7 @@ export const MULTI_BRAND_CATEGORIES: Category[] = [
     id: 'cat_jotun',
     name: 'منتجات وكيماويات جوتن (JOTUN)',
     description:
-      'فينوماستيك، ليدي ديزاين الديكوري، جوتاشيلد للواجهات والتكس، وبرايمرات الحماية بألوان الكمبيوتر',
+      'فينوماستيك الأبيض والملون، معجون ستوكو، سيلر إيسنس، ليدي ديزاين، وجوتاشيلد للواجهات بالكمبيوتر',
     imageUrl: '/assets/products/jotun/fenomastic_wonderwall_lux.png',
     sortOrder: 2,
   },
@@ -26,7 +26,7 @@ export const MULTI_BRAND_CATEGORIES: Category[] = [
     id: 'cat_cmb',
     name: 'منتجات كيماويات البناء الحديث (CMB)',
     description:
-      'أديبوند 65 و69، نانو سيلر، كيمابوكسي 150 و166W و131 و129، كيماكوت وكيما فيل والعوازل',
+      'أديبوند 65 (1 لتر و5 لتر و20 لتر) و69، نانو سيلر، كيمابوكسي 150 و166W، كيماكوت وكيما فيل والعوازل',
     imageUrl: '/assets/products/cmb/cmb_addibond_65.jpg',
     sortOrder: 4,
   },
@@ -65,3 +65,21 @@ export const MULTI_BRAND_PRODUCTS: Product[] = [
 ];
 
 export const MULTI_BRAND_PRODUCT_IDS: string[] = MULTI_BRAND_PRODUCTS.map((p) => p.id);
+
+export const MULTI_BRAND_V2_NEW_PRODUCT_IDS: string[] = [
+  'jotun_fenomastic_pure_white_pail',
+  'jotun_fenomastic_hygiene_silk_pail',
+  'jotun_stucco_putty',
+  'jotun_jotashield_filler',
+  'jotun_essence_easy_primer',
+  'jotun_pva_sealer_pail',
+  'cmb_addibond_65_5l',
+  'cmb_addibond_65_20l',
+  'cmb_kemacoat_100',
+  'cmb_kemagrout_waterproof',
+];
+
+const V2_ID_SET = new Set(MULTI_BRAND_V2_NEW_PRODUCT_IDS);
+export const MULTI_BRAND_V2_PRODUCTS: Product[] = MULTI_BRAND_PRODUCTS.filter((p) =>
+  V2_ID_SET.has(p.id)
+);
