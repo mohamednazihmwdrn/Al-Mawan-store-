@@ -1092,7 +1092,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                           transition={{ duration: 0.22 }}
                           className="overflow-hidden"
                         >
-                          <div className="flex items-center gap-2 pt-1 overflow-x-auto no-scrollbar pb-1">
+                          <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
                             <span className="text-xs font-bold text-slate-500 shrink-0 ml-1">
                               الصفحات الفرعية:
                             </span>
@@ -1392,7 +1392,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
                       </div>
 
                       {config.visibility.quickFilters && (
-                        <div className="flex items-center gap-1 p-1 bg-slate-200/75 rounded-xl overflow-x-auto no-scrollbar shrink-0">
+                        <div className="grid grid-cols-3 sm:inline-flex sm:items-center gap-1 p-1 bg-slate-200/75 rounded-xl w-full sm:w-auto">
                           <button
                             type="button"
                             onClick={onResetFilters}

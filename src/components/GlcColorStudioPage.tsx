@@ -1181,7 +1181,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 md:pb-12">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-slate-50 text-slate-900 pb-24 md:pb-12">
       {/* Top Studio Header Bar */}
       <div className="bg-slate-900 text-white border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-5 space-y-4">
@@ -1245,13 +1245,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               </h1>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto min-w-0">
               {isJotun ? (
                 <a
                   href={JOTUN_CATALOG_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors"
+                  className="min-h-[42px] max-w-full inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-100 leading-tight transition-colors"
                 >
                   <ExternalLink className="w-4 h-4 text-amber-400" />
                   <span>كتالوج جوتن الرسمي</span>
@@ -1261,9 +1261,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   href={SCIB_CATALOG_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors"
+                  className="min-h-[42px] max-w-full inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-100 leading-tight transition-colors"
                 >
-                  <ExternalLink className="w-4 h-4 text-amber-400" />
+                  <ExternalLink className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>كتالوج سكيب الرسمي</span>
                 </a>
               ) : isCmb && activeCmbSection ? (
@@ -1272,11 +1272,11 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   download={activeCmbSection.pdfName}
-                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors"
+                  className="min-h-[42px] max-w-full inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-100 leading-tight transition-colors"
                 >
-                  <FileText className="w-4 h-4 text-amber-400" />
+                  <FileText className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>كتالوج {activeCmbSection.shortAr} PDF</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </a>
               ) : isSipes && activeSipesSection ? (
                 <a
@@ -1284,11 +1284,11 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   download={activeSipesSection.pdfName}
-                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors"
+                  className="min-h-[42px] max-w-full inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-100 leading-tight transition-colors"
                 >
-                  <FileText className="w-4 h-4 text-amber-400" />
+                  <FileText className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>كتالوج {SIPES_SECTION_SHORT_AR[activeSipesSection.id]} PDF</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </a>
               ) : isDedicatedGraffiato ? (
                 <button
@@ -1368,13 +1368,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             </div>
           </div>
 
-          {/* Clean Brand & Catalog Switcher Segmented Control */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
-            <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/90 border border-slate-800 overflow-x-auto no-scrollbar max-w-full">
+          {/* Clean Brand & Catalog Switcher (Wrapping Grid on Mobile, Zero Horizontal Scroll) */}
+          <div className="flex flex-col gap-2.5 pt-3 border-t border-slate-800 w-full min-w-0">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-stretch gap-1.5 p-1.5 rounded-xl bg-slate-950/90 border border-slate-800 w-full">
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('glc')}
-                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'glc'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
@@ -1388,7 +1388,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('jotun')}
-                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'jotun'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
@@ -1402,7 +1402,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('sipes')}
-                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'sipes'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
@@ -1416,7 +1416,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('scib')}
-                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'scib'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
@@ -1430,7 +1430,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('cmb')}
-                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'cmb'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
@@ -1444,7 +1444,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('saveto')}
-                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'saveto'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
@@ -1458,7 +1458,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('graffiato_laser')}
-                className={`min-h-[40px] inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] inline-flex items-center justify-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'graffiato_laser'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-amber-300 hover:text-white hover:bg-slate-800/70'
@@ -1473,7 +1473,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('graffiato_classic')}
-                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'graffiato_classic'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-200 hover:text-white hover:bg-slate-800/70'
@@ -1496,13 +1496,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       </div>
 
       {/* Main 2-Column Interactive Studio Workspace */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-5 sm:py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-5 sm:py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start min-w-0">
         {/* RIGHT / STICKY COLUMN (in RTL): Interactive Wall & Exterior Facade Visualizer */}
-        <div className="lg:col-span-6 lg:sticky lg:top-20 space-y-4">
-          <section className="rounded-2xl bg-white border border-slate-200 p-3.5 sm:p-5 space-y-4 shadow-xs">
-            {/* Scene Toolbar Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg overflow-x-auto no-scrollbar max-w-full">
+        <div className="lg:col-span-6 lg:sticky lg:top-20 space-y-4 min-w-0 w-full">
+          <section className="rounded-2xl bg-white border border-slate-200 p-3.5 sm:p-5 space-y-4 shadow-xs min-w-0 w-full">
+            {/* Scene Toolbar Controls (Wrapping Grid, Zero Horizontal Scroll) */}
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2">
+              <div className="grid grid-cols-2 sm:inline-flex sm:flex-wrap items-stretch gap-1 p-1 bg-slate-100 rounded-lg w-full sm:w-auto">
                 {(isGraffiatoMode
                   ? ([
                       { id: 'exterior', label: 'واجهة البيت' },
@@ -1519,7 +1519,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     key={item.id}
                     type="button"
                     onClick={() => setScene(item.id)}
-                    className={`min-h-[36px] px-2.5 sm:px-3 py-1 rounded-md text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                    className={`min-h-[36px] px-2.5 sm:px-3 py-1 rounded-md text-xs font-bold text-center leading-tight transition-colors cursor-pointer ${
                       effectiveScene === item.id
                         ? 'bg-white text-slate-900 shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
@@ -1530,13 +1530,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 ))}
               </div>
 
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() =>
                     setLighting((prev) => (prev === 'daylight' ? 'warm' : 'daylight'))
                   }
-                  className={`min-h-[38px] inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  className={`min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold leading-tight transition-colors cursor-pointer ${
                     lighting === 'warm'
                       ? 'bg-amber-50 border-amber-300 text-amber-900'
                       : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1544,12 +1544,12 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 >
                   {lighting === 'warm' ? (
                     <>
-                      <Lamp className="w-3.5 h-3.5 text-amber-600" />
+                      <Lamp className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span>{effectiveScene === 'exterior' ? 'إضاءة ليلية' : 'إضاءة دافئة'}</span>
                     </>
                   ) : (
                     <>
-                      <Sun className="w-3.5 h-3.5 text-blue-600" />
+                      <Sun className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                       <span>إضاءة نهارية</span>
                     </>
                   )}
@@ -1558,13 +1558,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setCompareMode((prev) => !prev)}
-                  className={`min-h-[38px] inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  className={`min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold leading-tight transition-colors cursor-pointer ${
                     compareMode
                       ? 'bg-slate-900 border-slate-900 text-amber-300'
                       : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <Columns2 className="w-3.5 h-3.5" />
+                  <Columns2 className="w-3.5 h-3.5 shrink-0" />
                   <span>مقارنة لونين</span>
                 </button>
               </div>
@@ -1699,19 +1699,19 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             ) : (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
                 <span className="text-xs font-bold text-slate-700">درجة اللمعة على الحائط:</span>
-                <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg overflow-x-auto no-scrollbar">
+                <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-lg w-full sm:w-auto">
                   {(
                     [
                       { id: 'matt', label: 'مط (Matt)' },
                       { id: 'silk', label: 'حريري (Silk)' },
-                      { id: 'semigloss', label: 'نصف لامع (Semi-Gloss)' },
+                      { id: 'semigloss', label: 'نصف لامع' },
                     ] as const
                   ).map((item) => (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => handleSelectFinish(item.id)}
-                      className={`min-h-[34px] px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                      className={`min-h-[36px] px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold text-center leading-tight transition-colors cursor-pointer ${
                         finish === item.id
                           ? 'bg-slate-900 text-white'
                           : 'text-slate-600 hover:text-slate-900'
@@ -1930,8 +1930,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         </div>
 
         {/* LEFT / CATALOG GRID COLUMN (in RTL): Search + Section Tabs + Textured Swatches */}
-        <div className="lg:col-span-6 space-y-4">
-          <section className="rounded-2xl bg-white border border-slate-200 p-4 sm:p-5 space-y-4">
+        <div className="lg:col-span-6 space-y-4 min-w-0 w-full">
+          <section className="rounded-2xl bg-white border border-slate-200 p-4 sm:p-5 space-y-4 min-w-0 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
@@ -2000,7 +2000,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleSelectFamily('all')}
-                className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[38px] max-w-full px-3 py-1.5 rounded-lg text-xs font-bold text-right leading-snug transition-colors cursor-pointer ${
                   selectedFamilyId === 'all'
                     ? 'bg-slate-900 text-amber-400'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -2021,7 +2021,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     key={fam.id}
                     type="button"
                     onClick={() => handleSelectFamily(fam.id)}
-                    className={`min-h-[38px] inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                    className={`min-h-[38px] max-w-full inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-right leading-snug transition-colors cursor-pointer ${
                       active
                         ? 'bg-slate-900 text-white'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -2034,7 +2034,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     <span>{fam.nameAr}</span>
                     {(isSipes || isSaveto || isCmb || isScib || isDedicatedGraffiato) && (
                       <span
-                        className={`font-mono-nums text-[11px] ${
+                        className={`font-mono-nums text-[11px] shrink-0 ${
                           active ? 'text-amber-300' : 'text-slate-500'
                         }`}
                       >
@@ -2233,7 +2233,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                         }
                       }}
                       title={g.detailAr}
-                      className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                      className={`min-h-[36px] max-w-full px-3 py-1.5 rounded-lg text-xs font-bold text-right leading-snug transition-colors cursor-pointer ${
                         savetoGradeFilter === g.id
                           ? 'bg-amber-400 text-slate-950'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -2267,7 +2267,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       key={g.id}
                       type="button"
                       onClick={() => setGraffiatoGradeFilter(g.id)}
-                      className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                      className={`min-h-[36px] max-w-full px-3 py-1.5 rounded-lg text-xs font-bold text-right leading-snug transition-colors cursor-pointer ${
                         graffiatoGradeFilter === g.id
                           ? 'bg-amber-400 text-slate-950'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -2328,7 +2328,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       key={g.id}
                       type="button"
                       onClick={() => setCmbGradeFilter(g.id)}
-                      className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                      className={`min-h-[36px] max-w-full px-3 py-1.5 rounded-lg text-xs font-bold text-right leading-snug transition-colors cursor-pointer ${
                         cmbGradeFilter === g.id
                           ? 'bg-amber-400 text-slate-950'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -2621,7 +2621,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
           <div
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center gap-2 overflow-x-auto no-scrollbar max-w-5xl w-full mx-auto"
+            className="flex flex-wrap items-center justify-center gap-2 max-w-5xl w-full mx-auto"
           >
             {boardLightbox.boards.map((b, i) => (
               <button

@@ -399,7 +399,7 @@ export const ColorStudioModal: React.FC<ColorStudioModalProps> = ({
                           </div>
 
                           {imageItems.length > 1 && (
-                            <div className="flex items-center gap-1.5 px-3 pb-2 overflow-x-auto no-scrollbar">
+                            <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2">
                               {imageItems.map((img) => {
                                 const isCurrent = img.id === activeImage.id;
                                 return (
@@ -747,7 +747,7 @@ export const ColorStudioModal: React.FC<ColorStudioModalProps> = ({
                 {lightbox.images.length > 1 && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="flex items-center justify-center gap-2 overflow-x-auto no-scrollbar max-w-5xl w-full mx-auto pb-safe"
+                    className="flex flex-wrap items-center justify-center gap-2 max-w-5xl w-full mx-auto pb-safe"
                   >
                     {lightbox.images.map((img, i) => (
                       <button

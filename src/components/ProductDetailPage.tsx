@@ -293,7 +293,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
 
             {images.length > 1 && (
-              <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
+              <div className="flex flex-wrap items-center gap-2.5 pb-1">
                 {images.map((img, idx) => (
                   <button
                     key={idx}

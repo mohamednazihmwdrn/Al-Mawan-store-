@@ -7,8 +7,10 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  html,
   body {
     overflow-x: clip;
+    max-width: 100%;
   }
 
   h1, h2, h3, h4, .font-display {

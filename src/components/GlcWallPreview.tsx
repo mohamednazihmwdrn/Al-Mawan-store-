@@ -774,15 +774,19 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
       </svg>
 
       {/* Clean Architectural Swatch Identification Overlays (Zero-Pill) */}
-      <div className="pointer-events-none absolute top-3 right-3 flex items-center gap-2">
+      <div
+        className={`pointer-events-none absolute top-2.5 right-2.5 sm:top-3 sm:right-3 flex items-center gap-2 min-w-0 ${
+          isSplit ? 'max-w-[46%]' : 'max-w-[calc(100%-1.25rem)]'
+        }`}
+      >
         <div
-          className={`px-3 py-1.5 rounded-lg border backdrop-blur-xs shadow-xs ${
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border backdrop-blur-xs shadow-xs min-w-0 max-w-full ${
             primaryLightText || scene === 'exterior'
               ? 'bg-slate-950/75 border-white/20 text-white'
               : 'bg-white/85 border-slate-900/10 text-slate-900'
           }`}
         >
-          <div className="text-[10px] opacity-80">
+          <div className="text-[10px] opacity-80 truncate">
             {scene === 'exterior'
               ? isSplit
                 ? 'الواجهة الرئيسية (أساسي)'
@@ -792,13 +796,13 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
               : 'اللون المعروض على الحائط'}
             {textureBadgeLabel ? ` · ${textureBadgeLabel}` : ''}
           </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-mono-nums text-xs sm:text-sm font-extrabold tracking-wide">
+          <div className="flex items-baseline gap-1.5 min-w-0">
+            <span className="font-mono-nums text-xs sm:text-sm font-extrabold tracking-wide shrink-0">
               {primaryShade.brandLabel ? `${primaryShade.brandLabel} ` : ''}
               {primaryShade.code}
             </span>
             {primaryShade.nameAr && (
-              <span className="text-[11px] font-bold opacity-90 truncate max-w-[140px]">
+              <span className="text-[11px] font-bold opacity-90 truncate">
                 {primaryShade.nameAr}
               </span>
             )}
@@ -807,25 +811,25 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
       </div>
 
       {isSplit && compareShade && (
-        <div className="pointer-events-none absolute top-3 left-3 flex items-center gap-2">
+        <div className="pointer-events-none absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex items-center gap-2 min-w-0 max-w-[46%]">
           <div
-            className={`px-3 py-1.5 rounded-lg border backdrop-blur-xs shadow-xs ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border backdrop-blur-xs shadow-xs min-w-0 max-w-full ${
               compareLightText || scene === 'exterior'
                 ? 'bg-slate-950/75 border-white/20 text-white'
                 : 'bg-white/85 border-slate-900/10 text-slate-900'
             }`}
           >
-            <div className="text-[10px] opacity-80">
+            <div className="text-[10px] opacity-80 truncate">
               {scene === 'exterior' ? 'الجناح والسور (مقارنة)' : 'لون المقارنة (يسار)'}
               {compareTexture !== 'smooth' ? ` · ${TEXTURE_GRADE_LABELS_AR[compareTexture]}` : ''}
             </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-mono-nums text-xs sm:text-sm font-extrabold tracking-wide">
+            <div className="flex items-baseline gap-1.5 min-w-0">
+              <span className="font-mono-nums text-xs sm:text-sm font-extrabold tracking-wide shrink-0">
                 {compareShade.brandLabel ? `${compareShade.brandLabel} ` : ''}
                 {compareShade.code}
               </span>
               {compareShade.nameAr && (
-                <span className="text-[11px] font-bold opacity-90 truncate max-w-[140px]">
+                <span className="text-[11px] font-bold opacity-90 truncate">
                   {compareShade.nameAr}
                 </span>
               )}

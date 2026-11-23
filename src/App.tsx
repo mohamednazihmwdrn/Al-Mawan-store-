@@ -513,6 +513,7 @@ function AppShell() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.24 }}
+            className="w-full max-w-full overflow-x-clip"
           >
             <OwnerDashboard
               onPreviewCustomer={() =>
@@ -534,6 +535,7 @@ function AppShell() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22 }}
+            className="w-full max-w-full overflow-x-clip"
           >
             <Header
               activePage={nav.activePage}
