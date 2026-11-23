@@ -17,7 +17,7 @@ import { Product, StorefrontPage } from './types/store';
 const PAGE_LABELS: Record<StorefrontPage, string> = {
   home: 'الرئيسية والمنتجات',
   categories: 'الأقسام والبحث',
-  glc_colors: 'كمبيوتر الألوان (GLC · جوتن · سايبس)',
+  glc_colors: 'كمبيوتر الألوان (GLC · جوتن · سايبس · سافيتو)',
   brands: 'العلامات التجارية',
   about: 'عن المتجر',
   contact: 'تواصل معنا',
@@ -236,8 +236,9 @@ function AppShell() {
                 onChangeBrand={setColorStudioBrand}
                 onBackHome={() => handleSelectPage('home')}
                 onBrowseGlcProducts={() => handleOpenCategoryFromProduct('cat_glc')}
-                onBrowseJotunProducts={() => handleOpenCategoryFromProduct('cat_paints')}
-                onBrowseSipesProducts={() => handleOpenCategoryFromProduct('cat_paints')}
+                onBrowseJotunProducts={() => handleOpenCategoryFromProduct('cat_jotun')}
+                onBrowseSipesProducts={() => handleOpenCategoryFromProduct('cat_sipes')}
+                onBrowseSavetoProducts={() => handleOpenCategoryFromProduct('cat_saveto')}
                 onOpenProduct={handleOpenProduct}
               />
             ) : (

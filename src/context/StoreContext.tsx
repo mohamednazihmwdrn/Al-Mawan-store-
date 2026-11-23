@@ -50,6 +50,12 @@ import {
   DEMO_PRODUCT_IDS,
 } from '../data/defaults';
 import {
+  MULTI_BRAND_CATEGORIES,
+  MULTI_BRAND_PRODUCTS,
+  MULTI_BRAND_PRODUCT_IDS,
+  MULTI_BRAND_SUBPAGES,
+} from '../data/brandCatalogs';
+import {
   GLC_32_PRODUCTS,
   GLC_32_PRODUCT_IDS,
   GLC_ALL_PRODUCTS,
@@ -157,6 +163,8 @@ const LOCAL_GLC_PLATINE_CATALOG_FLAG = 'mowan_glc_platine_catalog_v1';
 const CLOUD_GLC_PLATINE_CATALOG_FLAG = 'mowan_glc_platine_catalog_v1';
 const LOCAL_GLC32_DETAILS_V2_FLAG = 'mowan_glc32_details_v2';
 const CLOUD_GLC32_DETAILS_V2_FLAG = 'mowan_glc32_details_v2';
+const LOCAL_MULTI_BRAND_SEED_V1_FLAG = 'mowan_multi_brand_local_v1';
+const CLOUD_MULTI_BRAND_SEED_V1_FLAG = 'mowan_multi_brand_cloud_v1';
 
 const CLOUD_AUTH_REQUIRED_MSG =
   'لم يتم الحفظ في السحابة: يرجى تسجيل الدخول بحساب المالك عبر "تسجيل دخول السحابة" أعلى اللوحة لإتمام التعديل والحذف النهائي.';
@@ -228,6 +236,45 @@ function upgradeGlcDetailsInList(existing: Product[]): { list: Product[]; change
   return { list: changed ? next : existing, changed };
 }
 
+const BUILTIN_SORT_ORDER_MAP = new Map(
+  DEFAULT_CATEGORIES.map((c) => [c.id, c.sortOrder])
+);
+
+function mergeMultiBrandCatalog(
+  existingCategories: Category[],
+  existingSubpages: Subpage[],
+  existingProducts: Product[]
+): {
+  categories: Category[];
+  subpages: Subpage[];
+  products: Product[];
+} {
+  const catIds = new Set(existingCategories.map((c) => c.id));
+  const missingCats = MULTI_BRAND_CATEGORIES.filter((c) => !catIds.has(c.id));
+  const alignedCategories = [...existingCategories, ...missingCats]
+    .map((cat) => {
+      const targetOrder = BUILTIN_SORT_ORDER_MAP.get(cat.id);
+      return targetOrder !== undefined ? { ...cat, sortOrder: targetOrder } : cat;
+    })
+    .sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99));
+
+  const subIds = new Set(existingSubpages.map((s) => s.id));
+  const missingSubs = MULTI_BRAND_SUBPAGES.filter((s) => !subIds.has(s.id));
+  const mergedSubpages =
+    missingSubs.length > 0 ? [...existingSubpages, ...missingSubs] : existingSubpages;
+
+  const prodIds = new Set(existingProducts.map((p) => p.id));
+  const missingProds = MULTI_BRAND_PRODUCTS.filter((p) => !prodIds.has(p.id));
+  const mergedProducts =
+    missingProds.length > 0 ? [...existingProducts, ...missingProds] : existingProducts;
+
+  return {
+    categories: alignedCategories,
+    subpages: mergedSubpages,
+    products: mergedProducts,
+  };
+}
+
 function readLocalSnapshot(): LocalSnapshotState {
   const shouldPurgeDemo = (() => {
     try {
@@ -264,6 +311,14 @@ function readLocalSnapshot(): LocalSnapshotState {
   const shouldUpgradeGlcDetails = (() => {
     try {
       return localStorage.getItem(LOCAL_GLC32_DETAILS_V2_FLAG) !== '1';
+    } catch {
+      return false;
+    }
+  })();
+
+  const shouldSeedMultiBrand = (() => {
+    try {
+      return localStorage.getItem(LOCAL_MULTI_BRAND_SEED_V1_FLAG) !== '1';
     } catch {
       return false;
     }
@@ -326,6 +381,13 @@ function readLocalSnapshot(): LocalSnapshotState {
         cleanProducts = upgraded.list;
       }
 
+      if (shouldSeedMultiBrand) {
+        const mergedMulti = mergeMultiBrandCatalog(categories, subpages, cleanProducts);
+        categories = mergedMulti.categories;
+        subpages = mergedMulti.subpages;
+        cleanProducts = mergedMulti.products;
+      }
+
       const nextState: LocalSnapshotState = {
         initialized: true,
         config: mergedConfig,
@@ -343,7 +405,8 @@ function readLocalSnapshot(): LocalSnapshotState {
         shouldSeedGlc32 ||
         shouldSeedGlcBatch2 ||
         shouldSeedGlcPlatineCatalog ||
-        shouldUpgradeGlcDetails
+        shouldUpgradeGlcDetails ||
+        shouldSeedMultiBrand
       ) {
         try {
           localStorage.setItem(LOCAL_PREVIEW_STORAGE_KEY, JSON.stringify(nextState));
@@ -353,6 +416,7 @@ function readLocalSnapshot(): LocalSnapshotState {
           if (shouldSeedGlcPlatineCatalog)
             localStorage.setItem(LOCAL_GLC_PLATINE_CATALOG_FLAG, '1');
           if (shouldUpgradeGlcDetails) localStorage.setItem(LOCAL_GLC32_DETAILS_V2_FLAG, '1');
+          if (shouldSeedMultiBrand) localStorage.setItem(LOCAL_MULTI_BRAND_SEED_V1_FLAG, '1');
         } catch {
           // Ignore storage quota issues
         }
@@ -364,11 +428,12 @@ function readLocalSnapshot(): LocalSnapshotState {
     // Ignore corrupted cache
   }
 
-  const initialProducts = shouldSeedGlc32
+  const baseGlcProducts = shouldSeedGlc32
     ? GLC_ALL_PRODUCTS
     : shouldSeedGlcBatch2
     ? [...DEFAULT_PRODUCTS, ...GLC_BATCH2_PRODUCTS]
     : DEFAULT_PRODUCTS;
+  const initialProducts = [...baseGlcProducts, ...MULTI_BRAND_PRODUCTS];
   const freshState: LocalSnapshotState = {
     initialized: true,
     config: DEFAULT_STORE_CONFIG,
@@ -385,6 +450,7 @@ function readLocalSnapshot(): LocalSnapshotState {
     localStorage.setItem(LOCAL_DEMO_PURGE_FLAG, '1');
     localStorage.setItem(LOCAL_GLC32_SEED_FLAG, '1');
     localStorage.setItem(LOCAL_GLC_BATCH2_SEED_FLAG, '1');
+    localStorage.setItem(LOCAL_MULTI_BRAND_SEED_V1_FLAG, '1');
     localStorage.setItem(LOCAL_PREVIEW_STORAGE_KEY, JSON.stringify(freshState));
   } catch {
     // Ignore storage quota issues
@@ -940,6 +1006,89 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } catch {
         // Ignore non-fatal upgrade error
       }
+
+      // One-time non-destructive cloud seed of JOTUN, SIPES, CMB, SCIB & SAVETO categories right under GLC
+      try {
+        if (localStorage.getItem(CLOUD_MULTI_BRAND_SEED_V1_FLAG) !== '1') {
+          await client
+            .from('categories')
+            .upsert(MULTI_BRAND_CATEGORIES.map(mapCategoryToDb), {
+              onConflict: 'id',
+              ignoreDuplicates: true,
+            });
+
+          // Align sort_order on existing built-in categories so the 5 brands appear immediately under GLC
+          await Promise.all(
+            DEFAULT_CATEGORIES.map((cat) =>
+              client
+                .from('categories')
+                .update({ sort_order: cat.sortOrder, updated_at: new Date().toISOString() })
+                .eq('id', cat.id)
+            )
+          );
+
+          await client
+            .from('subpages')
+            .upsert(MULTI_BRAND_SUBPAGES.map(mapSubpageToDb), {
+              onConflict: 'id',
+              ignoreDuplicates: true,
+            });
+
+          const { data: existingMultiRows, error: multiCheckErr } = await client
+            .from('products')
+            .select('id')
+            .in('id', MULTI_BRAND_PRODUCT_IDS);
+
+          if (!multiCheckErr && mounted) {
+            const existingIds = new Set(
+              (existingMultiRows || []).map((r) => String((r as DbRow).id))
+            );
+            const missingMulti = MULTI_BRAND_PRODUCTS.filter((p) => !existingIds.has(p.id));
+            let insertedProducts: Product[] = [];
+            if (missingMulti.length > 0) {
+              const { data: insRows, error: insMultiErr } = await client
+                .from('products')
+                .upsert(missingMulti.map(mapProductToDb), {
+                  onConflict: 'id',
+                  ignoreDuplicates: true,
+                })
+                .select('*');
+              if (!insMultiErr) {
+                insertedProducts = insRows
+                  ? (insRows as DbRow[]).map(mapProductFromDb)
+                  : missingMulti;
+              }
+            }
+            if (mounted) {
+              setCloudCategories((prev) => {
+                const existingCatIds = new Set(prev.map((c) => c.id));
+                const missingCats = MULTI_BRAND_CATEGORIES.filter((c) => !existingCatIds.has(c.id));
+                return [...prev, ...missingCats]
+                  .map((c) => {
+                    const ord = BUILTIN_SORT_ORDER_MAP.get(c.id);
+                    return ord !== undefined ? { ...c, sortOrder: ord } : c;
+                  })
+                  .sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99));
+              });
+              setCloudSubpages((prev) => {
+                const subIds = new Set(prev.map((s) => s.id));
+                const missingSubs = MULTI_BRAND_SUBPAGES.filter((s) => !subIds.has(s.id));
+                return missingSubs.length > 0 ? [...prev, ...missingSubs] : prev;
+              });
+              if (insertedProducts.length > 0) {
+                setCloudProducts((prev) => {
+                  const ids = new Set(prev.map((p) => p.id));
+                  const fresh = insertedProducts.filter((p) => !ids.has(p.id));
+                  return fresh.length > 0 ? [...prev, ...fresh] : prev;
+                });
+              }
+              localStorage.setItem(CLOUD_MULTI_BRAND_SEED_V1_FLAG, '1');
+            }
+          }
+        }
+      } catch {
+        // Ignore non-fatal cloud auto-seed error
+      }
     };
 
     loadAdminData();
@@ -1002,10 +1151,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const products = cloudProducts;
   const catalogs = cloudCatalogs;
 
-  const categories = useMemo(
-    () => (hasCloudConfig || cloudCategories.length > 0 ? cloudCategories : DEFAULT_CATEGORIES),
-    [hasCloudConfig, cloudCategories]
-  );
+  const categories = useMemo(() => {
+    const base =
+      hasCloudConfig || cloudCategories.length > 0 ? cloudCategories : DEFAULT_CATEGORIES;
+    return [...base].sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99));
+  }, [hasCloudConfig, cloudCategories]);
   const subpages = useMemo(
     () => (hasCloudConfig || cloudSubpages.length > 0 ? cloudSubpages : DEFAULT_SUBPAGES),
     [hasCloudConfig, cloudSubpages]

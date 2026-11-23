@@ -5,6 +5,7 @@ import productGrinderImg from '../assets/images/product_angle_grinder_1794818520
 import productRollerKitImg from '../assets/images/product_paint_roller_kit_1794818521444.jpg';
 import productLockImg from '../assets/images/product_ahram_mortise_lock_1794818522987.jpg';
 import productWaterproofImg from '../assets/images/product_cmb_waterproof_1794818522808.jpg';
+import { MULTI_BRAND_CATEGORIES, MULTI_BRAND_SUBPAGES } from './brandCatalogs';
 import { GLC_SUBPAGES } from './glcCatalog';
 import {
   Banner,
@@ -107,6 +108,7 @@ export const DEFAULT_STORE_CONFIG: StoreConfig = {
     { id: 'br_mohandes', code: 'EL-MOHANDES', nameAr: 'المهندس للكيماويات', color: 'blue', logoUrl: '' },
     { id: 'br_ilock', code: 'iLOCK', nameAr: 'آي لوك لأدوات الكهرباء', color: 'amber', logoUrl: '' },
     { id: 'br_saveto', code: 'SAVETO', nameAr: 'سافيتو', color: 'slate', logoUrl: '' },
+    { id: 'br_scib', code: 'SCIB', nameAr: 'دهانات سكيب', color: 'blue', logoUrl: '' },
     { id: 'br_swedish', code: 'SWEDISH CO.', nameAr: 'الشركة السويدية', color: 'red', logoUrl: '' },
   ],
 };
@@ -119,38 +121,40 @@ export const DEFAULT_CATEGORIES: Category[] = [
     imageUrl: productSealerImg,
     sortOrder: 1,
   },
+  ...MULTI_BRAND_CATEGORIES,
   {
     id: 'cat_paints',
     name: 'دهانات وكمبيوتر الألوان',
     description: 'جوتن، باكين، سايبس وميدو بتلوين كمبيوتر فوري',
     imageUrl: productJotunImg,
-    sortOrder: 2,
+    sortOrder: 7,
   },
   {
     id: 'cat_tools',
     name: 'العدد اليدوية والكهربائية',
     description: 'شنيور، صاروخ، مفاتيح، ورولات دهان أصلية للورش',
     imageUrl: productDrillImg,
-    sortOrder: 3,
+    sortOrder: 8,
   },
   {
     id: 'cat_locks',
     name: 'الأقفال والكوالين ولوازم النجارة',
     description: 'كوالين أمان، سلندرات نحاس ومقابض استانلس أصلية',
     imageUrl: productLockImg,
-    sortOrder: 4,
+    sortOrder: 9,
   },
   {
     id: 'cat_construction',
     name: 'كيماويات البناء والمعمار',
     description: 'عزل أسمنتي، سافيتو، كيماويات CMB وأدوات التشطيب',
     imageUrl: productWaterproofImg,
-    sortOrder: 5,
+    sortOrder: 10,
   },
 ];
 
 export const DEFAULT_SUBPAGES: Subpage[] = [
   ...GLC_SUBPAGES,
+  ...MULTI_BRAND_SUBPAGES,
   {
     id: 'sub_paints_interior',
     categoryId: 'cat_paints',
@@ -218,4 +222,6 @@ export const CURATED_PAINT_SHADES = [
   { code: 'JOTUN 4477', name: 'Deco Blue — دكو بلو', hex: '#525C64', brand: 'JOTUN' },
   { code: 'SIPES S089', name: 'سايبس بلاستيك S089', hex: '#FEEFCB', brand: 'SIPES' },
   { code: 'SIPES 952', name: 'Turquoise — تركواز سايبس', hex: '#B3D5C3', brand: 'SIPES' },
+  { code: 'SAV-C03 Sandstone', name: 'حجر رملي خشن سافيتو', hex: '#DFCFAF', brand: 'SAVETO' },
+  { code: 'SAV-M06 Sahara Ochre', name: 'أوكر صحراوي متوسط سافيتو', hex: '#CE9F73', brand: 'SAVETO' },
 ];

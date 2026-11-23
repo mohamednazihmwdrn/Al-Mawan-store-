@@ -26,6 +26,12 @@ import {
   JOTUN_INTERIOR_COLORS,
 } from '../data/jotunColors';
 import {
+  SAVETO_COLORS,
+  SAVETO_COLOR_FAMILIES,
+  SAVETO_GRAFFIATO_GRADES,
+  SAVETO_PRODUCT_BASES,
+} from '../data/savetoColors';
+import {
   GraffiatoTextureGrade,
   SIPES_COLORS,
   SIPES_COLOR_SECTIONS,
@@ -44,7 +50,7 @@ import {
   WallTextureType,
 } from './GlcWallPreview';
 
-export type ColorStudioBrand = 'glc' | 'jotun' | 'sipes';
+export type ColorStudioBrand = 'glc' | 'jotun' | 'sipes' | 'saveto';
 
 interface GlcColorStudioPageProps {
   activeBrand: ColorStudioBrand;
@@ -53,6 +59,7 @@ interface GlcColorStudioPageProps {
   onBrowseGlcProducts: () => void;
   onBrowseJotunProducts: () => void;
   onBrowseSipesProducts: () => void;
+  onBrowseSavetoProducts: () => void;
   onOpenProduct: (product: Product) => void;
 }
 
@@ -89,6 +96,12 @@ const JOTUN_SIZE_OPTIONS = [
   'جالون 3.6 لتر',
   'بستلة 9 لتر',
   'بستلة 16.2 لتر',
+] as const;
+
+const SAVETO_SIZE_OPTIONS = [
+  'شيكارة 50 كجم (سافياتو / سموث)',
+  'بستلة 25 كجم (فيتوتاتش جاهز)',
+  'شيكارة 25 كجم',
 ] as const;
 
 const SIPES_SIZE_OPTIONS_BY_SECTION: Record<SipesSectionId | 'all', readonly string[]> = {
@@ -145,10 +158,26 @@ const SIPES_NORMALIZED_SHADES: NormalizedShade[] = SIPES_COLORS.map((c) => ({
   pageNumber: c.pageNumber,
 }));
 
+const SAVETO_NORMALIZED_SHADES: NormalizedShade[] = SAVETO_COLORS.map((c) => ({
+  code: c.code,
+  hex: c.hex,
+  familyId: c.familyId,
+  sectionShortAr: c.productLine,
+  textureGrade: c.textureGrade,
+  nameAr: c.nameAr,
+  nameEn: c.nameEn,
+}));
+
 function getGraffiatoBaseIdForGrade(grade?: GraffiatoTextureGrade): string {
   if (grade === 'fine') return 'sipes_graffiato_fine';
   if (grade === 'medium') return 'sipes_graffiato_medium';
   return 'sipes_graffiato_coarse';
+}
+
+function getSavetoBaseIdForGrade(grade?: GraffiatoTextureGrade): string {
+  if (grade === 'fine') return 'saveto_smooth_render';
+  if (grade === 'medium') return 'saveto_vetotouch_textura';
+  return 'saveto_saviatto_coarse';
 }
 
 export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
@@ -158,6 +187,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   onBrowseGlcProducts,
   onBrowseJotunProducts,
   onBrowseSipesProducts,
+  onBrowseSavetoProducts,
   onOpenProduct,
 }) => {
   const { config, products, submitInquiry } = useStore();
@@ -167,14 +197,17 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     glc: 'all',
     jotun: 'all',
     sipes: 'all',
+    saveto: 'all',
   });
   const [graffiatoGradeFilter, setGraffiatoGradeFilter] = useState<
     'all' | GraffiatoTextureGrade
   >('all');
+  const [savetoGradeFilter, setSavetoGradeFilter] = useState<'all' | GraffiatoTextureGrade>('all');
   const [searchByBrand, setSearchByBrand] = useState<Record<ColorStudioBrand, string>>({
     glc: '',
     jotun: '',
     sipes: '',
+    saveto: '',
   });
   const [showAllJotun, setShowAllJotun] = useState(false);
 
@@ -186,6 +219,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         JOTUN_NORMALIZED_SHADES.find((c) => c.code === '7627') || JOTUN_NORMALIZED_SHADES[0],
       sipes:
         SIPES_NORMALIZED_SHADES.find((c) => c.code === 'S089') || SIPES_NORMALIZED_SHADES[0],
+      saveto:
+        SAVETO_NORMALIZED_SHADES.find((c) => c.code.includes('SAV-C03')) ||
+        SAVETO_NORMALIZED_SHADES[0],
     })
   );
   const [compareByBrand, setCompareByBrand] = useState<Record<ColorStudioBrand, NormalizedShade>>(
@@ -196,6 +232,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         JOTUN_NORMALIZED_SHADES.find((c) => c.code === '1001') || JOTUN_NORMALIZED_SHADES[1],
       sipes:
         SIPES_NORMALIZED_SHADES.find((c) => c.code === '952') || SIPES_NORMALIZED_SHADES[1],
+      saveto:
+        SAVETO_NORMALIZED_SHADES.find((c) => c.code.includes('SAV-C01')) ||
+        SAVETO_NORMALIZED_SHADES[1],
     })
   );
 
@@ -210,11 +249,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     glc: GLC_PLATINE_BASES[0].id,
     jotun: JOTUN_INTERIOR_BASES[0].id,
     sipes: SIPES_PRODUCT_BASES[0].id,
+    saveto: SAVETO_PRODUCT_BASES[0].id,
   });
   const [sizeByBrand, setSizeByBrand] = useState<Record<ColorStudioBrand, string>>({
     glc: GLC_SIZE_OPTIONS[2],
     jotun: JOTUN_SIZE_OPTIONS[2],
     sipes: SIPES_SIZE_OPTIONS_BY_SECTION.all[2],
+    saveto: SAVETO_SIZE_OPTIONS[0],
   });
 
   const [customerName, setCustomerName] = useState('');
@@ -225,14 +266,29 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
   const isJotun = activeBrand === 'jotun';
   const isSipes = activeBrand === 'sipes';
+  const isSaveto = activeBrand === 'saveto';
 
-  const brandTitleUpper = isJotun ? 'JOTUN' : isSipes ? 'SIPES' : 'GLC';
-  const brandTitleAr = isJotun ? 'جوتن (JOTUN)' : isSipes ? 'سايبس (SIPES)' : 'GLC بلاتين';
+  const brandTitleUpper = isJotun
+    ? 'JOTUN'
+    : isSipes
+    ? 'SIPES'
+    : isSaveto
+    ? 'SAVETO'
+    : 'GLC';
+  const brandTitleAr = isJotun
+    ? 'جوتن (JOTUN)'
+    : isSipes
+    ? 'سايبس (SIPES)'
+    : isSaveto
+    ? 'سافيتو (SAVETO)'
+    : 'GLC بلاتين';
 
   const allShades = isJotun
     ? JOTUN_NORMALIZED_SHADES
     : isSipes
     ? SIPES_NORMALIZED_SHADES
+    : isSaveto
+    ? SAVETO_NORMALIZED_SHADES
     : GLC_NORMALIZED_SHADES;
 
   const primaryShade = primaryByBrand[activeBrand];
@@ -241,7 +297,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   const searchCode = searchByBrand[activeBrand];
 
   const isGraffiatoMode =
-    isSipes && (selectedFamilyId === 'graffiato' || primaryShade.familyId === 'graffiato');
+    isSaveto ||
+    (isSipes && (selectedFamilyId === 'graffiato' || primaryShade.familyId === 'graffiato'));
+
+  const activeWallTexture: WallTextureType =
+    isSaveto && wallTexture === 'smooth'
+      ? primaryShade.textureGrade || 'coarse'
+      : wallTexture;
 
   const effectiveScene: RoomSceneType =
     isGraffiatoMode && scene !== 'exterior' && scene !== 'wall' ? 'exterior' : scene;
@@ -260,6 +322,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ? JOTUN_INTERIOR_BASES
     : isSipes
     ? SIPES_PRODUCT_BASES
+    : isSaveto
+    ? SAVETO_PRODUCT_BASES
     : GLC_PLATINE_BASES;
 
   const sizeOptions: readonly string[] = isJotun
@@ -267,6 +331,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     : isSipes
     ? SIPES_SIZE_OPTIONS_BY_SECTION[(selectedFamilyId as SipesSectionId) || 'all'] ||
       SIPES_SIZE_OPTIONS_BY_SECTION.all
+    : isSaveto
+    ? SAVETO_SIZE_OPTIONS
     : GLC_SIZE_OPTIONS;
 
   const selectedBaseId = baseIdByBrand[activeBrand];
@@ -290,13 +356,21 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         count: SIPES_NORMALIZED_SHADES.filter((c) => c.familyId === s.id).length,
       }));
     }
+    if (isSaveto) {
+      return SAVETO_COLOR_FAMILIES.filter((f) => f.id !== 'all').map((f) => ({
+        id: f.id,
+        nameAr: f.nameAr,
+        swatchHex: f.sampleHex,
+        count: SAVETO_NORMALIZED_SHADES.filter((c) => c.familyId === f.id).length,
+      }));
+    }
     return GLC_COLOR_FAMILIES.map((f) => ({
       id: f.id,
       nameAr: f.nameAr,
       swatchHex: GLC_PLATINE_COLORS.find((c) => c.familyId === f.id)?.hex || '#CBD5E1',
       count: GLC_NORMALIZED_SHADES.filter((c) => c.familyId === f.id).length,
     }));
-  }, [isJotun, isSipes]);
+  }, [isJotun, isSaveto, isSipes]);
 
   const familyNameById = useMemo(
     () => new Map(families.map((f) => [f.id, f.nameAr])),
@@ -309,7 +383,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   );
 
   const matchingStoreProduct = useMemo(() => {
-    if (activeBrand === 'glc' && selectedBase.productId) {
+    if ((activeBrand === 'glc' || isSaveto) && selectedBase.productId) {
       return products.find((p) => p.id === selectedBase.productId) || null;
     }
     if (isJotun) {
@@ -329,8 +403,17 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         ) || null
       );
     }
+    if (isSaveto) {
+      return (
+        products.find(
+          (p) =>
+            `${p.brandName} ${p.name}`.toUpperCase().includes('SAVETO') ||
+            p.name.includes('سافيتو')
+        ) || null
+      );
+    }
     return null;
-  }, [activeBrand, isJotun, isSipes, products, selectedBase.productId]);
+  }, [activeBrand, isJotun, isSaveto, isSipes, products, selectedBase.productId]);
 
   const filteredColors = useMemo(() => {
     const q = searchCode.trim().toLowerCase();
@@ -342,6 +425,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         graffiatoGradeFilter !== 'all' &&
         c.textureGrade !== graffiatoGradeFilter
       ) {
+        return false;
+      }
+      if (isSaveto && savetoGradeFilter !== 'all' && c.textureGrade !== savetoGradeFilter) {
         return false;
       }
       if (q) {
@@ -356,7 +442,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     allShades,
     selectedFamilyId,
     isSipes,
+    isSaveto,
     graffiatoGradeFilter,
+    savetoGradeFilter,
     searchCode,
     familyNameById,
   ]);
@@ -377,7 +465,11 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     if (nextBrand === activeBrand) return;
     setSubmitted(false);
     setErrorMsg('');
-    if (nextBrand === 'sipes' && familyByBrand.sipes === 'graffiato') {
+    if (nextBrand === 'saveto') {
+      setScene('exterior');
+      setWallTexture(primaryByBrand.saveto.textureGrade || 'coarse');
+      setFinish('matt');
+    } else if (nextBrand === 'sipes' && familyByBrand.sipes === 'graffiato') {
       setScene('exterior');
       setWallTexture(primaryByBrand.sipes.textureGrade || 'coarse');
     } else if (nextBrand !== 'sipes' && scene === 'exterior') {
@@ -446,12 +538,21 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     setSubmitted(false);
     if (compareMode && compareSlotTarget === 'compare') {
       setCompareByBrand((prev) => ({ ...prev, [activeBrand]: shade }));
-      if (isSipes && shade.familyId === 'graffiato') {
+      if ((isSipes && shade.familyId === 'graffiato') || isSaveto) {
         setScene('exterior');
       }
     } else {
       setPrimaryByBrand((prev) => ({ ...prev, [activeBrand]: shade }));
-      if (isSipes) {
+      if (isSaveto) {
+        setScene('exterior');
+        const nextGrade = shade.textureGrade || 'coarse';
+        setWallTexture(nextGrade);
+        setBaseIdByBrand((prev) => ({
+          ...prev,
+          saveto: getSavetoBaseIdForGrade(nextGrade),
+        }));
+        setFinish('matt');
+      } else if (isSipes) {
         if (shade.familyId === 'graffiato') {
           // Force exterior facade visualization whenever a Graffiato shade is chosen
           setScene('exterior');
@@ -489,7 +590,15 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
   const handleSelectTexture = (nextTex: WallTextureType) => {
     setWallTexture(nextTex);
-    if (isSipes && nextTex !== 'smooth') {
+    if (isSaveto && nextTex !== 'smooth') {
+      setBaseIdByBrand((prev) => ({
+        ...prev,
+        saveto: getSavetoBaseIdForGrade(nextTex),
+      }));
+      if (scene !== 'exterior' && scene !== 'wall') {
+        setScene('exterior');
+      }
+    } else if (isSipes && nextTex !== 'smooth') {
       setBaseIdByBrand((prev) => ({
         ...prev,
         sipes: getGraffiatoBaseIdForGrade(nextTex),
@@ -504,13 +613,17 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     setBaseIdByBrand((prev) => ({ ...prev, [activeBrand]: baseId }));
     const found = basesList.find((b) => b.id === baseId);
     if (found) setFinish(found.finish);
-    if (baseId === 'sipes_graffiato_fine') {
+    if (baseId === 'sipes_graffiato_fine' || baseId === 'saveto_smooth_render') {
       setWallTexture('fine');
       setScene('exterior');
-    } else if (baseId === 'sipes_graffiato_medium') {
+    } else if (baseId === 'sipes_graffiato_medium' || baseId === 'saveto_vetotouch_textura') {
       setWallTexture('medium');
       setScene('exterior');
-    } else if (baseId === 'sipes_graffiato_coarse') {
+    } else if (
+      baseId === 'sipes_graffiato_coarse' ||
+      baseId === 'saveto_saviatto_coarse' ||
+      baseId === 'saveto_vetotouch_graviatto'
+    ) {
       setWallTexture('coarse');
       setScene('exterior');
     }
@@ -527,7 +640,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
   const primaryFamilyName = familyNameById.get(primaryShade.familyId) || '';
   const activeTextureLabel =
-    wallTexture !== 'smooth' ? TEXTURE_GRADE_LABELS_AR[wallTexture] : null;
+    activeWallTexture !== 'smooth' ? TEXTURE_GRADE_LABELS_AR[activeWallTexture] : null;
 
   const whatsappUrl = `https://wa.me/${config.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(
     `مرحباً ${config.storeName}، أرغب في تجهيز لون ${brandTitleAr} بالكمبيوتر:\n• القسم/الباليت: ${primaryFamilyName}\n• كود اللون: ${formatShadeLabel(primaryShade)}${
@@ -571,13 +684,23 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-xs text-amber-400 font-bold">
-                <span>{isJotun ? 'JOTUN EGYPT' : isSipes ? 'SIPES PAINTS' : 'GLC PAINTS'}</span>
+                <span>
+                  {isJotun
+                    ? 'JOTUN EGYPT'
+                    : isSipes
+                    ? 'SIPES PAINTS'
+                    : isSaveto
+                    ? 'SAVETO · VETO'
+                    : 'GLC PAINTS'}
+                </span>
                 <span aria-hidden="true">·</span>
                 <span>
                   {isJotun
                     ? 'كتالوج ألوان جوتن الداخلية الرسمي'
                     : isSipes
                     ? 'كتالوجات سايبس الرسمية (داخلية وخارجية)'
+                    : isSaveto
+                    ? 'جرافيـاتو سافيتو وسافياتو للواجهات (خشن · متوسط · ناعم)'
                     : 'كارتيلا سوبر بلاتين المعتمدة'}
                 </span>
                 <span aria-hidden="true">·</span>
@@ -588,6 +711,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   ? 'كمبيوتر ألوان جوتن (JOTUN) ومعاينة الحائط المباشرة'
                   : isSipes
                   ? 'كمبيوتر ألوان سايبس (SIPES) — الواجهات الخارجية والحوائط'
+                  : isSaveto
+                  ? 'كتالوج جرافيـاتو وواجهات سافيتو (SAVETO) — خشن 3مم · متوسط 2مم · ناعم 1مم'
                   : 'كمبيوتر ألوان GLC ومعاينة الحائط المباشرة'}
               </h1>
             </div>
@@ -615,7 +740,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   <span>كتالوج {SIPES_SECTION_SHORT_AR[activeSipesSection.id]} PDF</span>
                   <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                 </a>
-              ) : (
+              ) : isSaveto ? null : (
                 <a
                   href={GLC_PLATINE_PDF_URL}
                   target="_blank"
@@ -636,13 +761,21 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     ? onBrowseJotunProducts
                     : isSipes
                     ? onBrowseSipesProducts
+                    : isSaveto
+                    ? onBrowseSavetoProducts
                     : onBrowseGlcProducts
                 }
                 className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
               >
                 <Paintbrush className="w-4 h-4 text-amber-400" />
                 <span>
-                  {isJotun ? 'قسم دهانات جوتن' : isSipes ? 'قسم دهانات سايبس' : 'منتجات GLC'}
+                  {isJotun
+                    ? 'قسم دهانات جوتن'
+                    : isSipes
+                    ? 'قسم دهانات سايبس'
+                    : isSaveto
+                    ? 'منتجات سافيتو'
+                    : 'منتجات GLC'}
                 </span>
               </button>
 
@@ -657,7 +790,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             </div>
           </div>
 
-          {/* Clean Brand Switcher Segmented Control: GLC vs JOTUN vs SIPES */}
+          {/* Clean Brand Switcher Segmented Control: GLC vs JOTUN vs SIPES vs SAVETO */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
             <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/90 border border-slate-800 overflow-x-auto no-scrollbar max-w-full">
               <button
@@ -700,6 +833,20 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 سايبس SIPES{' '}
                 <span className="font-mono-nums opacity-80">
                   ({SIPES_NORMALIZED_SHADES.length})
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBrandSwitch('saveto')}
+                className={`min-h-[40px] px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  activeBrand === 'saveto'
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                }`}
+              >
+                سافيتو SAVETO{' '}
+                <span className="font-mono-nums opacity-80">
+                  ({SAVETO_NORMALIZED_SHADES.length})
                 </span>
               </button>
             </div>
@@ -850,7 +997,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 hex: primaryShade.hex,
                 nameAr: primaryShade.nameAr || primaryShade.nameEn,
                 brandLabel: brandTitleUpper,
-                texture: wallTexture,
+                texture: activeWallTexture,
               }}
               compareShade={
                 compareMode
@@ -859,28 +1006,39 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       hex: compareShade.hex,
                       nameAr: compareShade.nameAr || compareShade.nameEn,
                       brandLabel: brandTitleUpper,
-                      texture: compareShade.textureGrade || wallTexture,
+                      texture: compareShade.textureGrade || activeWallTexture,
                     }
                   : null
               }
               scene={effectiveScene}
               lighting={lighting}
               finish={finish}
-              texture={wallTexture}
+              texture={activeWallTexture}
             />
 
             {/* Graffiato Texture Controls when in Graffiato / Exterior mode, or Sheen Controls otherwise */}
-            {isGraffiatoMode || wallTexture !== 'smooth' ? (
+            {isGraffiatoMode || activeWallTexture !== 'smooth' ? (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
                 <span className="text-xs font-bold text-slate-700">
-                  ملمس الجرافيـاتو على الواجهة:
+                  {isSaveto
+                    ? 'ملمس وخشونة واجهة سافيتو:'
+                    : 'ملمس الجرافيـاتو على الواجهة:'}
                 </span>
                 <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg overflow-x-auto no-scrollbar">
                   {(
                     [
-                      { id: 'coarse', label: 'خشن (أخاديد طولية)' },
-                      { id: 'medium', label: 'متوسط (MC)' },
-                      { id: 'fine', label: 'ناعم (FMC)' },
+                      {
+                        id: 'coarse',
+                        label: isSaveto ? 'خشن 3–4 مم (سافياتو)' : 'خشن (أخاديد طولية)',
+                      },
+                      {
+                        id: 'medium',
+                        label: isSaveto ? 'متوسط 2 مم (تيكستورا)' : 'متوسط (MC)',
+                      },
+                      {
+                        id: 'fine',
+                        label: isSaveto ? 'ناعم 1–1.5 مم (سموث)' : 'ناعم (FMC)',
+                      },
                     ] as const
                   ).map((item) => (
                     <button
@@ -888,7 +1046,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       type="button"
                       onClick={() => handleSelectTexture(item.id)}
                       className={`min-h-[34px] px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
-                        wallTexture === item.id
+                        activeWallTexture === item.id
                           ? 'bg-slate-900 text-amber-400'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
@@ -933,11 +1091,11 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   className="relative w-12 h-12 rounded-xl border border-black/15 shrink-0 shadow-xs overflow-hidden"
                   style={{ backgroundColor: primaryShade.hex }}
                 >
-                  {wallTexture !== 'smooth' && (
+                  {activeWallTexture !== 'smooth' && (
                     <span
                       aria-hidden="true"
                       className="absolute inset-0 pointer-events-none"
-                      style={{ backgroundImage: GRAFFIATO_SWATCH_SVG_PATTERNS[wallTexture] }}
+                      style={{ backgroundImage: GRAFFIATO_SWATCH_SVG_PATTERNS[activeWallTexture] }}
                     />
                   )}
                 </div>
@@ -1002,7 +1160,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           >
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
-                تجهيز لون {isJotun ? 'جوتن' : isSipes ? 'سايبس' : 'GLC'} بالكمبيوتر وطلبه الآن
+                تجهيز لون{' '}
+                {isJotun ? 'جوتن' : isSipes ? 'سايبس' : isSaveto ? 'سافيتو' : 'GLC'} بالكمبيوتر وطلبه الآن
               </h2>
               {matchingStoreProduct && (
                 <button
@@ -1121,8 +1280,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                  {selectedFamilyId === 'graffiato' && isSipes
-                    ? 'اختر لون وملمس الجرافيـاتو ليظهر على الواجهة الخارجية'
+                  {isSaveto || (selectedFamilyId === 'graffiato' && isSipes)
+                    ? 'اختر لون وملمس الواجهة ليظهر فوراً على المبنى الخارجي'
                     : 'اختر الدرجة لتظهر فوراً في المعاينة'}
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5 font-mono-nums">
@@ -1131,6 +1290,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     ? 'في كتالوج جوتن الداخلي'
                     : isSipes
                     ? 'في أقسام دهانات سايبس المعتمدة'
+                    : isSaveto
+                    ? 'في كتالوج جرافيـاتو سافيتو (خشن · متوسط · ناعم)'
                     : 'في كارتيلا GLC بلاتين'}
                 </p>
               </div>
@@ -1148,6 +1309,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       ? 'ابحث بالكود أو الاسم (مثلاً 7627)...'
                       : isSipes
                       ? 'ابحث بالكود أو الملمس (مثلاً 684 أو خشن أو ناعم)...'
+                      : isSaveto
+                      ? 'ابحث بالكود أو الخشونة (خشن، متوسط، ناعم، رملي)...'
                       : 'ابحث بالكود (مثلاً Y21010)...'
                   }
                   className="w-full min-h-[42px] rounded-xl border border-slate-200 bg-slate-50 pr-9 pl-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
@@ -1168,6 +1331,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               >
                 {isSipes
                   ? `جميع أقسام سايبس (${allShades.length})`
+                  : isSaveto
+                  ? `كل درجات سافيتو (${allShades.length})`
                   : `جميع الألوان (${allShades.length})`}
               </button>
               {families.map((fam) => {
@@ -1188,7 +1353,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       style={{ backgroundColor: fam.swatchHex }}
                     />
                     <span>{fam.nameAr}</span>
-                    {isSipes && (
+                    {(isSipes || isSaveto) && (
                       <span
                         className={`font-mono-nums text-[11px] ${
                           active ? 'text-amber-300' : 'text-slate-500'
@@ -1201,6 +1366,42 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 );
               })}
             </div>
+
+            {/* Saveto Graffiato & Colored Renders Grade Filter (Coarse 3-4mm / Medium 2mm / Fine 1-1.5mm) */}
+            {isSaveto && (
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <span className="block text-xs font-bold text-slate-800">
+                  اختر درجة خشونة الجرافيـاتو من سافيتو (تطبيق خارجي للواجهات والفلل):
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {SAVETO_GRAFFIATO_GRADES.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => {
+                        const grade = g.id;
+                        setSavetoGradeFilter(grade);
+                        if (grade !== 'all') {
+                          setWallTexture(grade);
+                          setBaseIdByBrand((prev) => ({
+                            ...prev,
+                            saveto: getSavetoBaseIdForGrade(grade),
+                          }));
+                        }
+                      }}
+                      title={g.detailAr}
+                      className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                        savetoGradeFilter === g.id
+                          ? 'bg-amber-400 text-slate-950'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {g.nameAr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Graffiato Texture Grade Sub-Filter (Fine FMC / Medium MC / Coarse Grooved) */}
             {isSipes && selectedFamilyId === 'graffiato' && (
@@ -1278,6 +1479,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   setSearchByBrand((prev) => ({ ...prev, [activeBrand]: '' }));
                   setFamilyByBrand((prev) => ({ ...prev, [activeBrand]: 'all' }));
                   setGraffiatoGradeFilter('all');
+                  setSavetoGradeFilter('all');
                 }}
                 className="min-h-[40px] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold cursor-pointer"
               >
@@ -1324,9 +1526,15 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                             />
                             <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-slate-950/75 text-white text-[9px] font-bold leading-none pointer-events-none">
                               {shade.textureGrade === 'fine'
-                                ? 'ناعم FMC'
+                                ? isSaveto
+                                  ? 'ناعم 1مم'
+                                  : 'ناعم FMC'
                                 : shade.textureGrade === 'medium'
-                                ? 'متوسط MC'
+                                ? isSaveto
+                                  ? 'متوسط 2مم'
+                                  : 'متوسط MC'
+                                : isSaveto
+                                ? 'خشن 3مم'
                                 : 'خشن'}
                             </span>
                           </>

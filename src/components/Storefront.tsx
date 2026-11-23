@@ -32,7 +32,7 @@ interface StorefrontProps {
   onSelectPage: (page: StorefrontPage) => void;
   onOpenProduct: (product: Product) => void;
   onOpenColorStudio: () => void;
-  onOpenGlcColors: (brand?: 'glc' | 'jotun' | 'sipes') => void;
+  onOpenGlcColors: (brand?: 'glc' | 'jotun' | 'sipes' | 'saveto') => void;
   onOpenCart: () => void;
   categoryJump?: { categoryId: string; subpageId?: string; nonce: number } | null;
 }
@@ -68,6 +68,17 @@ const SIPES_PREVIEW_CHIPS = [
   { code: '1220 (BLUE)', name: 'إيبوكسي مسابح', hex: '#0098D6' },
   { code: 'S 6575', name: 'دوكو برتقالي', hex: '#E34521' },
   { code: 'YELLOW', name: 'تخطيط طرق', hex: '#E7900E' },
+] as const;
+
+const SAVETO_PREVIEW_CHIPS = [
+  { code: 'SAV-C01', name: 'أبيض خشن 3مم', hex: '#F3F1EC' },
+  { code: 'SAV-C03', name: 'حجر رملي خشن', hex: '#DFCFAF' },
+  { code: 'SAV-C07', name: 'تيراكوتا خشن', hex: '#C8895F' },
+  { code: 'SAV-M06', name: 'أوكر متوسط 2مم', hex: '#CE9F73' },
+  { code: 'SAV-M11', name: 'رمادي متوسط 2مم', hex: '#9A9D9C' },
+  { code: 'SAV-F02', name: 'ساحلي ناعم 1مم', hex: '#EAE3D3' },
+  { code: 'SAV-F08', name: 'زيتوني ناعم 1مم', hex: '#8E937B' },
+  { code: 'SAV-C10', name: 'أردوازي خشن', hex: '#747978' },
 ] as const;
 
 function FeatureIcon({ icon }: { icon: StoreFeature['icon'] }) {
@@ -639,78 +650,116 @@ export const Storefront: React.FC<StorefrontProps> = ({
                         </div>
                       )}
 
-                      {section.id === 'cat_paints' && config.visibility.colorStudio && (
-                        <div className="space-y-3">
-                          <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                            <div className="space-y-1 min-w-0">
-                              <div className="text-[11px] font-bold text-amber-400">
-                                JOTUN EGYPT · تلوين بالكمبيوتر · 994 لون جوتن داخلي معتمد
-                              </div>
-                              <h3 className="text-sm sm:text-base font-extrabold text-white">
-                                استعرض ألوان جوتن (JOTUN) بأكوادها وجرّبها مباشرة على الحائط
-                              </h3>
+                      {section.id === 'cat_jotun' && config.visibility.colorStudio && (
+                        <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          <div className="space-y-1 min-w-0">
+                            <div className="text-[11px] font-bold text-amber-400">
+                              JOTUN EGYPT · تلوين بالكمبيوتر · 994 لون جوتن داخلي معتمد
                             </div>
-
-                            <div className="flex flex-wrap items-center gap-3 shrink-0">
-                              <div className="flex items-center gap-1.5">
-                                {JOTUN_PREVIEW_CHIPS.map((chip) => (
-                                  <button
-                                    key={chip.code}
-                                    type="button"
-                                    onClick={() => onOpenGlcColors('jotun')}
-                                    title={`معاينة جوتن ${chip.code} (${chip.name}) على الحائط`}
-                                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
-                                    style={{ backgroundColor: chip.hex }}
-                                    aria-label={`معاينة جوتن ${chip.code} ${chip.name}`}
-                                  />
-                                ))}
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => onOpenGlcColors('jotun')}
-                                className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
-                              >
-                                <Palette className="w-4 h-4" />
-                                <span>معاينة الحائط وأكواد جوتن</span>
-                              </button>
-                            </div>
+                            <h3 className="text-sm sm:text-base font-extrabold text-white">
+                              استعرض ألوان جوتن (JOTUN) بأكوادها وجرّبها مباشرة على الحائط
+                            </h3>
                           </div>
 
-                          <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                            <div className="space-y-1 min-w-0">
-                              <div className="text-[11px] font-bold text-amber-400">
-                                SIPES PAINTS · 344 لون · بلاستيك · لاكيه · جرافيـاتو · دوكو NC · إيبوكسي · طرق
-                              </div>
-                              <h3 className="text-sm sm:text-base font-extrabold text-white">
-                                استعرض جميع أقسام وألوان سايبس (SIPES) بأكوادها وجرّبها على الحائط
-                              </h3>
+                          <div className="flex flex-wrap items-center gap-3 shrink-0">
+                            <div className="flex items-center gap-1.5">
+                              {JOTUN_PREVIEW_CHIPS.map((chip) => (
+                                <button
+                                  key={chip.code}
+                                  type="button"
+                                  onClick={() => onOpenGlcColors('jotun')}
+                                  title={`معاينة جوتن ${chip.code} (${chip.name}) على الحائط`}
+                                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
+                                  style={{ backgroundColor: chip.hex }}
+                                  aria-label={`معاينة جوتن ${chip.code} ${chip.name}`}
+                                />
+                              ))}
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-3 shrink-0">
-                              <div className="flex items-center gap-1.5">
-                                {SIPES_PREVIEW_CHIPS.map((chip) => (
-                                  <button
-                                    key={chip.code}
-                                    type="button"
-                                    onClick={() => onOpenGlcColors('sipes')}
-                                    title={`معاينة سايبس ${chip.code} (${chip.name}) على الحائط`}
-                                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
-                                    style={{ backgroundColor: chip.hex }}
-                                    aria-label={`معاينة سايبس ${chip.code} ${chip.name}`}
-                                  />
-                                ))}
-                              </div>
+                            <button
+                              type="button"
+                              onClick={() => onOpenGlcColors('jotun')}
+                              className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                            >
+                              <Palette className="w-4 h-4" />
+                              <span>معاينة الحائط وأكواد جوتن</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
-                              <button
-                                type="button"
-                                onClick={() => onOpenGlcColors('sipes')}
-                                className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
-                              >
-                                <Palette className="w-4 h-4" />
-                                <span>معاينة الحائط وأقسام سايبس</span>
-                              </button>
+                      {section.id === 'cat_sipes' && config.visibility.colorStudio && (
+                        <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          <div className="space-y-1 min-w-0">
+                            <div className="text-[11px] font-bold text-amber-400">
+                              SIPES PAINTS · 344 لون · بلاستيك · لاكيه · جرافيـاتو · دوكو NC · إيبوكسي · طرق
                             </div>
+                            <h3 className="text-sm sm:text-base font-extrabold text-white">
+                              استعرض جميع أقسام وألوان سايبس (SIPES) بأكوادها وجرّبها على الحائط
+                            </h3>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 shrink-0">
+                            <div className="flex items-center gap-1.5">
+                              {SIPES_PREVIEW_CHIPS.map((chip) => (
+                                <button
+                                  key={chip.code}
+                                  type="button"
+                                  onClick={() => onOpenGlcColors('sipes')}
+                                  title={`معاينة سايبس ${chip.code} (${chip.name}) على الحائط`}
+                                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
+                                  style={{ backgroundColor: chip.hex }}
+                                  aria-label={`معاينة سايبس ${chip.code} ${chip.name}`}
+                                />
+                              ))}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => onOpenGlcColors('sipes')}
+                              className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                            >
+                              <Palette className="w-4 h-4" />
+                              <span>معاينة الحائط وأقسام سايبس</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {section.id === 'cat_saveto' && config.visibility.colorStudio && (
+                        <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          <div className="space-y-1 min-w-0">
+                            <div className="text-[11px] font-bold text-amber-400">
+                              SAVETO VETO · 36 لون جرافيـاتو واجهات · خشن 3مم · متوسط 2مم · ناعم 1مم
+                            </div>
+                            <h3 className="text-sm sm:text-base font-extrabold text-white">
+                              جرّب ألوان سافياتو وفيتوتاتش سافيتو (خشن ومتوسط وناعم) على واجهة خارجية
+                            </h3>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 shrink-0">
+                            <div className="flex items-center gap-1.5">
+                              {SAVETO_PREVIEW_CHIPS.map((chip) => (
+                                <button
+                                  key={chip.code}
+                                  type="button"
+                                  onClick={() => onOpenGlcColors('saveto')}
+                                  title={`معاينة سافيتو ${chip.code} (${chip.name}) على الواجهة`}
+                                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
+                                  style={{ backgroundColor: chip.hex }}
+                                  aria-label={`معاينة سافيتو ${chip.code} ${chip.name}`}
+                                />
+                              ))}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => onOpenGlcColors('saveto')}
+                              className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                            >
+                              <Palette className="w-4 h-4" />
+                              <span>معاينة جرافيـاتو سافيتو (خشن/متوسط/ناعم)</span>
+                            </button>
                           </div>
                         </div>
                       )}
@@ -719,78 +768,27 @@ export const Storefront: React.FC<StorefrontProps> = ({
                 )}
 
                 {config.visibility.colorStudio &&
-                  !homeCategorySections.some((s) => s.id === 'cat_paints') && (
+                  !homeCategorySections.some(
+                    (s) => s.id === 'cat_jotun' || s.id === 'cat_sipes' || s.id === 'cat_saveto'
+                  ) && (
                     <div className="space-y-3">
                       <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div className="space-y-1 min-w-0">
                           <div className="text-[11px] font-bold text-amber-400">
-                            JOTUN EGYPT · تلوين بالكمبيوتر · 994 لون جوتن داخلي معتمد
+                            JOTUN · SIPES · SAVETO · استوديو كمبيوتر الألوان والواجهات
                           </div>
                           <h3 className="text-sm sm:text-base font-extrabold text-white">
-                            استعرض ألوان جوتن (JOTUN) بأكوادها وجرّبها مباشرة على الحائط
+                            استعرض ألوان جوتن وسايبس وسافيتو بأكوادها وجرّبها مباشرة على الحائط أو الواجهة
                           </h3>
                         </div>
-
-                        <div className="flex flex-wrap items-center gap-3 shrink-0">
-                          <div className="flex items-center gap-1.5">
-                            {JOTUN_PREVIEW_CHIPS.map((chip) => (
-                              <button
-                                key={chip.code}
-                                type="button"
-                                onClick={() => onOpenGlcColors('jotun')}
-                                title={`معاينة جوتن ${chip.code} (${chip.name}) على الحائط`}
-                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
-                                style={{ backgroundColor: chip.hex }}
-                                aria-label={`معاينة جوتن ${chip.code} ${chip.name}`}
-                              />
-                            ))}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => onOpenGlcColors('jotun')}
-                            className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
-                          >
-                            <Palette className="w-4 h-4" />
-                            <span>معاينة الحائط وأكواد جوتن</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <div className="space-y-1 min-w-0">
-                          <div className="text-[11px] font-bold text-amber-400">
-                            SIPES PAINTS · 344 لون · بلاستيك · لاكيه · جرافيـاتو · دوكو NC · إيبوكسي · طرق
-                          </div>
-                          <h3 className="text-sm sm:text-base font-extrabold text-white">
-                            استعرض جميع أقسام وألوان سايبس (SIPES) بأكوادها وجرّبها على الحائط
-                          </h3>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3 shrink-0">
-                          <div className="flex items-center gap-1.5">
-                            {SIPES_PREVIEW_CHIPS.map((chip) => (
-                              <button
-                                key={chip.code}
-                                type="button"
-                                onClick={() => onOpenGlcColors('sipes')}
-                                title={`معاينة سايبس ${chip.code} (${chip.name}) على الحائط`}
-                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
-                                style={{ backgroundColor: chip.hex }}
-                                aria-label={`معاينة سايبس ${chip.code} ${chip.name}`}
-                              />
-                            ))}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => onOpenGlcColors('sipes')}
-                            className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
-                          >
-                            <Palette className="w-4 h-4" />
-                            <span>معاينة الحائط وأقسام سايبس</span>
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onOpenGlcColors('jotun')}
+                          className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                        >
+                          <Palette className="w-4 h-4" />
+                          <span>فتح كمبيوتر الألوان</span>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -982,8 +980,8 @@ export const Storefront: React.FC<StorefrontProps> = ({
                   </section>
                 )}
 
-                {selectedCategoryId === 'cat_paints' && config.visibility.colorStudio && (
-                  <div className="space-y-3">
+                {(selectedCategoryId === 'cat_jotun' || selectedCategoryId === 'cat_paints') &&
+                  config.visibility.colorStudio && (
                     <section className="rounded-2xl bg-slate-900 text-white p-4 sm:p-6 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="space-y-1.5 min-w-0">
                         <div className="text-xs font-bold text-amber-400">
@@ -1020,7 +1018,10 @@ export const Storefront: React.FC<StorefrontProps> = ({
                         </button>
                       </div>
                     </section>
+                  )}
 
+                {(selectedCategoryId === 'cat_sipes' || selectedCategoryId === 'cat_paints') &&
+                  config.visibility.colorStudio && (
                     <section className="rounded-2xl bg-slate-900 text-white p-4 sm:p-6 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="space-y-1.5 min-w-0">
                         <div className="text-xs font-bold text-amber-400">
@@ -1057,7 +1058,45 @@ export const Storefront: React.FC<StorefrontProps> = ({
                         </button>
                       </div>
                     </section>
-                  </div>
+                  )}
+
+                {selectedCategoryId === 'cat_saveto' && config.visibility.colorStudio && (
+                  <section className="rounded-2xl bg-slate-900 text-white p-4 sm:p-6 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="text-xs font-bold text-amber-400">
+                        كتالوج جرافيـاتو وواجهات سافيتو (SAVETO) · خشن · متوسط · ناعم
+                      </div>
+                      <h2 className="text-base sm:text-xl font-extrabold text-white">
+                        36 درجة لونية لسافياتو خشن 3مم وتيكستورا متوسط 2مم وسموث رندر ناعم 1مم
+                      </h2>
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        تصفح الدرجات وشاهد الملمس الحقيقي (خشن، متوسط، ناعم) على واجهة مبنى خارجية مباشرة.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        {SAVETO_PREVIEW_CHIPS.slice(0, 6).map((chip) => (
+                          <button
+                            key={chip.code}
+                            type="button"
+                            onClick={() => onOpenGlcColors('saveto')}
+                            className="w-8 h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer"
+                            style={{ backgroundColor: chip.hex }}
+                            aria-label={`معاينة كود سافيتو ${chip.code} ${chip.name}`}
+                          />
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onOpenGlcColors('saveto')}
+                        className="min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                      >
+                        <Palette className="w-4 h-4" />
+                        <span>معاينة جرافيـاتو سافيتو على الواجهة</span>
+                      </button>
+                    </div>
+                  </section>
                 )}
 
                 {/* Search & Quick Filters Toolbar */}
@@ -1258,7 +1297,8 @@ export const Storefront: React.FC<StorefrontProps> = ({
                     </h2>
                     {(selectedBrandCode.toUpperCase() === 'JOTUN' ||
                       selectedBrandCode.toUpperCase() === 'GLC' ||
-                      selectedBrandCode.toUpperCase() === 'SIPES') &&
+                      selectedBrandCode.toUpperCase() === 'SIPES' ||
+                      selectedBrandCode.toUpperCase() === 'SAVETO') &&
                       config.visibility.colorStudio && (
                         <button
                           type="button"
@@ -1268,6 +1308,8 @@ export const Storefront: React.FC<StorefrontProps> = ({
                                 ? 'jotun'
                                 : selectedBrandCode.toUpperCase() === 'SIPES'
                                 ? 'sipes'
+                                : selectedBrandCode.toUpperCase() === 'SAVETO'
+                                ? 'saveto'
                                 : 'glc'
                             )
                           }
@@ -1279,6 +1321,8 @@ export const Storefront: React.FC<StorefrontProps> = ({
                               ? 'تصفح ألوان جوتن على الحائط (994 لون)'
                               : selectedBrandCode.toUpperCase() === 'SIPES'
                               ? 'تصفح ألوان سايبس على الحائط (344 لون — 6 أقسام)'
+                              : selectedBrandCode.toUpperCase() === 'SAVETO'
+                              ? 'تصفح ألوان وجرافيـاتو سافيتو على الواجهة (36 لون)'
                               : 'تصفح ألوان GLC على الحائط (132 لون)'}
                           </span>
                         </button>
