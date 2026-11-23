@@ -84,8 +84,8 @@ export const Header: React.FC<HeaderProps> = ({
     },
     {
       id: 'glc_colors',
-      label: 'كمبيوتر الألوان (GLC · جوتن · سايبس · سافيتو)',
-      subtitle: 'GLC بلاتين · جوتن · سايبس · جرافيـاتو سافيتو خشن ومتوسط وناعم',
+      label: 'كمبيوتر الألوان (GLC · جوتن · سايبس · سكيب · CMB · سافيتو)',
+      subtitle: 'GLC بلاتين · جوتن · سايبس · سكيب · CMB · جرافيـاتو سافيتو',
       icon: <Palette className="w-5 h-5 shrink-0" />,
       visible: config.visibility.colorStudio,
     },

@@ -32,6 +32,19 @@ import {
   SAVETO_PRODUCT_BASES,
 } from '../data/savetoColors';
 import {
+  SCIB_CATALOG_URL,
+  SCIB_COLOR_FAMILIES,
+  SCIB_COLORS,
+  SCIB_PRODUCT_BASES,
+} from '../data/scibColors';
+import {
+  CMB_CATALOGS_URL,
+  CMB_COLOR_SECTIONS,
+  CMB_COLORS,
+  CMB_PRODUCT_BASES,
+  CmbSectionId,
+} from '../data/cmbColors';
+import {
   GraffiatoTextureGrade,
   SIPES_COLORS,
   SIPES_COLOR_SECTIONS,
@@ -50,7 +63,7 @@ import {
   WallTextureType,
 } from './GlcWallPreview';
 
-export type ColorStudioBrand = 'glc' | 'jotun' | 'sipes' | 'saveto';
+export type ColorStudioBrand = 'glc' | 'jotun' | 'sipes' | 'saveto' | 'scib' | 'cmb';
 
 interface GlcColorStudioPageProps {
   activeBrand: ColorStudioBrand;
@@ -60,6 +73,8 @@ interface GlcColorStudioPageProps {
   onBrowseJotunProducts: () => void;
   onBrowseSipesProducts: () => void;
   onBrowseSavetoProducts: () => void;
+  onBrowseScibProducts: () => void;
+  onBrowseCmbProducts: () => void;
   onOpenProduct: (product: Product) => void;
 }
 
@@ -77,7 +92,7 @@ interface NormalizedShade {
 
 interface NormalizedBase {
   id: string;
-  sectionId?: SipesSectionId;
+  sectionId?: SipesSectionId | CmbSectionId;
   productId?: string;
   nameAr: string;
   finish: WallFinishType;
@@ -123,13 +138,41 @@ const SIPES_SECTION_SHORT_AR: Record<SipesSectionId, string> = {
   road: 'تخطيط طرق',
 };
 
+const SCIB_SIZE_OPTIONS = [
+  '1 لتر عينة',
+  'جالون 2.75 لتر',
+  'بستلة 9 لتر',
+  'بستلة 15 لتر',
+] as const;
+
+const CMB_SIZE_OPTIONS_BY_SECTION: Record<CmbSectionId | 'all', readonly string[]> = {
+  all: ['1 لتر / 1 كجم', 'جالون / 4 كجم', 'بستلة 9 لتر / 15 كجم', 'بستلة 18–20 كجم'],
+  marmix: ['عبوة 0.65 لتر', 'جالون 1.9 لتر', 'بستلة 3.75 لتر', 'بستلة 15 لتر'],
+  alwany: ['عبوة ألواني 40 مل', 'طقم 10 عبوات × 40 مل', 'عبوة 1 لتر مركز'],
+  interior_acrylic: ['1 لتر عينة', 'جالون 2.6 – 4 لتر', 'بستلة 8 – 9 لتر', 'بستلة 15 – 18 لتر'],
+  graviato: ['بستلة 17 – 20 كجم', 'شيكارة 25 كجم', 'شيكارة 40 كجم'],
+  decorative: ['عبوة 0.9 كجم', 'عبوة 2.7 كجم', 'بستلة 4 كجم'],
+  epoxy: ['طقم 1 كجم (A+B)', 'طقم 4 كجم (A+B)', 'طقم 15 – 20 كجم'],
+  wood: ['عبوة 0.9 كجم', 'جالون 3.3 كجم', 'بستلة 18 كجم'],
+};
+
+const CMB_SECTION_SHORT_AR: Record<CmbSectionId, string> = {
+  marmix: 'مارمكس S40 وكيم لوكس',
+  alwany: 'ملونات ألواني',
+  interior_acrylic: 'كيماتون وكيماكوت',
+  graviato: 'كيما جرافياتو والواجهات',
+  decorative: 'الديكورية CMB',
+  epoxy: 'كيمابوكسي',
+  wood: 'أخشاب فيرونا',
+};
+
 const GRAFFIATO_SWATCH_SVG_PATTERNS: Record<GraffiatoTextureGrade, string> = {
   fine: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='3' cy='4' r='0.8' fill='%230f172a' fill-opacity='0.22'/%3E%3Ccircle cx='10' cy='2' r='0.7' fill='%23ffffff' fill-opacity='0.35'/%3E%3Ccircle cx='18' cy='7' r='0.85' fill='%230f172a' fill-opacity='0.2'/%3E%3Ccircle cx='6' cy='13' r='0.75' fill='%23ffffff' fill-opacity='0.32'/%3E%3Ccircle cx='14' cy='15' r='0.9' fill='%230f172a' fill-opacity='0.24'/%3E%3Ccircle cx='21' cy='19' r='0.8' fill='%230f172a' fill-opacity='0.18'/%3E%3Ccircle cx='4' cy='21' r='0.85' fill='%230f172a' fill-opacity='0.21'/%3E%3Ccircle cx='12' cy='22' r='0.75' fill='%23ffffff' fill-opacity='0.3'/%3E%3C/svg%3E")`,
   medium: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='5' cy='5' r='1.35' fill='%230f172a' fill-opacity='0.28'/%3E%3Ccircle cx='6' cy='4.2' r='0.9' fill='%23ffffff' fill-opacity='0.32'/%3E%3Ccircle cx='16' cy='7' r='1.5' fill='%230f172a' fill-opacity='0.26'/%3E%3Ccircle cx='24' cy='4' r='1.2' fill='%230f172a' fill-opacity='0.22'/%3E%3Ccircle cx='9' cy='17' r='1.45' fill='%230f172a' fill-opacity='0.28'/%3E%3Ccircle cx='10' cy='16' r='0.9' fill='%23ffffff' fill-opacity='0.3'/%3E%3Ccircle cx='21' cy='16' r='1.35' fill='%230f172a' fill-opacity='0.25'/%3E%3Ccircle cx='4' cy='25' r='1.2' fill='%230f172a' fill-opacity='0.24'/%3E%3Ccircle cx='16' cy='24' r='1.5' fill='%230f172a' fill-opacity='0.28'/%3E%3Ccircle cx='25' cy='25' r='1.1' fill='%23ffffff' fill-opacity='0.28'/%3E%3C/svg%3E")`,
   coarse: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='64'%3E%3Cpath d='M5,2 L5,24 M5,30 L5,60' stroke='%230f172a' stroke-opacity='0.36' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M6.5,2 L6.5,24 M6.5,30 L6.5,60' stroke='%23ffffff' stroke-opacity='0.34' stroke-width='1' stroke-linecap='round'/%3E%3Cpath d='M15,6 L15,42 M15,48 L15,62' stroke='%230f172a' stroke-opacity='0.34' stroke-width='1.9' stroke-linecap='round'/%3E%3Cpath d='M16.4,6 L16.4,42 M16.4,48 L16.4,62' stroke='%23ffffff' stroke-opacity='0.3' stroke-width='1' stroke-linecap='round'/%3E%3Cpath d='M25,1 L25,18 M25,25 L25,52' stroke='%230f172a' stroke-opacity='0.37' stroke-width='2.1' stroke-linecap='round'/%3E%3Cpath d='M26.6,1 L26.6,18 M26.6,25 L26.6,52' stroke='%23ffffff' stroke-opacity='0.35' stroke-width='1' stroke-linecap='round'/%3E%3Cpath d='M33,10 L33,38 M33,44 L33,61' stroke='%230f172a' stroke-opacity='0.32' stroke-width='1.8' stroke-linecap='round'/%3E%3Ccircle cx='10' cy='15' r='1' fill='%230f172a' fill-opacity='0.24'/%3E%3Ccircle cx='20' cy='34' r='1' fill='%230f172a' fill-opacity='0.24'/%3E%3Ccircle cx='30' cy='48' r='1' fill='%23ffffff' fill-opacity='0.28'/%3E%3C/svg%3E")`,
 };
 
-const INITIAL_JOTUN_ALL_LIMIT = 120;
+const INITIAL_LARGE_ALL_LIMIT = 120;
 
 const GLC_NORMALIZED_SHADES: NormalizedShade[] = GLC_PLATINE_COLORS.map((c) => ({
   code: c.code,
@@ -168,6 +211,26 @@ const SAVETO_NORMALIZED_SHADES: NormalizedShade[] = SAVETO_COLORS.map((c) => ({
   nameEn: c.nameEn,
 }));
 
+const SCIB_NORMALIZED_SHADES: NormalizedShade[] = SCIB_COLORS.map((c) => ({
+  code: c.code,
+  hex: c.hex,
+  familyId: c.familyId,
+  nameAr: c.nameAr,
+  nameEn: c.nameEn,
+  url: c.url,
+}));
+
+const CMB_NORMALIZED_SHADES: NormalizedShade[] = CMB_COLORS.map((c) => ({
+  code: c.code,
+  hex: c.hex,
+  familyId: c.sectionId,
+  sectionShortAr: CMB_SECTION_SHORT_AR[c.sectionId],
+  textureGrade: c.textureGrade,
+  nameAr: c.nameAr,
+  nameEn: c.nameEn,
+  pageNumber: c.pageNumber,
+}));
+
 function getGraffiatoBaseIdForGrade(grade?: GraffiatoTextureGrade): string {
   if (grade === 'fine') return 'sipes_graffiato_fine';
   if (grade === 'medium') return 'sipes_graffiato_medium';
@@ -180,6 +243,12 @@ function getSavetoBaseIdForGrade(grade?: GraffiatoTextureGrade): string {
   return 'saveto_saviatto_coarse';
 }
 
+function getCmbGraviatoBaseIdForGrade(grade?: GraffiatoTextureGrade): string {
+  if (grade === 'fine') return 'cmb_kema_graviato_fine';
+  if (grade === 'medium') return 'cmb_kema_graviato_medium';
+  return 'cmb_kema_graviato_coarse';
+}
+
 export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   activeBrand,
   onChangeBrand,
@@ -188,6 +257,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   onBrowseJotunProducts,
   onBrowseSipesProducts,
   onBrowseSavetoProducts,
+  onBrowseScibProducts,
+  onBrowseCmbProducts,
   onOpenProduct,
 }) => {
   const { config, products, submitInquiry } = useStore();
@@ -198,18 +269,24 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     jotun: 'all',
     sipes: 'all',
     saveto: 'all',
+    scib: 'all',
+    cmb: 'all',
   });
   const [graffiatoGradeFilter, setGraffiatoGradeFilter] = useState<
     'all' | GraffiatoTextureGrade
   >('all');
   const [savetoGradeFilter, setSavetoGradeFilter] = useState<'all' | GraffiatoTextureGrade>('all');
+  const [cmbGradeFilter, setCmbGradeFilter] = useState<'all' | GraffiatoTextureGrade>('all');
   const [searchByBrand, setSearchByBrand] = useState<Record<ColorStudioBrand, string>>({
     glc: '',
     jotun: '',
     sipes: '',
     saveto: '',
+    scib: '',
+    cmb: '',
   });
   const [showAllJotun, setShowAllJotun] = useState(false);
+  const [showAllScib, setShowAllScib] = useState(false);
 
   const [primaryByBrand, setPrimaryByBrand] = useState<Record<ColorStudioBrand, NormalizedShade>>(
     () => ({
@@ -222,6 +299,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       saveto:
         SAVETO_NORMALIZED_SHADES.find((c) => c.code.includes('SAV-C03')) ||
         SAVETO_NORMALIZED_SHADES[0],
+      scib:
+        SCIB_NORMALIZED_SHADES.find((c) => c.code === '9436') || SCIB_NORMALIZED_SHADES[0],
+      cmb:
+        CMB_NORMALIZED_SHADES.find((c) => c.code === '011') || CMB_NORMALIZED_SHADES[0],
     })
   );
   const [compareByBrand, setCompareByBrand] = useState<Record<ColorStudioBrand, NormalizedShade>>(
@@ -235,6 +316,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       saveto:
         SAVETO_NORMALIZED_SHADES.find((c) => c.code.includes('SAV-C01')) ||
         SAVETO_NORMALIZED_SHADES[1],
+      scib:
+        SCIB_NORMALIZED_SHADES.find((c) => c.code === '7420') || SCIB_NORMALIZED_SHADES[1],
+      cmb:
+        CMB_NORMALIZED_SHADES.find((c) => c.code === '347') || CMB_NORMALIZED_SHADES[1],
     })
   );
 
@@ -250,12 +335,16 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     jotun: JOTUN_INTERIOR_BASES[0].id,
     sipes: SIPES_PRODUCT_BASES[0].id,
     saveto: SAVETO_PRODUCT_BASES[0].id,
+    scib: SCIB_PRODUCT_BASES[0].id,
+    cmb: CMB_PRODUCT_BASES[0].id,
   });
   const [sizeByBrand, setSizeByBrand] = useState<Record<ColorStudioBrand, string>>({
     glc: GLC_SIZE_OPTIONS[2],
     jotun: JOTUN_SIZE_OPTIONS[2],
     sipes: SIPES_SIZE_OPTIONS_BY_SECTION.all[2],
     saveto: SAVETO_SIZE_OPTIONS[0],
+    scib: SCIB_SIZE_OPTIONS[2],
+    cmb: CMB_SIZE_OPTIONS_BY_SECTION.all[2],
   });
 
   const [customerName, setCustomerName] = useState('');
@@ -267,6 +356,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   const isJotun = activeBrand === 'jotun';
   const isSipes = activeBrand === 'sipes';
   const isSaveto = activeBrand === 'saveto';
+  const isScib = activeBrand === 'scib';
+  const isCmb = activeBrand === 'cmb';
 
   const brandTitleUpper = isJotun
     ? 'JOTUN'
@@ -274,6 +365,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ? 'SIPES'
     : isSaveto
     ? 'SAVETO'
+    : isScib
+    ? 'SCIB'
+    : isCmb
+    ? 'CMB'
     : 'GLC';
   const brandTitleAr = isJotun
     ? 'جوتن (JOTUN)'
@@ -281,6 +376,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ? 'سايبس (SIPES)'
     : isSaveto
     ? 'سافيتو (SAVETO)'
+    : isScib
+    ? 'سكيب (SCIB)'
+    : isCmb
+    ? 'كيماويات البناء الحديث (CMB)'
     : 'GLC بلاتين';
 
   const allShades = isJotun
@@ -289,6 +388,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ? SIPES_NORMALIZED_SHADES
     : isSaveto
     ? SAVETO_NORMALIZED_SHADES
+    : isScib
+    ? SCIB_NORMALIZED_SHADES
+    : isCmb
+    ? CMB_NORMALIZED_SHADES
     : GLC_NORMALIZED_SHADES;
 
   const primaryShade = primaryByBrand[activeBrand];
@@ -298,10 +401,11 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
   const isGraffiatoMode =
     isSaveto ||
-    (isSipes && (selectedFamilyId === 'graffiato' || primaryShade.familyId === 'graffiato'));
+    (isSipes && (selectedFamilyId === 'graffiato' || primaryShade.familyId === 'graffiato')) ||
+    (isCmb && (selectedFamilyId === 'graviato' || primaryShade.familyId === 'graviato'));
 
   const activeWallTexture: WallTextureType =
-    isSaveto && wallTexture === 'smooth'
+    (isSaveto || (isCmb && primaryShade.familyId === 'graviato')) && wallTexture === 'smooth'
       ? primaryShade.textureGrade || 'coarse'
       : wallTexture;
 
@@ -318,12 +422,26 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     );
   }, [isSipes, primaryShade.familyId, selectedFamilyId]);
 
+  const activeCmbSection = useMemo(() => {
+    if (!isCmb) return null;
+    if (selectedFamilyId !== 'all') {
+      return CMB_COLOR_SECTIONS.find((s) => s.id === selectedFamilyId) || CMB_COLOR_SECTIONS[0];
+    }
+    return (
+      CMB_COLOR_SECTIONS.find((s) => s.id === primaryShade.familyId) || CMB_COLOR_SECTIONS[0]
+    );
+  }, [isCmb, primaryShade.familyId, selectedFamilyId]);
+
   const basesList: NormalizedBase[] = isJotun
     ? JOTUN_INTERIOR_BASES
     : isSipes
     ? SIPES_PRODUCT_BASES
     : isSaveto
     ? SAVETO_PRODUCT_BASES
+    : isScib
+    ? SCIB_PRODUCT_BASES
+    : isCmb
+    ? CMB_PRODUCT_BASES
     : GLC_PLATINE_BASES;
 
   const sizeOptions: readonly string[] = isJotun
@@ -333,6 +451,11 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       SIPES_SIZE_OPTIONS_BY_SECTION.all
     : isSaveto
     ? SAVETO_SIZE_OPTIONS
+    : isScib
+    ? SCIB_SIZE_OPTIONS
+    : isCmb
+    ? CMB_SIZE_OPTIONS_BY_SECTION[(selectedFamilyId as CmbSectionId) || 'all'] ||
+      CMB_SIZE_OPTIONS_BY_SECTION.all
     : GLC_SIZE_OPTIONS;
 
   const selectedBaseId = baseIdByBrand[activeBrand];
@@ -364,13 +487,29 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         count: SAVETO_NORMALIZED_SHADES.filter((c) => c.familyId === f.id).length,
       }));
     }
+    if (isScib) {
+      return SCIB_COLOR_FAMILIES.map((f) => ({
+        id: f.id,
+        nameAr: f.nameAr,
+        swatchHex: f.swatchHex,
+        count: SCIB_NORMALIZED_SHADES.filter((c) => c.familyId === f.id).length,
+      }));
+    }
+    if (isCmb) {
+      return CMB_COLOR_SECTIONS.map((s) => ({
+        id: s.id,
+        nameAr: s.nameAr,
+        swatchHex: s.swatchHex,
+        count: CMB_NORMALIZED_SHADES.filter((c) => c.familyId === s.id).length,
+      }));
+    }
     return GLC_COLOR_FAMILIES.map((f) => ({
       id: f.id,
       nameAr: f.nameAr,
       swatchHex: GLC_PLATINE_COLORS.find((c) => c.familyId === f.id)?.hex || '#CBD5E1',
       count: GLC_NORMALIZED_SHADES.filter((c) => c.familyId === f.id).length,
     }));
-  }, [isJotun, isSaveto, isSipes]);
+  }, [isCmb, isJotun, isSaveto, isScib, isSipes]);
 
   const familyNameById = useMemo(
     () => new Map(families.map((f) => [f.id, f.nameAr])),
@@ -383,8 +522,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   );
 
   const matchingStoreProduct = useMemo(() => {
-    if ((activeBrand === 'glc' || isSaveto) && selectedBase.productId) {
-      return products.find((p) => p.id === selectedBase.productId) || null;
+    if (selectedBase.productId) {
+      const exact = products.find((p) => p.id === selectedBase.productId);
+      if (exact) return exact;
     }
     if (isJotun) {
       return (
@@ -412,8 +552,26 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         ) || null
       );
     }
+    if (isScib) {
+      return (
+        products.find(
+          (p) =>
+            `${p.brandName} ${p.name}`.toUpperCase().includes('SCIB') ||
+            p.name.includes('سكيب')
+        ) || null
+      );
+    }
+    if (isCmb) {
+      return (
+        products.find(
+          (p) =>
+            `${p.brandName} ${p.name}`.toUpperCase().includes('CMB') ||
+            p.categoryId === 'cat_cmb'
+        ) || null
+      );
+    }
     return null;
-  }, [activeBrand, isJotun, isSaveto, isSipes, products, selectedBase.productId]);
+  }, [isCmb, isJotun, isSaveto, isScib, isSipes, products, selectedBase.productId]);
 
   const filteredColors = useMemo(() => {
     const q = searchCode.trim().toLowerCase();
@@ -430,6 +588,14 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       if (isSaveto && savetoGradeFilter !== 'all' && c.textureGrade !== savetoGradeFilter) {
         return false;
       }
+      if (
+        isCmb &&
+        selectedFamilyId === 'graviato' &&
+        cmbGradeFilter !== 'all' &&
+        c.textureGrade !== cmbGradeFilter
+      ) {
+        return false;
+      }
       if (q) {
         const famName = (familyNameById.get(c.familyId) || '').toLowerCase();
         const texName = c.textureGrade ? TEXTURE_GRADE_LABELS_AR[c.textureGrade].toLowerCase() : '';
@@ -443,8 +609,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     selectedFamilyId,
     isSipes,
     isSaveto,
+    isCmb,
     graffiatoGradeFilter,
     savetoGradeFilter,
+    cmbGradeFilter,
     searchCode,
     familyNameById,
   ]);
@@ -454,11 +622,21 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     !showAllJotun &&
     selectedFamilyId === 'all' &&
     searchCode.trim() === '' &&
-    filteredColors.length > INITIAL_JOTUN_ALL_LIMIT;
+    filteredColors.length > INITIAL_LARGE_ALL_LIMIT;
+
+  const shouldCapScib =
+    isScib &&
+    !showAllScib &&
+    selectedFamilyId === 'all' &&
+    searchCode.trim() === '' &&
+    filteredColors.length > INITIAL_LARGE_ALL_LIMIT;
 
   const displayedColors = useMemo(
-    () => (shouldCapJotun ? filteredColors.slice(0, INITIAL_JOTUN_ALL_LIMIT) : filteredColors),
-    [shouldCapJotun, filteredColors]
+    () =>
+      shouldCapJotun || shouldCapScib
+        ? filteredColors.slice(0, INITIAL_LARGE_ALL_LIMIT)
+        : filteredColors,
+    [shouldCapJotun, shouldCapScib, filteredColors]
   );
 
   const handleBrandSwitch = (nextBrand: ColorStudioBrand) => {
@@ -472,10 +650,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     } else if (nextBrand === 'sipes' && familyByBrand.sipes === 'graffiato') {
       setScene('exterior');
       setWallTexture(primaryByBrand.sipes.textureGrade || 'coarse');
-    } else if (nextBrand !== 'sipes' && scene === 'exterior') {
+    } else if (nextBrand === 'cmb' && familyByBrand.cmb === 'graviato') {
+      setScene('exterior');
+      setWallTexture(primaryByBrand.cmb.textureGrade || 'coarse');
+    } else if (nextBrand !== 'sipes' && nextBrand !== 'cmb' && scene === 'exterior') {
       setScene('living');
       setWallTexture('smooth');
-    } else if (nextBrand !== 'sipes') {
+    } else if (nextBrand !== 'sipes' && nextBrand !== 'cmb') {
       setWallTexture('smooth');
     }
     onChangeBrand(nextBrand);
@@ -531,6 +712,50 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           setSizeByBrand((prev) => ({ ...prev, sipes: nextSizes[0] }));
         }
       }
+    } else if (isCmb) {
+      if (nextFamilyId === 'graviato') {
+        setCmbGradeFilter('all');
+        setScene('exterior');
+        const defaultPrimary =
+          CMB_NORMALIZED_SHADES.find((c) => c.familyId === 'graviato' && c.code === 'KEMA-GR-SD') ||
+          CMB_NORMALIZED_SHADES.find((c) => c.familyId === 'graviato');
+        const defaultCompare =
+          CMB_NORMALIZED_SHADES.find((c) => c.familyId === 'graviato' && c.code === 'PLIKO-700') ||
+          CMB_NORMALIZED_SHADES.find((c) => c.familyId === 'graviato');
+        let nextGrade: GraffiatoTextureGrade = 'coarse';
+        if (primaryByBrand.cmb.familyId !== 'graviato' && defaultPrimary) {
+          setPrimaryByBrand((prev) => ({ ...prev, cmb: defaultPrimary }));
+          nextGrade = defaultPrimary.textureGrade || 'coarse';
+        } else {
+          nextGrade = primaryByBrand.cmb.textureGrade || 'coarse';
+        }
+        if (compareByBrand.cmb.familyId !== 'graviato' && defaultCompare) {
+          setCompareByBrand((prev) => ({ ...prev, cmb: defaultCompare }));
+        }
+        setWallTexture(nextGrade);
+        setBaseIdByBrand((prev) => ({
+          ...prev,
+          cmb: getCmbGraviatoBaseIdForGrade(nextGrade),
+        }));
+        setFinish('matt');
+      } else if (nextFamilyId !== 'all') {
+        setScene((prevScene) => (prevScene === 'exterior' ? 'living' : prevScene));
+        setWallTexture('smooth');
+        const matchedBase = CMB_PRODUCT_BASES.find((b) => b.sectionId === nextFamilyId);
+        if (matchedBase) {
+          setBaseIdByBrand((prev) => ({ ...prev, cmb: matchedBase.id }));
+          setFinish(matchedBase.finish);
+        }
+      } else {
+        setWallTexture(primaryByBrand.cmb.textureGrade || 'smooth');
+      }
+
+      if (nextFamilyId !== 'all') {
+        const nextSizes = CMB_SIZE_OPTIONS_BY_SECTION[nextFamilyId as CmbSectionId];
+        if (nextSizes && !nextSizes.includes(sizeByBrand.cmb)) {
+          setSizeByBrand((prev) => ({ ...prev, cmb: nextSizes[0] }));
+        }
+      }
     }
   };
 
@@ -538,7 +763,11 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     setSubmitted(false);
     if (compareMode && compareSlotTarget === 'compare') {
       setCompareByBrand((prev) => ({ ...prev, [activeBrand]: shade }));
-      if ((isSipes && shade.familyId === 'graffiato') || isSaveto) {
+      if (
+        (isSipes && shade.familyId === 'graffiato') ||
+        (isCmb && shade.familyId === 'graviato') ||
+        isSaveto
+      ) {
         setScene('exterior');
       }
     } else {
@@ -554,7 +783,6 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         setFinish('matt');
       } else if (isSipes) {
         if (shade.familyId === 'graffiato') {
-          // Force exterior facade visualization whenever a Graffiato shade is chosen
           setScene('exterior');
           const nextGrade = shade.textureGrade || 'coarse';
           setWallTexture(nextGrade);
@@ -571,6 +799,27 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           const matchedBase = SIPES_PRODUCT_BASES.find((b) => b.sectionId === shade.familyId);
           if (matchedBase) {
             setBaseIdByBrand((prev) => ({ ...prev, sipes: matchedBase.id }));
+            setFinish(matchedBase.finish);
+          }
+        }
+      } else if (isCmb) {
+        if (shade.familyId === 'graviato') {
+          setScene('exterior');
+          const nextGrade = shade.textureGrade || 'coarse';
+          setWallTexture(nextGrade);
+          setBaseIdByBrand((prev) => ({
+            ...prev,
+            cmb: getCmbGraviatoBaseIdForGrade(nextGrade),
+          }));
+          setFinish('matt');
+        } else {
+          setWallTexture('smooth');
+          if (scene === 'exterior') {
+            setScene('living');
+          }
+          const matchedBase = CMB_PRODUCT_BASES.find((b) => b.sectionId === shade.familyId);
+          if (matchedBase) {
+            setBaseIdByBrand((prev) => ({ ...prev, cmb: matchedBase.id }));
             setFinish(matchedBase.finish);
           }
         }
@@ -606,6 +855,14 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       if (scene !== 'exterior' && scene !== 'wall') {
         setScene('exterior');
       }
+    } else if (isCmb && nextTex !== 'smooth') {
+      setBaseIdByBrand((prev) => ({
+        ...prev,
+        cmb: getCmbGraviatoBaseIdForGrade(nextTex),
+      }));
+      if (scene !== 'exterior' && scene !== 'wall') {
+        setScene('exterior');
+      }
     }
   };
 
@@ -613,18 +870,29 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     setBaseIdByBrand((prev) => ({ ...prev, [activeBrand]: baseId }));
     const found = basesList.find((b) => b.id === baseId);
     if (found) setFinish(found.finish);
-    if (baseId === 'sipes_graffiato_fine' || baseId === 'saveto_smooth_render') {
+    if (
+      baseId === 'sipes_graffiato_fine' ||
+      baseId === 'saveto_smooth_render' ||
+      baseId === 'cmb_kema_graviato_fine'
+    ) {
       setWallTexture('fine');
       setScene('exterior');
-    } else if (baseId === 'sipes_graffiato_medium' || baseId === 'saveto_vetotouch_textura') {
+    } else if (
+      baseId === 'sipes_graffiato_medium' ||
+      baseId === 'saveto_vetotouch_textura' ||
+      baseId === 'cmb_kema_graviato_medium'
+    ) {
       setWallTexture('medium');
       setScene('exterior');
     } else if (
       baseId === 'sipes_graffiato_coarse' ||
       baseId === 'saveto_saviatto_coarse' ||
-      baseId === 'saveto_vetotouch_graviatto'
+      baseId === 'saveto_vetotouch_graviatto' ||
+      baseId === 'cmb_kema_graviato_coarse'
     ) {
       setWallTexture('coarse');
+      setScene('exterior');
+    } else if (baseId === 'scib_ultima_exterior' || baseId === 'scib_weathercoat_classic') {
       setScene('exterior');
     }
   };
@@ -691,6 +959,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     ? 'SIPES PAINTS'
                     : isSaveto
                     ? 'SAVETO · VETO'
+                    : isScib
+                    ? 'SCIB PAINTS'
+                    : isCmb
+                    ? 'CMB EGYPT'
                     : 'GLC PAINTS'}
                 </span>
                 <span aria-hidden="true">·</span>
@@ -701,6 +973,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     ? 'كتالوجات سايبس الرسمية (داخلية وخارجية)'
                     : isSaveto
                     ? 'جرافيـاتو سافيتو وسافياتو للواجهات (خشن · متوسط · ناعم)'
+                    : isScib
+                    ? 'كتالوج ألوان سكيب الرسمي (Colour Catalogue)'
+                    : isCmb
+                    ? 'كتالوجات ألوان ومنتجات كيماويات البناء الحديث'
                     : 'كارتيلا سوبر بلاتين المعتمدة'}
                 </span>
                 <span aria-hidden="true">·</span>
@@ -713,6 +989,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   ? 'كمبيوتر ألوان سايبس (SIPES) — الواجهات الخارجية والحوائط'
                   : isSaveto
                   ? 'كتالوج جرافيـاتو وواجهات سافيتو (SAVETO) — خشن 3مم · متوسط 2مم · ناعم 1مم'
+                  : isScib
+                  ? 'كمبيوتر ألوان سكيب (SCIB) ومعاينة الحائط المباشرة (2,221 لون)'
+                  : isCmb
+                  ? 'كتالوج ألوان ومنتجات CMB (مارمكس · ألواني · كيماتون · كيما جرافياتو · كيمابوكسي)'
                   : 'كمبيوتر ألوان GLC ومعاينة الحائط المباشرة'}
               </h1>
             </div>
@@ -727,6 +1007,28 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 >
                   <ExternalLink className="w-4 h-4 text-amber-400" />
                   <span>كتالوج جوتن الرسمي</span>
+                </a>
+              ) : isScib ? (
+                <a
+                  href={SCIB_CATALOG_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4 text-amber-400" />
+                  <span>كتالوج سكيب الرسمي</span>
+                </a>
+              ) : isCmb && activeCmbSection ? (
+                <a
+                  href={activeCmbSection.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={activeCmbSection.pdfName}
+                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors"
+                >
+                  <FileText className="w-4 h-4 text-amber-400" />
+                  <span>كتالوج {activeCmbSection.shortAr} PDF</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                 </a>
               ) : isSipes && activeSipesSection ? (
                 <a
@@ -763,6 +1065,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     ? onBrowseSipesProducts
                     : isSaveto
                     ? onBrowseSavetoProducts
+                    : isScib
+                    ? onBrowseScibProducts
+                    : isCmb
+                    ? onBrowseCmbProducts
                     : onBrowseGlcProducts
                 }
                 className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
@@ -775,6 +1081,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     ? 'قسم دهانات سايبس'
                     : isSaveto
                     ? 'منتجات سافيتو'
+                    : isScib
+                    ? 'قسم دهانات سكيب'
+                    : isCmb
+                    ? 'منتجات CMB'
                     : 'منتجات GLC'}
                 </span>
               </button>
@@ -790,13 +1100,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             </div>
           </div>
 
-          {/* Clean Brand Switcher Segmented Control: GLC vs JOTUN vs SIPES vs SAVETO */}
+          {/* Clean Brand Switcher Segmented Control: GLC, JOTUN, SIPES, SCIB, CMB, SAVETO */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
             <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/90 border border-slate-800 overflow-x-auto no-scrollbar max-w-full">
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('glc')}
-                className={`min-h-[40px] px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   activeBrand === 'glc'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
@@ -810,7 +1120,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('jotun')}
-                className={`min-h-[40px] px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   activeBrand === 'jotun'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
@@ -824,7 +1134,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('sipes')}
-                className={`min-h-[40px] px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   activeBrand === 'sipes'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
@@ -837,8 +1147,36 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               </button>
               <button
                 type="button"
+                onClick={() => handleBrandSwitch('scib')}
+                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  activeBrand === 'scib'
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                }`}
+              >
+                سكيب SCIB{' '}
+                <span className="font-mono-nums opacity-80">
+                  ({SCIB_NORMALIZED_SHADES.length})
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBrandSwitch('cmb')}
+                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  activeBrand === 'cmb'
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                }`}
+              >
+                CMB كيماويات{' '}
+                <span className="font-mono-nums opacity-80">
+                  ({CMB_NORMALIZED_SHADES.length})
+                </span>
+              </button>
+              <button
+                type="button"
                 onClick={() => handleBrandSwitch('saveto')}
-                className={`min-h-[40px] px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                className={`min-h-[40px] px-3 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   activeBrand === 'saveto'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
@@ -1146,7 +1484,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:underline whitespace-nowrap shrink-0"
                 >
-                  <span>صفحة اللون بجوتن</span>
+                  <span>{isScib ? 'صفحة اللون بسكيب' : 'صفحة اللون بجوتن'}</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               )}
@@ -1161,7 +1499,18 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
                 تجهيز لون{' '}
-                {isJotun ? 'جوتن' : isSipes ? 'سايبس' : isSaveto ? 'سافيتو' : 'GLC'} بالكمبيوتر وطلبه الآن
+                {isJotun
+                  ? 'جوتن'
+                  : isSipes
+                  ? 'سايبس'
+                  : isSaveto
+                  ? 'سافيتو'
+                  : isScib
+                  ? 'سكيب'
+                  : isCmb
+                  ? 'CMB'
+                  : 'GLC'}{' '}
+                بالكمبيوتر وطلبه الآن
               </h2>
               {matchingStoreProduct && (
                 <button
@@ -1280,7 +1629,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                  {isSaveto || (selectedFamilyId === 'graffiato' && isSipes)
+                  {isSaveto ||
+                  (selectedFamilyId === 'graffiato' && isSipes) ||
+                  (selectedFamilyId === 'graviato' && isCmb)
                     ? 'اختر لون وملمس الواجهة ليظهر فوراً على المبنى الخارجي'
                     : 'اختر الدرجة لتظهر فوراً في المعاينة'}
                 </h2>
@@ -1292,6 +1643,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     ? 'في أقسام دهانات سايبس المعتمدة'
                     : isSaveto
                     ? 'في كتالوج جرافيـاتو سافيتو (خشن · متوسط · ناعم)'
+                    : isScib
+                    ? 'في كتالوج سكيب الرسمي'
+                    : isCmb
+                    ? 'في أقسام ومنتجات CMB المعتمدة'
                     : 'في كارتيلا GLC بلاتين'}
                 </p>
               </div>
@@ -1311,6 +1666,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       ? 'ابحث بالكود أو الملمس (مثلاً 684 أو خشن أو ناعم)...'
                       : isSaveto
                       ? 'ابحث بالكود أو الخشونة (خشن، متوسط، ناعم، رملي)...'
+                      : isScib
+                      ? 'ابحث بكود سكيب أو الاسم (مثلاً 9436 أو 7420)...'
+                      : isCmb
+                      ? 'ابحث بكود CMB أو المنتج (مثلاً 347 أو CMB 06 أو كيمابوكسي)...'
                       : 'ابحث بالكود (مثلاً Y21010)...'
                   }
                   className="w-full min-h-[42px] rounded-xl border border-slate-200 bg-slate-50 pr-9 pl-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
@@ -1318,7 +1677,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               </div>
             </div>
 
-            {/* Color Family / SIPES Specialized Sections Filter Tabs */}
+            {/* Color Family / Product Specialized Sections Filter Tabs */}
             <div className="flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
@@ -1331,6 +1690,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               >
                 {isSipes
                   ? `جميع أقسام سايبس (${allShades.length})`
+                  : isCmb
+                  ? `كل أقسام CMB (${allShades.length})`
                   : isSaveto
                   ? `كل درجات سافيتو (${allShades.length})`
                   : `جميع الألوان (${allShades.length})`}
@@ -1353,7 +1714,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       style={{ backgroundColor: fam.swatchHex }}
                     />
                     <span>{fam.nameAr}</span>
-                    {(isSipes || isSaveto) && (
+                    {(isSipes || isSaveto || isCmb || isScib) && (
                       <span
                         className={`font-mono-nums text-[11px] ${
                           active ? 'text-amber-300' : 'text-slate-500'
@@ -1465,6 +1826,78 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 )}
               </div>
             )}
+
+            {/* CMB Kemagraviato & Exterior Textures Grade Filter */}
+            {isCmb && selectedFamilyId === 'graviato' && (
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <span className="block text-xs font-bold text-slate-800">
+                  درجة خشونة كيما جرافياتو وتكسيات واجهات CMB (خارجي):
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {(
+                    [
+                      { id: 'all', label: 'كل الأنواع (15)' },
+                      { id: 'coarse', label: 'خشن جرافياتو / بليكو 900' },
+                      { id: 'medium', label: 'متوسط بليكو 800 / داري لايف' },
+                      { id: 'fine', label: 'ناعم بليكو 700 / سمنتون / كالزيل' },
+                    ] as const
+                  ).map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => setCmbGradeFilter(g.id)}
+                      className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                        cmbGradeFilter === g.id
+                          ? 'bg-amber-400 text-slate-950'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Active CMB Product Section Info + Direct PDF Link */}
+            {isCmb && (
+              <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                {selectedFamilyId === 'all' ? (
+                  <>
+                    <span className="text-slate-600">
+                      أقسام CMB المعتمدة: مارمكس S40 · ملونات ألواني · كيماتون وزيناتون · كيما جرافياتو · الديكورية · كيمابوكسي · فيرونا للأخشاب
+                    </span>
+                    <a
+                      href={CMB_CATALOGS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-bold text-blue-700 hover:underline whitespace-nowrap shrink-0"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>صفحة كتالوجات CMB</span>
+                    </a>
+                  </>
+                ) : (
+                  activeCmbSection && (
+                    <>
+                      <span className="text-slate-700 font-semibold">
+                        {activeCmbSection.nameAr} — {activeCmbSection.subtitleAr}
+                      </span>
+                      <a
+                        href={activeCmbSection.pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={activeCmbSection.pdfName}
+                        className="inline-flex items-center gap-1.5 font-bold text-blue-700 hover:underline whitespace-nowrap shrink-0"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>تحميل كتالوج {activeCmbSection.shortAr} PDF</span>
+                      </a>
+                    </>
+                  )
+                )}
+              </div>
+            )}
           </section>
 
           {/* Coded Swatches Grid */}
@@ -1480,6 +1913,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   setFamilyByBrand((prev) => ({ ...prev, [activeBrand]: 'all' }));
                   setGraffiatoGradeFilter('all');
                   setSavetoGradeFilter('all');
+                  setCmbGradeFilter('all');
                 }}
                 className="min-h-[40px] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold cursor-pointer"
               >
@@ -1562,12 +1996,18 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                             </span>
                           )}
                         </div>
-                        {(shade.nameAr || (isSipes && selectedFamilyId === 'all')) && (
+                        {(shade.nameAr ||
+                          shade.nameEn ||
+                          ((isSipes || isCmb) && selectedFamilyId === 'all')) && (
                           <div className="text-[10px] sm:text-[11px] font-semibold text-slate-600 truncate">
                             {shade.nameAr
-                              ? isSipes && selectedFamilyId === 'all' && shade.sectionShortAr
+                              ? (isSipes || isCmb) &&
+                                selectedFamilyId === 'all' &&
+                                shade.sectionShortAr
                                 ? `${shade.sectionShortAr} · ${shade.nameAr}`
                                 : shade.nameAr
+                              : shade.nameEn
+                              ? shade.nameEn
                               : shade.sectionShortAr}
                           </div>
                         )}
@@ -1577,15 +2017,19 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 })}
               </div>
 
-              {shouldCapJotun && (
+              {(shouldCapJotun || shouldCapScib) && (
                 <div className="flex justify-center pt-2">
                   <button
                     type="button"
-                    onClick={() => setShowAllJotun(true)}
+                    onClick={() =>
+                      shouldCapScib ? setShowAllScib(true) : setShowAllJotun(true)
+                    }
                     className="min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 px-5 py-2.5 text-xs sm:text-sm font-extrabold transition-colors cursor-pointer"
                   >
                     <span>
-                      عرض جميع ألوان جوتن ({filteredColors.length} لون معتمد)
+                      {shouldCapScib
+                        ? `عرض جميع ألوان سكيب (${filteredColors.length} لون معتمد)`
+                        : `عرض جميع ألوان جوتن (${filteredColors.length} لون معتمد)`}
                     </span>
                   </button>
                 </div>

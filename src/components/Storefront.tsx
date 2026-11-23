@@ -25,6 +25,7 @@ import {
 import { useStore } from '../context/StoreContext';
 import { trackAnalyticsEvent } from '../lib/analytics';
 import { Banner, Product, StoreFeature, StorefrontPage } from '../types/store';
+import { ColorStudioBrand } from './GlcColorStudioPage';
 import { PWAInstallButton } from './PWAInstallButton';
 
 interface StorefrontProps {
@@ -32,7 +33,7 @@ interface StorefrontProps {
   onSelectPage: (page: StorefrontPage) => void;
   onOpenProduct: (product: Product) => void;
   onOpenColorStudio: () => void;
-  onOpenGlcColors: (brand?: 'glc' | 'jotun' | 'sipes' | 'saveto') => void;
+  onOpenGlcColors: (brand?: ColorStudioBrand) => void;
   onOpenCart: () => void;
   categoryJump?: { categoryId: string; subpageId?: string; nonce: number } | null;
 }
@@ -79,6 +80,28 @@ const SAVETO_PREVIEW_CHIPS = [
   { code: 'SAV-F02', name: 'ساحلي ناعم 1مم', hex: '#EAE3D3' },
   { code: 'SAV-F08', name: 'زيتوني ناعم 1مم', hex: '#8E937B' },
   { code: 'SAV-C10', name: 'أردوازي خشن', hex: '#747978' },
+] as const;
+
+const SCIB_PREVIEW_CHIPS = [
+  { code: 'L181', name: 'White Sugar', hex: '#E7ECEB' },
+  { code: '9436', name: 'Air Breeze', hex: '#F3EDE8' },
+  { code: '8620', name: 'White Clay', hex: '#F3E3D7' },
+  { code: '7300', name: 'Jet Stream', hex: '#E2E8E5' },
+  { code: 'L139', name: 'Blush', hex: '#F7EBE0' },
+  { code: '7348', name: 'Spring Dew', hex: '#E0EAE6' },
+  { code: '5184', name: 'Macadamia', hex: '#F0E5D6' },
+  { code: '7156', name: 'Lavender Lace', hex: '#ECE6E4' },
+] as const;
+
+const CMB_PREVIEW_CHIPS = [
+  { code: '347', name: 'كراميل مارمكس', hex: '#A95F2B' },
+  { code: '642', name: 'برتقالي S40', hex: '#F36F21' },
+  { code: '022', name: 'أوكر مارمكس', hex: '#C69024' },
+  { code: '421', name: 'أحمر S40', hex: '#DA2128' },
+  { code: '466', name: 'رويال بلو', hex: '#023F88' },
+  { code: 'CMB 11', name: 'ألواني زمردي', hex: '#009D46' },
+  { code: 'KEMA-GR-SD', name: 'كيما جرافياتو رملي', hex: '#DFCFAF' },
+  { code: 'CASHO', name: 'كاشو ذهبي', hex: '#C29B4E' },
 ] as const;
 
 function FeatureIcon({ icon }: { icon: StoreFeature['icon'] }) {
@@ -763,22 +786,103 @@ export const Storefront: React.FC<StorefrontProps> = ({
                           </div>
                         </div>
                       )}
+
+                      {section.id === 'cat_scib' && config.visibility.colorStudio && (
+                        <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          <div className="space-y-1 min-w-0">
+                            <div className="text-[11px] font-bold text-amber-400">
+                              SCIB PAINTS · تلوين بالكمبيوتر · 2,221 لون سكيب رسمي في 11 عائلة لونية
+                            </div>
+                            <h3 className="text-sm sm:text-base font-extrabold text-white">
+                              استعرض جميع ألوان سكيب (SCIB) بأكوادها وجرّبها مباشرة على الحائط أو الواجهة
+                            </h3>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 shrink-0">
+                            <div className="flex items-center gap-1.5">
+                              {SCIB_PREVIEW_CHIPS.map((chip) => (
+                                <button
+                                  key={chip.code}
+                                  type="button"
+                                  onClick={() => onOpenGlcColors('scib')}
+                                  title={`معاينة سكيب ${chip.code} (${chip.name}) على الحائط`}
+                                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
+                                  style={{ backgroundColor: chip.hex }}
+                                  aria-label={`معاينة سكيب ${chip.code} ${chip.name}`}
+                                />
+                              ))}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => onOpenGlcColors('scib')}
+                              className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                            >
+                              <Palette className="w-4 h-4" />
+                              <span>معاينة الحائط وألوان سكيب (2221 لون)</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {section.id === 'cat_cmb' && config.visibility.colorStudio && (
+                        <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          <div className="space-y-1 min-w-0">
+                            <div className="text-[11px] font-bold text-amber-400">
+                              CMB EGYPT · 7 أقسام بمنتجاتها (مارمكس S40 · ألواني · كيما جرافياتو · الديكوري · كيمابوكسي · فيرونا)
+                            </div>
+                            <h3 className="text-sm sm:text-base font-extrabold text-white">
+                              استعرض ألوان ومنتجات كيماويات البناء الحديث CMB بالكمبيوتر ومعاينة الحائط والواجهة
+                            </h3>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 shrink-0">
+                            <div className="flex items-center gap-1.5">
+                              {CMB_PREVIEW_CHIPS.map((chip) => (
+                                <button
+                                  key={chip.code}
+                                  type="button"
+                                  onClick={() => onOpenGlcColors('cmb')}
+                                  title={`معاينة CMB ${chip.code} (${chip.name})`}
+                                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer shrink-0"
+                                  style={{ backgroundColor: chip.hex }}
+                                  aria-label={`معاينة CMB ${chip.code} ${chip.name}`}
+                                />
+                              ))}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => onOpenGlcColors('cmb')}
+                              className="min-h-[42px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                            >
+                              <Palette className="w-4 h-4" />
+                              <span>معاينة ألوان ومنتجات CMB</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
 
                 {config.visibility.colorStudio &&
                   !homeCategorySections.some(
-                    (s) => s.id === 'cat_jotun' || s.id === 'cat_sipes' || s.id === 'cat_saveto'
+                    (s) =>
+                      s.id === 'cat_jotun' ||
+                      s.id === 'cat_sipes' ||
+                      s.id === 'cat_saveto' ||
+                      s.id === 'cat_scib' ||
+                      s.id === 'cat_cmb'
                   ) && (
                     <div className="space-y-3">
                       <div className="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div className="space-y-1 min-w-0">
                           <div className="text-[11px] font-bold text-amber-400">
-                            JOTUN · SIPES · SAVETO · استوديو كمبيوتر الألوان والواجهات
+                            JOTUN · SIPES · SCIB · CMB · SAVETO · استوديو كمبيوتر الألوان والواجهات
                           </div>
                           <h3 className="text-sm sm:text-base font-extrabold text-white">
-                            استعرض ألوان جوتن وسايبس وسافيتو بأكوادها وجرّبها مباشرة على الحائط أو الواجهة
+                            استعرض ألوان جوتن وسكيب وسايبس وCMB وسافيتو بأكوادها وجرّبها مباشرة على الحائط أو الواجهة
                           </h3>
                         </div>
                         <button
@@ -1099,6 +1203,86 @@ export const Storefront: React.FC<StorefrontProps> = ({
                   </section>
                 )}
 
+                {(selectedCategoryId === 'cat_scib' || selectedCategoryId === 'cat_paints') &&
+                  config.visibility.colorStudio && (
+                    <section className="rounded-2xl bg-slate-900 text-white p-4 sm:p-6 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="text-xs font-bold text-amber-400">
+                          كتالوج ألوان دهانات سكيب (SCIB) الرسمي · 11 عائلة لونية
+                        </div>
+                        <h2 className="text-base sm:text-xl font-extrabold text-white">
+                          2,221 درجة لونية رسمية من كتالوج سكيب مع خاصية العرض على الحائط والواجهة
+                        </h2>
+                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                          ابحث بالكود أو الاسم باللغتين وجرّب اللون مباشرة على قواعد سكيب (رويال، نوفي سيلك، أكريكوت، ويذر كوت وألتيما).
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-1.5">
+                          {SCIB_PREVIEW_CHIPS.slice(0, 6).map((chip) => (
+                            <button
+                              key={chip.code}
+                              type="button"
+                              onClick={() => onOpenGlcColors('scib')}
+                              className="w-8 h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer"
+                              style={{ backgroundColor: chip.hex }}
+                              aria-label={`معاينة كود سكيب ${chip.code} ${chip.name}`}
+                            />
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onOpenGlcColors('scib')}
+                          className="min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                        >
+                          <Palette className="w-4 h-4" />
+                          <span>فتح كمبيوتر ألوان سكيب (2221 لون)</span>
+                        </button>
+                      </div>
+                    </section>
+                  )}
+
+                {(selectedCategoryId === 'cat_cmb' || selectedCategoryId === 'cat_construction') &&
+                  config.visibility.colorStudio && (
+                    <section className="rounded-2xl bg-slate-900 text-white p-4 sm:p-6 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="text-xs font-bold text-amber-400">
+                          كتالوجات ألوان ومنتجات كيماويات البناء الحديث (CMB) · 7 أقسام متخصصة
+                        </div>
+                        <h2 className="text-base sm:text-xl font-extrabold text-white">
+                          78 لون ونظام (مارمكس S40، ألواني CMB، كيما جرافياتو، الديكوري، كيمابوكسي وأخشاب فيرونا)
+                        </h2>
+                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                          تصفح الألوان حسب المنتج مع تحميل الكتالوجات الرسمية PDF ومعاينة الدرجات والملمس على الحائط أو الواجهة.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-1.5">
+                          {CMB_PREVIEW_CHIPS.slice(0, 6).map((chip) => (
+                            <button
+                              key={chip.code}
+                              type="button"
+                              onClick={() => onOpenGlcColors('cmb')}
+                              className="w-8 h-8 rounded-lg border border-white/25 hover:scale-110 transition-transform cursor-pointer"
+                              style={{ backgroundColor: chip.hex }}
+                              aria-label={`معاينة كود CMB ${chip.code} ${chip.name}`}
+                            />
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onOpenGlcColors('cmb')}
+                          className="min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2.5 text-xs sm:text-sm font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                        >
+                          <Palette className="w-4 h-4" />
+                          <span>فتح كمبيوتر ألوان ومنتجات CMB</span>
+                        </button>
+                      </div>
+                    </section>
+                  )}
+
                 {/* Search & Quick Filters Toolbar */}
                 <section className="rounded-2xl bg-white border border-slate-200 p-4 sm:p-5 space-y-4">
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
@@ -1298,6 +1482,8 @@ export const Storefront: React.FC<StorefrontProps> = ({
                     {(selectedBrandCode.toUpperCase() === 'JOTUN' ||
                       selectedBrandCode.toUpperCase() === 'GLC' ||
                       selectedBrandCode.toUpperCase() === 'SIPES' ||
+                      selectedBrandCode.toUpperCase() === 'SCIB' ||
+                      selectedBrandCode.toUpperCase() === 'CMB' ||
                       selectedBrandCode.toUpperCase() === 'SAVETO') &&
                       config.visibility.colorStudio && (
                         <button
@@ -1308,6 +1494,10 @@ export const Storefront: React.FC<StorefrontProps> = ({
                                 ? 'jotun'
                                 : selectedBrandCode.toUpperCase() === 'SIPES'
                                 ? 'sipes'
+                                : selectedBrandCode.toUpperCase() === 'SCIB'
+                                ? 'scib'
+                                : selectedBrandCode.toUpperCase() === 'CMB'
+                                ? 'cmb'
                                 : selectedBrandCode.toUpperCase() === 'SAVETO'
                                 ? 'saveto'
                                 : 'glc'
@@ -1321,6 +1511,10 @@ export const Storefront: React.FC<StorefrontProps> = ({
                               ? 'تصفح ألوان جوتن على الحائط (994 لون)'
                               : selectedBrandCode.toUpperCase() === 'SIPES'
                               ? 'تصفح ألوان سايبس على الحائط (344 لون — 6 أقسام)'
+                              : selectedBrandCode.toUpperCase() === 'SCIB'
+                              ? 'تصفح ألوان سكيب على الحائط (2221 لون)'
+                              : selectedBrandCode.toUpperCase() === 'CMB'
+                              ? 'تصفح ألوان ومنتجات CMB على الحائط (7 أقسام)'
                               : selectedBrandCode.toUpperCase() === 'SAVETO'
                               ? 'تصفح ألوان وجرافيـاتو سافيتو على الواجهة (36 لون)'
                               : 'تصفح ألوان GLC على الحائط (132 لون)'}
@@ -1667,6 +1861,20 @@ export const Storefront: React.FC<StorefrontProps> = ({
                 className="hover:text-amber-400 cursor-pointer py-1"
               >
                 كمبيوتر ألوان سايبس
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenGlcColors('scib')}
+                className="hover:text-amber-400 cursor-pointer py-1"
+              >
+                كمبيوتر ألوان سكيب
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenGlcColors('cmb')}
+                className="hover:text-amber-400 cursor-pointer py-1"
+              >
+                كمبيوتر ألوان CMB
               </button>
               <button
                 type="button"

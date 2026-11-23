@@ -207,6 +207,35 @@ export const DEFAULT_CATALOGS: ColorCatalog[] = [
     notes:
       'كارتيلا ألوان سوبر بلاتين الرسمية من GLC (132 درجة لونية معتمدة بالكمبيوتر لدهانات لاكشري مط 7000، داي ستون 7070، جلتكس 15000 و20000 و25000).',
   },
+  {
+    id: 'catlg_cmb_catalogs',
+    title: 'كتالوجات ألوان ومنتجات CMB الرسمية (إنشائي · إيبوكسي · أخشاب)',
+    brand: 'CMB',
+    fileType: 'pdf',
+    fileUrl: '/assets/catalogs/cmb/CMB_Construction_Paints_Catalog.pdf',
+    attachments: [
+      {
+        id: 'att_cmb_construction_pdf',
+        type: 'pdf',
+        url: '/assets/catalogs/cmb/CMB_Construction_Paints_Catalog.pdf',
+        name: 'CMB Construction Paints Catalog (Marmix · Alwany · Graviato · Deco).pdf',
+      },
+      {
+        id: 'att_cmb_epoxy_pdf',
+        type: 'pdf',
+        url: '/assets/catalogs/cmb/CMB_Epoxy_Catalog.pdf',
+        name: 'CMB Kemapoxy Industrial & Tanks Catalog.pdf',
+      },
+      {
+        id: 'att_cmb_wood_pdf',
+        type: 'pdf',
+        url: '/assets/catalogs/cmb/CMB_Wood_Paints_Catalog.pdf',
+        name: 'CMB Verona Wood Paints & Varnishes Catalog.pdf',
+      },
+    ],
+    notes:
+      'الكتالوجات الرسمية لشركة كيماويات البناء الحديث (CMB): درجات مارمكس S40، ملونات ألواني (CMB 01–12)، كيما جرافياتو وكيم بليكو، كاشو وفلفت ومارميتون، وأنظمة كيمابوكسي وأخشاب فيرونا.',
+  },
 ];
 
 export const CURATED_PAINT_SHADES = [
@@ -218,10 +247,11 @@ export const CURATED_PAINT_SHADES = [
   { code: 'JOTUN 9918', name: 'Classic White — كلاسيك وايت', hex: '#F0EFEA', brand: 'JOTUN' },
   { code: 'GLC Y21010', name: 'بيج عسلي بلاتين', hex: '#E9D8B7', brand: 'GLC' },
   { code: 'GLC N03000', name: 'أوف وايت محايد بلاتين', hex: '#F7F4F0', brand: 'GLC' },
-  { code: 'JOTUN 12078', name: 'Comfort Grey — كمفرت غراي', hex: '#BEB9AF', brand: 'JOTUN' },
-  { code: 'JOTUN 4477', name: 'Deco Blue — دكو بلو', hex: '#525C64', brand: 'JOTUN' },
+  { code: 'SCIB 9436', name: 'Air Breeze — إير بريز سكيب', hex: '#F3EDE8', brand: 'SCIB' },
+  { code: 'SCIB 7300', name: 'Jet Stream — جت ستريم سكيب', hex: '#E2E8E5', brand: 'SCIB' },
+  { code: 'CMB 347', name: 'بني كراميل — مارمكس S40', hex: '#A95F2B', brand: 'CMB' },
+  { code: 'CMB 466', name: 'رويال بلو — مارمكس S40', hex: '#023F88', brand: 'CMB' },
   { code: 'SIPES S089', name: 'سايبس بلاستيك S089', hex: '#FEEFCB', brand: 'SIPES' },
   { code: 'SIPES 952', name: 'Turquoise — تركواز سايبس', hex: '#B3D5C3', brand: 'SIPES' },
   { code: 'SAV-C03 Sandstone', name: 'حجر رملي خشن سافيتو', hex: '#DFCFAF', brand: 'SAVETO' },
-  { code: 'SAV-M06 Sahara Ochre', name: 'أوكر صحراوي متوسط سافيتو', hex: '#CE9F73', brand: 'SAVETO' },
 ];
