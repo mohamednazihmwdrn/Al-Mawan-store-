@@ -68,11 +68,24 @@ import {
   GRAFFIATO_LASER_FAMILIES,
   GraffiatoBoardImage,
 } from '../data/graffiatoCatalogColors';
+import {
+  FUTEC_NEWTEC_CATEGORIES,
+  FUTEC_NEWTEC_PDF_URL,
+  FUTEC_NEWTEC_PROFILES,
+  MOULDING_FINISH_TINTS,
+  MOULDING_WALL_BACKDROPS,
+  MouldingPatternKind,
+  MouldingProfileItem,
+  PS_MLKAWY_CATEGORIES,
+  PS_MLKAWY_PDF_URL,
+  PS_MLKAWY_PROFILES,
+} from '../data/futecCatalogs';
 import { useStore } from '../context/StoreContext';
 import { Product } from '../types/store';
 import { trackAnalyticsEvent } from '../lib/analytics';
 import {
   GlcWallPreview,
+  MouldingPreviewSpec,
   RoomSceneType,
   TEXTURE_GRADE_LABELS_AR,
   WallFinishType,
@@ -88,7 +101,9 @@ export type ColorStudioBrand =
   | 'scib'
   | 'cmb'
   | 'graffiato_laser'
-  | 'graffiato_classic';
+  | 'graffiato_classic'
+  | 'futec_newtec'
+  | 'ps_mlkawy';
 
 interface GlcColorStudioPageProps {
   activeBrand: ColorStudioBrand;
@@ -328,6 +343,238 @@ function getClassicBaseIdForGrade(grade?: GraffiatoTextureGrade): string {
   return 'gc_coarse';
 }
 
+const FUTEC_BASES: NormalizedBase[] = [
+  {
+    id: 'futec_std',
+    nameAr: 'فيوتك فوم عالي الكثافة (NEWTEC 2025)',
+    finish: 'matt',
+    finishLabelAr: 'مضاد للرطوبة والحرارة · قابل للدهان',
+  },
+  {
+    id: 'futec_led',
+    nameAr: 'فيوتك بيت نور / إضاءة مخفية (NEWTEC)',
+    finish: 'silk',
+    finishLabelAr: 'مجهز لتركيب شريط LED',
+  },
+  {
+    id: 'futec_3d',
+    nameAr: 'ألواح 3D / بديل خشب WP (NEWTEC)',
+    finish: 'matt',
+    finishLabelAr: 'تركيب سريع بالحائط بمادة السيليكون العظمي',
+  },
+];
+
+const PS_BASES: NormalizedBase[] = [
+  {
+    id: 'ps_rt_artec',
+    nameAr: 'بولي ستيرين PS عالي الكثافة (RT ARTEC)',
+    finish: 'matt',
+    finishLabelAr: 'مقاوم للصدمات والرطوبة · جاهز للدهان',
+  },
+  {
+    id: 'ps_skirting',
+    nameAr: 'وزر وزوايا PS للأرضيات والحوائط',
+    finish: 'semigloss',
+    finishLabelAr: 'طول العود 2.40 متر',
+  },
+];
+
+const FUTEC_SIZE_OPTIONS = [
+  'بالعود (طول الكتالوج الرسمي 2م – 2.40م)',
+  'باللوح / بالقطعة',
+  'توريد شقة أو فيلا كاملة بالمتر الطولي',
+] as const;
+
+const PS_SIZE_OPTIONS = [
+  'بالعود (طول 2.40 متر · PS)',
+  'بالمتر الطولي مع حساب الزوايا',
+  'توريد كمية مقاولات / شقة كاملة',
+] as const;
+
+const ALL_ROOM_SCENES: ReadonlyArray<{ id: RoomSceneType; label: string }> = [
+  { id: 'salon', label: 'صالون' },
+  { id: 'living', label: 'ركنة/معيشة' },
+  { id: 'bedroom', label: 'غرفة نوم' },
+  { id: 'kids', label: 'أطفال' },
+  { id: 'kitchen', label: 'مطبخ' },
+  { id: 'bathroom', label: 'حمام' },
+  { id: 'wall', label: 'حيطة' },
+  { id: 'exterior', label: 'واجهة' },
+];
+
+const MouldingPatternThumb: React.FC<{ patternKind: MouldingPatternKind }> = ({
+  patternKind,
+}) => {
+  return (
+    <svg viewBox="0 0 120 72" className="w-full h-full block" aria-hidden="true">
+      <rect x="0" y="0" width="120" height="72" fill="#F1F5F9" />
+      {(patternKind === 'corniche_plain' || patternKind === 'exterior_corniche') && (
+        <g>
+          <path d="M12,12 L108,12 L108,24 C86,26 78,42 54,48 L54,58 L12,58 Z" fill="#FFFFFF" stroke="#64748B" strokeWidth="1.8" />
+          <line x1="16" y1="20" x2="96" y2="20" stroke="#CBD5E1" strokeWidth="1.5" />
+          <line x1="16" y1="30" x2="72" y2="30" stroke="#94A3B8" strokeWidth="1.5" />
+        </g>
+      )}
+      {patternKind === 'corniche_ornate' && (
+        <g>
+          <path d="M12,12 L108,12 L108,26 L92,34 L76,42 L56,50 L44,58 L12,58 Z" fill="#FFFFFF" stroke="#475569" strokeWidth="1.8" />
+          <path d="M18,22 Q26,16 34,22 Q42,16 50,22 Q58,16 66,22 Q74,16 82,22 Q90,16 98,22" fill="none" stroke="#94A3B8" strokeWidth="2" />
+          <circle cx="28" cy="36" r="3" fill="#CBD5E1" />
+          <circle cx="44" cy="36" r="3" fill="#CBD5E1" />
+          <circle cx="60" cy="36" r="3" fill="#CBD5E1" />
+        </g>
+      )}
+      {patternKind === 'corniche_light' && (
+        <g>
+          <rect x="12" y="10" width="96" height="14" fill="#FEF3C7" />
+          <path d="M12,32 L108,32 L108,22 L92,22 L88,44 C72,48 64,56 42,58 L12,58 Z" fill="#FFFFFF" stroke="#64748B" strokeWidth="1.8" />
+          <ellipse cx="64" cy="18" rx="40" ry="6" fill="#FDE047" opacity="0.55" />
+        </g>
+      )}
+      {patternKind === 'panel_classic' && (
+        <g>
+          <rect x="18" y="12" width="84" height="48" rx="2" fill="#E2E8F0" />
+          <rect x="24" y="18" width="72" height="36" fill="none" stroke="#FFFFFF" strokeWidth="5" />
+          <rect x="26" y="20" width="68" height="32" fill="none" stroke="#64748B" strokeWidth="1.2" />
+          <rect x="30" y="24" width="60" height="24" fill="none" stroke="#94A3B8" strokeWidth="1" />
+        </g>
+      )}
+      {patternKind === 'panel_ornate' && (
+        <g>
+          <rect x="18" y="12" width="84" height="48" fill="#E2E8F0" />
+          <rect x="24" y="18" width="72" height="36" fill="none" stroke="#FFFFFF" strokeWidth="4.5" />
+          <rect x="24" y="18" width="72" height="36" fill="none" stroke="#475569" strokeWidth="1.2" />
+          <circle cx="24" cy="18" r="5" fill="#FFFFFF" stroke="#475569" strokeWidth="1.2" />
+          <circle cx="96" cy="18" r="5" fill="#FFFFFF" stroke="#475569" strokeWidth="1.2" />
+          <circle cx="24" cy="54" r="5" fill="#FFFFFF" stroke="#475569" strokeWidth="1.2" />
+          <circle cx="96" cy="54" r="5" fill="#FFFFFF" stroke="#475569" strokeWidth="1.2" />
+        </g>
+      )}
+      {patternKind === 'panel_arch' && (
+        <g>
+          <rect x="24" y="10" width="72" height="54" fill="#E2E8F0" />
+          <path d="M34,58 L34,36 A26,22 0 0 1 86,36 L86,58 Z" fill="none" stroke="#FFFFFF" strokeWidth="5" />
+          <path d="M34,58 L34,36 A26,22 0 0 1 86,36 L86,58 Z" fill="none" stroke="#475569" strokeWidth="1.3" />
+        </g>
+      )}
+      {patternKind === 'door_frame' && (
+        <g>
+          <rect x="36" y="12" width="48" height="52" fill="#D6C7B2" />
+          <path d="M32,64 L32,12 L88,12 L88,64" fill="none" stroke="#FFFFFF" strokeWidth="7" />
+          <path d="M32,64 L32,12 L88,12 L88,64" fill="none" stroke="#475569" strokeWidth="1.5" />
+          <rect x="26" y="6" width="68" height="7" fill="#FFFFFF" stroke="#475569" strokeWidth="1.3" />
+        </g>
+      )}
+      {(patternKind === 'skirting' || patternKind === 'skirting_led') && (
+        <g>
+          <rect x="0" y="54" width="120" height="18" fill="#CBD5E1" />
+          {patternKind === 'skirting_led' && (
+            <rect x="10" y="24" width="100" height="6" fill="#FDE047" opacity="0.65" />
+          )}
+          <path d="M12,28 L108,28 L108,56 L12,56 Z" fill="#FFFFFF" stroke="#475569" strokeWidth="1.6" />
+          <line x1="12" y1="36" x2="108" y2="36" stroke="#94A3B8" strokeWidth="1.3" />
+          <line x1="12" y1="42" x2="108" y2="42" stroke="#CBD5E1" strokeWidth="1.3" />
+        </g>
+      )}
+      {patternKind === 'angle' && (
+        <g>
+          <rect x="38" y="8" width="44" height="56" fill="#E2E8F0" />
+          <path d="M44,8 L60,18 L76,8 L76,64 L60,54 L44,64 Z" fill="#FFFFFF" stroke="#475569" strokeWidth="1.5" />
+          <line x1="60" y1="16" x2="60" y2="56" stroke="#64748B" strokeWidth="1.5" />
+        </g>
+      )}
+      {(patternKind === 'wood_slat_wide' ||
+        patternKind === 'wood_slat_fine' ||
+        patternKind === 'wood_wave') && (
+        <g>
+          <rect x="12" y="10" width="96" height="52" fill="#3B2314" rx="3" />
+          {Array.from({ length: patternKind === 'wood_slat_fine' ? 12 : 7 }).map((_, idx) => {
+            const step = patternKind === 'wood_slat_fine' ? 7.8 : 13.5;
+            const w = patternKind === 'wood_slat_fine' ? 4.8 : 9;
+            return (
+              <rect
+                key={idx}
+                x={16 + idx * step}
+                y="12"
+                width={w}
+                height="48"
+                rx={patternKind === 'wood_wave' ? 4 : 1}
+                fill={idx % 2 === 0 ? '#A47148' : '#8B5A2B'}
+              />
+            );
+          })}
+        </g>
+      )}
+      {patternKind.startsWith('wall_3d_') && (
+        <g>
+          <rect x="14" y="10" width="92" height="52" fill="#E2E8F0" rx="2" />
+          {patternKind === 'wall_3d_diamond' && (
+            <path d="M18,36 L38,14 L58,36 L78,14 L98,36 L78,58 L58,36 L38,58 Z" fill="#FFFFFF" stroke="#64748B" strokeWidth="1.4" />
+          )}
+          {patternKind === 'wall_3d_wave' && (
+            <g fill="none" stroke="#64748B" strokeWidth="2.4">
+              <path d="M16,22 Q38,12 60,22 T104,22" />
+              <path d="M16,36 Q38,26 60,36 T104,36" />
+              <path d="M16,50 Q38,40 60,50 T104,50" />
+            </g>
+          )}
+          {patternKind === 'wall_3d_brick' && (
+            <g fill="#FFFFFF" stroke="#64748B" strokeWidth="1.3">
+              <rect x="18" y="14" width="26" height="12" rx="1" />
+              <rect x="47" y="14" width="26" height="12" rx="1" />
+              <rect x="76" y="14" width="26" height="12" rx="1" />
+              <rect x="30" y="30" width="28" height="12" rx="1" />
+              <rect x="61" y="30" width="28" height="12" rx="1" />
+              <rect x="18" y="46" width="26" height="12" rx="1" />
+              <rect x="47" y="46" width="26" height="12" rx="1" />
+              <rect x="76" y="46" width="26" height="12" rx="1" />
+            </g>
+          )}
+          {patternKind === 'wall_3d_circle' && (
+            <g fill="#FFFFFF" stroke="#64748B" strokeWidth="1.3">
+              <circle cx="38" cy="24" r="9" />
+              <circle cx="60" cy="24" r="9" />
+              <circle cx="82" cy="24" r="9" />
+              <circle cx="38" cy="46" r="9" />
+              <circle cx="60" cy="46" r="9" />
+              <circle cx="82" cy="46" r="9" />
+            </g>
+          )}
+          {(patternKind === 'wall_3d_rock' ||
+            patternKind === 'wall_3d_tufted' ||
+            patternKind === 'wall_3d_origami' ||
+            patternKind === 'wall_3d_strips') && (
+            <g fill="#FFFFFF" stroke="#64748B" strokeWidth="1.3">
+              <polygon points="18,14 48,14 34,36" />
+              <polygon points="48,14 78,14 64,36" />
+              <polygon points="78,14 102,14 90,36" />
+              <polygon points="18,58 48,58 34,36" />
+              <polygon points="48,58 78,58 64,36" />
+              <polygon points="78,58 102,58 90,36" />
+            </g>
+          )}
+        </g>
+      )}
+      {patternKind === 'medallion' && (
+        <g>
+          <circle cx="60" cy="36" r="26" fill="#FFFFFF" stroke="#475569" strokeWidth="1.6" />
+          <circle cx="60" cy="36" r="19" fill="none" stroke="#94A3B8" strokeWidth="1.3" strokeDasharray="3 3" />
+          <circle cx="60" cy="36" r="8" fill="#E2E8F0" stroke="#475569" strokeWidth="1.4" />
+        </g>
+      )}
+      {(patternKind === 'console' || patternKind === 'column') && (
+        <g>
+          <rect x="34" y="10" width="52" height="10" rx="2" fill="#FFFFFF" stroke="#475569" strokeWidth="1.4" />
+          <rect x="44" y="20" width="32" height="36" fill="#FFFFFF" stroke="#475569" strokeWidth="1.4" />
+          <line x1="53" y1="22" x2="53" y2="54" stroke="#94A3B8" strokeWidth="1.3" />
+          <line x1="67" y1="22" x2="67" y2="54" stroke="#94A3B8" strokeWidth="1.3" />
+          <rect x="36" y="56" width="48" height="8" rx="1" fill="#FFFFFF" stroke="#475569" strokeWidth="1.4" />
+        </g>
+      )}
+    </svg>
+  );
+};
+
 export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   activeBrand,
   onChangeBrand,
@@ -352,6 +599,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     cmb: 'all',
     graffiato_laser: 'all',
     graffiato_classic: 'all',
+    futec_newtec: 'all',
+    ps_mlkawy: 'all',
   });
   const [graffiatoGradeFilter, setGraffiatoGradeFilter] = useState<
     'all' | GraffiatoTextureGrade
@@ -371,6 +620,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     cmb: '',
     graffiato_laser: '',
     graffiato_classic: '',
+    futec_newtec: '',
+    ps_mlkawy: '',
   });
   const [showAllJotun, setShowAllJotun] = useState(false);
   const [showAllScib, setShowAllScib] = useState(false);
@@ -378,6 +629,16 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     boards: GraffiatoBoardImage[];
     index: number;
   } | null>(null);
+
+  const [selectedMouldingByBrand, setSelectedMouldingByBrand] = useState<
+    Record<'futec_newtec' | 'ps_mlkawy', MouldingProfileItem>
+  >(() => ({
+    futec_newtec:
+      FUTEC_NEWTEC_PROFILES.find((p) => p.code === 'K 217') || FUTEC_NEWTEC_PROFILES[0],
+    ps_mlkawy: PS_MLKAWY_PROFILES[0],
+  }));
+  const [mouldingWallHex, setMouldingWallHex] = useState<string>(MOULDING_WALL_BACKDROPS[0].hex);
+  const [mouldingTrimHex, setMouldingTrimHex] = useState<string>(MOULDING_FINISH_TINTS[0].hex);
 
   const [primaryByBrand, setPrimaryByBrand] = useState<Record<ColorStudioBrand, NormalizedShade>>(
     () => ({
@@ -398,6 +659,18 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         GRAFFIATO_LASER_SHADES.find((c) => c.code === '1016') || GRAFFIATO_LASER_SHADES[0],
       graffiato_classic:
         GRAFFIATO_CLASSIC_SHADES.find((c) => c.code === 'R 50') || GRAFFIATO_CLASSIC_SHADES[0],
+      futec_newtec: {
+        code: MOULDING_WALL_BACKDROPS[0].nameAr,
+        hex: MOULDING_WALL_BACKDROPS[0].hex,
+        familyId: 'corniches',
+        nameAr: MOULDING_WALL_BACKDROPS[0].nameAr,
+      },
+      ps_mlkawy: {
+        code: MOULDING_WALL_BACKDROPS[0].nameAr,
+        hex: MOULDING_WALL_BACKDROPS[0].hex,
+        familyId: 'panels',
+        nameAr: MOULDING_WALL_BACKDROPS[0].nameAr,
+      },
     })
   );
   const [compareByBrand, setCompareByBrand] = useState<Record<ColorStudioBrand, NormalizedShade>>(
@@ -419,6 +692,18 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         GRAFFIATO_LASER_SHADES.find((c) => c.code === '1002') || GRAFFIATO_LASER_SHADES[1],
       graffiato_classic:
         GRAFFIATO_CLASSIC_SHADES.find((c) => c.code === '6050') || GRAFFIATO_CLASSIC_SHADES[1],
+      futec_newtec: {
+        code: MOULDING_WALL_BACKDROPS[1].nameAr,
+        hex: MOULDING_WALL_BACKDROPS[1].hex,
+        familyId: 'corniches',
+        nameAr: MOULDING_WALL_BACKDROPS[1].nameAr,
+      },
+      ps_mlkawy: {
+        code: MOULDING_WALL_BACKDROPS[1].nameAr,
+        hex: MOULDING_WALL_BACKDROPS[1].hex,
+        familyId: 'panels',
+        nameAr: MOULDING_WALL_BACKDROPS[1].nameAr,
+      },
     })
   );
 
@@ -429,6 +714,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     activeBrand === 'graffiato_classic' ||
     activeBrand === 'saveto'
       ? 'exterior'
+      : activeBrand === 'futec_newtec' || activeBrand === 'ps_mlkawy'
+      ? 'salon'
       : 'living'
   );
   const [lighting, setLighting] = useState<WallLightingMode>('daylight');
@@ -450,6 +737,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     cmb: CMB_PRODUCT_BASES[0].id,
     graffiato_laser: GRAFFIATO_LASER_BASES[0].id,
     graffiato_classic: GRAFFIATO_CLASSIC_BASES[0].id,
+    futec_newtec: FUTEC_BASES[0].id,
+    ps_mlkawy: PS_BASES[0].id,
   });
   const [sizeByBrand, setSizeByBrand] = useState<Record<ColorStudioBrand, string>>({
     glc: GLC_SIZE_OPTIONS[2],
@@ -460,6 +749,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     cmb: CMB_SIZE_OPTIONS_BY_SECTION.all[2],
     graffiato_laser: GRAFFIATO_TEXTURE_SIZE_OPTIONS[0],
     graffiato_classic: GRAFFIATO_TEXTURE_SIZE_OPTIONS[0],
+    futec_newtec: FUTEC_SIZE_OPTIONS[0],
+    ps_mlkawy: PS_SIZE_OPTIONS[0],
   });
 
   const [customerName, setCustomerName] = useState('');
@@ -476,8 +767,11 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   const isGraffiatoLaser = activeBrand === 'graffiato_laser';
   const isGraffiatoClassic = activeBrand === 'graffiato_classic';
   const isDedicatedGraffiato = isGraffiatoLaser || isGraffiatoClassic;
+  const isFutecNewtec = activeBrand === 'futec_newtec';
+  const isPsMlkawy = activeBrand === 'ps_mlkawy';
+  const isMouldingMode = isFutecNewtec || isPsMlkawy;
 
-  // Ensure direct navigation into Laser / Non-Laser Graffiato starts directly on the exterior house facade
+  // Sync exterior default scene on Graffiato brands and salon default when entering Moulding mode
   useEffect(() => {
     if (
       activeBrand === 'graffiato_laser' ||
@@ -486,6 +780,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ) {
       setScene((prev) => (prev === 'wall' ? 'wall' : 'exterior'));
       setWallTexture((prev) => (prev === 'smooth' ? 'coarse' : prev));
+    } else if (activeBrand === 'futec_newtec' || activeBrand === 'ps_mlkawy') {
+      setWallTexture('smooth');
+      setCompareMode(false);
     }
   }, [activeBrand]);
 
@@ -503,6 +800,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ? 'كيماستون ليزر'
     : isGraffiatoClassic
     ? 'جرافيـاتو بدون ليزر'
+    : isFutecNewtec
+    ? 'NEWTEC 2025'
+    : isPsMlkawy
+    ? 'PS ملكاوي 2026'
     : 'GLC';
   const brandTitleAr = isJotun
     ? 'جوتن (JOTUN)'
@@ -518,6 +819,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ? 'جرافيـاتو ليزر — جوريكا مصر (6 لوحات)'
     : isGraffiatoClassic
     ? 'جرافيـاتو وزخرفي بدون ليزر (6 لوحات)'
+    : isFutecNewtec
+    ? 'فيوتك نيوتك 2025 (NEWTEC)'
+    : isPsMlkawy
+    ? 'بانوهات وكرانيش ووزر PS ملكاوي جروب 2026'
     : 'GLC بلاتين';
 
   const allShades = isJotun
@@ -541,17 +846,37 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   const selectedFamilyId = familyByBrand[activeBrand];
   const searchCode = searchByBrand[activeBrand];
 
-  const isGraffiatoMode =
-    isSaveto ||
-    isDedicatedGraffiato ||
-    (isSipes && (selectedFamilyId === 'graffiato' || primaryShade.familyId === 'graffiato')) ||
-    (isCmb && (selectedFamilyId === 'graviato' || primaryShade.familyId === 'graviato'));
+  const activeMouldingProfile: MouldingProfileItem | null = isFutecNewtec
+    ? selectedMouldingByBrand.futec_newtec
+    : isPsMlkawy
+    ? selectedMouldingByBrand.ps_mlkawy
+    : null;
 
-  const activeWallTexture: WallTextureType =
-    (isSaveto || isDedicatedGraffiato || (isCmb && primaryShade.familyId === 'graviato')) &&
-    wallTexture === 'smooth'
-      ? primaryShade.textureGrade || 'coarse'
-      : wallTexture;
+  const activeMouldingSpec: MouldingPreviewSpec | null = activeMouldingProfile
+    ? {
+        code: activeMouldingProfile.code,
+        nameAr: activeMouldingProfile.nameAr,
+        brandLabel: isFutecNewtec ? 'NEWTEC' : 'PS',
+        dimensionsAr: activeMouldingProfile.dimensionsAr,
+        patternKind: activeMouldingProfile.patternKind,
+        widthTier: activeMouldingProfile.widthTier,
+        trimHex: mouldingTrimHex,
+      }
+    : null;
+
+  const isGraffiatoMode =
+    !isMouldingMode &&
+    (isSaveto ||
+      isDedicatedGraffiato ||
+      (isSipes && (selectedFamilyId === 'graffiato' || primaryShade.familyId === 'graffiato')) ||
+      (isCmb && (selectedFamilyId === 'graviato' || primaryShade.familyId === 'graviato')));
+
+  const activeWallTexture: WallTextureType = isMouldingMode
+    ? 'smooth'
+    : (isSaveto || isDedicatedGraffiato || (isCmb && primaryShade.familyId === 'graviato')) &&
+      wallTexture === 'smooth'
+    ? primaryShade.textureGrade || 'coarse'
+    : wallTexture;
 
   const effectiveScene: RoomSceneType =
     isGraffiatoMode && scene !== 'exterior' && scene !== 'wall' ? 'exterior' : scene;
@@ -590,6 +915,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     ? GRAFFIATO_LASER_BASES
     : isGraffiatoClassic
     ? GRAFFIATO_CLASSIC_BASES
+    : isFutecNewtec
+    ? FUTEC_BASES
+    : isPsMlkawy
+    ? PS_BASES
     : GLC_PLATINE_BASES;
 
   const sizeOptions: readonly string[] = isJotun
@@ -606,6 +935,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       CMB_SIZE_OPTIONS_BY_SECTION.all
     : isDedicatedGraffiato
     ? GRAFFIATO_TEXTURE_SIZE_OPTIONS
+    : isFutecNewtec
+    ? FUTEC_SIZE_OPTIONS
+    : isPsMlkawy
+    ? PS_SIZE_OPTIONS
     : GLC_SIZE_OPTIONS;
 
   const selectedBaseId = baseIdByBrand[activeBrand];
@@ -613,6 +946,22 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   const sizeOption = sizeOptions.includes(rawSizeOption) ? rawSizeOption : sizeOptions[0];
 
   const families = useMemo(() => {
+    if (isFutecNewtec) {
+      return FUTEC_NEWTEC_CATEGORIES.map((c) => ({
+        id: c.id,
+        nameAr: c.nameAr,
+        swatchHex: c.swatchHex,
+        count: FUTEC_NEWTEC_PROFILES.filter((p) => p.categoryId === c.id).length,
+      }));
+    }
+    if (isPsMlkawy) {
+      return PS_MLKAWY_CATEGORIES.map((c) => ({
+        id: c.id,
+        nameAr: c.nameAr,
+        swatchHex: c.swatchHex,
+        count: PS_MLKAWY_PROFILES.filter((p) => p.categoryId === c.id).length,
+      }));
+    }
     if (isJotun) {
       return JOTUN_COLOR_FAMILIES.map((f) => ({
         id: f.id,
@@ -675,7 +1024,17 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       swatchHex: GLC_PLATINE_COLORS.find((c) => c.familyId === f.id)?.hex || '#CBD5E1',
       count: GLC_NORMALIZED_SHADES.filter((c) => c.familyId === f.id).length,
     }));
-  }, [isCmb, isGraffiatoClassic, isGraffiatoLaser, isJotun, isSaveto, isScib, isSipes]);
+  }, [
+    isCmb,
+    isFutecNewtec,
+    isGraffiatoClassic,
+    isGraffiatoLaser,
+    isJotun,
+    isPsMlkawy,
+    isSaveto,
+    isScib,
+    isSipes,
+  ]);
 
   const familyNameById = useMemo(
     () => new Map(families.map((f) => [f.id, f.nameAr])),
@@ -819,6 +1178,61 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     [shouldCapJotun, shouldCapScib, filteredColors]
   );
 
+  const allMouldings: MouldingProfileItem[] = isFutecNewtec
+    ? FUTEC_NEWTEC_PROFILES
+    : isPsMlkawy
+    ? PS_MLKAWY_PROFILES
+    : [];
+
+  const filteredMouldings = useMemo(() => {
+    if (!isMouldingMode) return [];
+    const q = searchCode.trim().toLowerCase();
+    return allMouldings.filter((p) => {
+      if (selectedFamilyId !== 'all' && p.categoryId !== selectedFamilyId) return false;
+      if (q) {
+        const catName = (familyNameById.get(p.categoryId) || '').toLowerCase();
+        const hay = `${p.code} ${p.nameAr} ${p.dimensionsAr} ${p.lengthAr} ${p.notesAr || ''} ${catName} ص${p.catalogPage}`.toLowerCase();
+        return hay.includes(q);
+      }
+      return true;
+    });
+  }, [allMouldings, familyNameById, isMouldingMode, searchCode, selectedFamilyId]);
+
+  const handleSelectMoulding = (profile: MouldingProfileItem) => {
+    setSubmitted(false);
+    if (isFutecNewtec) {
+      setSelectedMouldingByBrand((prev) => ({ ...prev, futec_newtec: profile }));
+    } else if (isPsMlkawy) {
+      setSelectedMouldingByBrand((prev) => ({ ...prev, ps_mlkawy: profile }));
+    }
+    if (profile.categoryId === 'exterior') {
+      setScene('exterior');
+    } else if (scene === 'exterior' && profile.recommendedScene) {
+      setScene(profile.recommendedScene);
+    }
+    if (profile.categoryId === 'light_corniches') {
+      setBaseIdByBrand((prev) => ({
+        ...prev,
+        [activeBrand]: isFutecNewtec ? 'futec_led' : 'ps_rt_artec',
+      }));
+    } else if (profile.categoryId === 'wood_panels' || profile.categoryId === 'panels_3d') {
+      setBaseIdByBrand((prev) => ({
+        ...prev,
+        [activeBrand]: 'futec_3d',
+      }));
+    } else if (profile.categoryId === 'skirtings' || profile.categoryId === 'angles') {
+      setBaseIdByBrand((prev) => ({
+        ...prev,
+        [activeBrand]: isFutecNewtec ? 'futec_std' : 'ps_skirting',
+      }));
+    } else {
+      setBaseIdByBrand((prev) => ({
+        ...prev,
+        [activeBrand]: isFutecNewtec ? 'futec_std' : 'ps_rt_artec',
+      }));
+    }
+  };
+
   const handleBrandSwitch = (nextBrand: ColorStudioBrand) => {
     if (nextBrand === activeBrand) return;
     setSubmitted(false);
@@ -835,6 +1249,12 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           : primaryByBrand[nextBrand].textureGrade || 'coarse';
       setWallTexture(nextTex);
       setFinish('matt');
+    } else if (nextBrand === 'futec_newtec' || nextBrand === 'ps_mlkawy') {
+      setCompareMode(false);
+      setWallTexture('smooth');
+      if (scene === 'exterior') {
+        setScene('salon');
+      }
     } else if (nextBrand === 'sipes' && familyByBrand.sipes === 'graffiato') {
       setScene('exterior');
       setWallTexture(primaryByBrand.sipes.textureGrade || 'coarse');
@@ -852,6 +1272,14 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
   const handleSelectFamily = (nextFamilyId: string) => {
     setFamilyByBrand((prev) => ({ ...prev, [activeBrand]: nextFamilyId }));
+    if (isMouldingMode) {
+      if (nextFamilyId === 'exterior') {
+        setScene('exterior');
+      } else if (scene === 'exterior' && nextFamilyId !== 'all') {
+        setScene('salon');
+      }
+      return;
+    }
     if (isSipes) {
       if (nextFamilyId === 'graffiato') {
         setGraffiatoGradeFilter('all');
@@ -1138,18 +1566,24 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     return label ? `${shade.code} (${label})` : shade.code;
   };
 
-  const orderColorSummary = compareMode
+  const orderColorSummary = isMouldingMode && activeMouldingProfile
+    ? `${activeMouldingProfile.code} — ${activeMouldingProfile.nameAr} (${activeMouldingProfile.dimensionsAr})`
+    : compareMode
     ? `${formatShadeLabel(primaryShade)} (أساسي) / للمقارنة: ${formatShadeLabel(compareShade)}`
     : formatShadeLabel(primaryShade);
 
-  const primaryFamilyName = familyNameById.get(primaryShade.familyId) || '';
+  const primaryFamilyName = isMouldingMode && activeMouldingProfile
+    ? familyNameById.get(activeMouldingProfile.categoryId) || ''
+    : familyNameById.get(primaryShade.familyId) || '';
   const activeTextureLabel =
     activeWallTexture !== 'smooth' ? TEXTURE_GRADE_LABELS_AR[activeWallTexture] : null;
 
   const whatsappUrl = `https://wa.me/${config.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(
-    `مرحباً ${config.storeName}، أرغب في تجهيز لون ${brandTitleAr} بالكمبيوتر:\n• القسم/الباليت: ${primaryFamilyName}\n• كود اللون: ${formatShadeLabel(primaryShade)}${
-      activeTextureLabel ? `\n• الملمس المطلوب: ${activeTextureLabel}` : ''
-    }\n• نوع الدهان: ${selectedBase.nameAr} (${selectedBase.finishLabelAr})\n• العبوة المطلوبة: ${sizeOption}`
+    isMouldingMode && activeMouldingProfile
+      ? `مرحباً ${config.storeName}، أرغب في طلب/تسعير ${brandTitleAr}:\n• القسم: ${primaryFamilyName}\n• الكود والموديل: ${activeMouldingProfile.code} — ${activeMouldingProfile.nameAr}\n• المقاس: ${activeMouldingProfile.dimensionsAr} (${activeMouldingProfile.lengthAr})\n• الخامة/النظام: ${selectedBase.nameAr}\n• نظام التوريد: ${sizeOption}`
+      : `مرحباً ${config.storeName}، أرغب في تجهيز لون ${brandTitleAr} بالكمبيوتر:\n• القسم/الباليت: ${primaryFamilyName}\n• كود اللون: ${formatShadeLabel(primaryShade)}${
+          activeTextureLabel ? `\n• الملمس المطلوب: ${activeTextureLabel}` : ''
+        }\n• نوع الدهان: ${selectedBase.nameAr} (${selectedBase.finishLabelAr})\n• العبوة المطلوبة: ${sizeOption}`
   )}`;
 
   const handleOrderSubmit = async (e: React.FormEvent) => {
@@ -1161,15 +1595,25 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
     setErrorMsg('');
     setSubmitting(true);
     try {
-      await submitInquiry({
-        customerName: customerName.trim(),
-        phone: phone.trim(),
-        subject: `تلوين كمبيوتر ${brandTitleUpper}: كود ${formatShadeLabel(primaryShade)}`,
-        message: `الشركة: ${brandTitleAr}\nالقسم: ${primaryFamilyName}\nالكود المطلوب: ${orderColorSummary}${
-          activeTextureLabel ? `\nالملمس: ${activeTextureLabel}` : ''
-        }\nنوع المنتج: ${selectedBase.nameAr} (${selectedBase.finishLabelAr})\nالعبوة: ${sizeOption}`,
-        colorCode: `${brandTitleUpper} ${formatShadeLabel(primaryShade)}`,
-      });
+      if (isMouldingMode && activeMouldingProfile) {
+        await submitInquiry({
+          customerName: customerName.trim(),
+          phone: phone.trim(),
+          subject: `طلب ${brandTitleUpper}: كود ${activeMouldingProfile.code} (${activeMouldingProfile.nameAr})`,
+          message: `الكتالوج: ${brandTitleAr}\nالقسم: ${primaryFamilyName}\nالكود المطلوب: ${activeMouldingProfile.code} — ${activeMouldingProfile.nameAr}\nالمقاس: ${activeMouldingProfile.dimensionsAr} · ${activeMouldingProfile.lengthAr}\nالخامة: ${selectedBase.nameAr}\nطريقة التوريد: ${sizeOption}`,
+          colorCode: `${brandTitleUpper} ${activeMouldingProfile.code}`,
+        });
+      } else {
+        await submitInquiry({
+          customerName: customerName.trim(),
+          phone: phone.trim(),
+          subject: `تلوين كمبيوتر ${brandTitleUpper}: كود ${formatShadeLabel(primaryShade)}`,
+          message: `الشركة: ${brandTitleAr}\nالقسم: ${primaryFamilyName}\nالكود المطلوب: ${orderColorSummary}${
+            activeTextureLabel ? `\nالملمس: ${activeTextureLabel}` : ''
+          }\nنوع المنتج: ${selectedBase.nameAr} (${selectedBase.finishLabelAr})\nالعبوة: ${sizeOption}`,
+          colorCode: `${brandTitleUpper} ${formatShadeLabel(primaryShade)}`,
+        });
+      }
       setSubmitted(true);
       setCustomerName('');
       setPhone('');
@@ -1182,12 +1626,12 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-clip bg-slate-50 text-slate-900 pb-24 md:pb-12">
-      {/* Top Studio Header Bar */}
+      {/* Compact Top Studio Header Bar so Sticky Visualizer sits immediately in the top fold */}
       <div className="bg-slate-900 text-white border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-amber-400 font-bold">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-2.5 sm:py-4 space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="space-y-0.5 min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-amber-400 font-bold">
                 <span>
                   {isJotun
                     ? 'JOTUN EGYPT'
@@ -1203,57 +1647,73 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     ? 'جرافيـاتو ليزر · جوريكا مصر'
                     : isGraffiatoClassic
                     ? 'جرافيـاتو بدون ليزر · واجهات'
+                    : isFutecNewtec
+                    ? 'NEWTEC 2025 · فيوتك نيوتك'
+                    : isPsMlkawy
+                    ? 'PS ملكاوي جروب 2026 · RT ARTEC'
                     : 'GLC PAINTS'}
                 </span>
                 <span aria-hidden="true">·</span>
-                <span>
-                  {isJotun
-                    ? 'كتالوج ألوان جوتن الداخلية الرسمي'
-                    : isSipes
-                    ? 'كتالوجات سايبس الرسمية (داخلية وخارجية)'
-                    : isSaveto
-                    ? 'جرافيـاتو سافيتو وسافياتو للواجهات (خشن · وسط · ناعم)'
-                    : isScib
-                    ? 'كتالوج ألوان سكيب الرسمي (Colour Catalogue)'
-                    : isCmb
-                    ? 'كتالوجات ألوان ومنتجات كيماويات البناء الحديث'
-                    : isGraffiatoLaser
-                    ? '6 لوحات أصلية (1002 – 1220) · تشطيب بالليزر (خشن · وسط · ناعم)'
-                    : isGraffiatoClassic
-                    ? '6 لوحات أصلية (جوتاشيلد · مارفكس · جيماتكس · ماربل) بدون ليزر'
-                    : 'كارتيلا سوبر بلاتين المعتمدة'}
+                <span className="font-mono-nums">
+                  {isMouldingMode
+                    ? `${allMouldings.length} كود وشكل`
+                    : `${allShades.length} كود لون`}
                 </span>
-                <span aria-hidden="true">·</span>
-                <span className="font-mono-nums">{allShades.length} كود لون</span>
               </div>
-              <h1 className="text-lg sm:text-2xl font-extrabold text-white leading-snug">
+              <h1 className="text-sm sm:text-xl font-extrabold text-white leading-snug truncate">
                 {isJotun
-                  ? 'كمبيوتر ألوان جوتن (JOTUN) ومعاينة الحائط المباشرة'
+                  ? 'كمبيوتر ألوان جوتن (JOTUN)'
                   : isSipes
-                  ? 'كمبيوتر ألوان سايبس (SIPES) — الواجهات الخارجية والحوائط'
+                  ? 'كمبيوتر ألوان سايبس (SIPES)'
                   : isSaveto
-                  ? 'كتالوج جرافيـاتو وواجهات سافيتو (SAVETO) — خشن 3مم · وسط 2مم · ناعم 1مم'
+                  ? 'جرافيـاتو وواجهات سافيتو (SAVETO)'
                   : isScib
-                  ? 'كمبيوتر ألوان سكيب (SCIB) ومعاينة الحائط المباشرة (2,221 لون)'
+                  ? 'كمبيوتر ألوان سكيب (SCIB)'
                   : isCmb
-                  ? 'كتالوج ألوان ومنتجات CMB (مارمكس · ألواني · كيماتون · كيما جرافياتو · كيمابوكسي)'
+                  ? 'ألوان ومنتجات CMB كيماويات'
                   : isGraffiatoLaser
-                  ? 'كتالوج جرافيـاتو ليزر (6 صور أصلية) — عرض خشن ووسط وناعم على واجهة البيت'
+                  ? 'جرافيـاتو ليزر (6 لوحات) على واجهة البيت'
                   : isGraffiatoClassic
-                  ? 'كتالوج جرافيـاتو وزخرفي بدون ليزر (6 صور أصلية) — عرض خشن ووسط وناعم على واجهة البيت'
-                  : 'كمبيوتر ألوان GLC ومعاينة الحائط المباشرة'}
+                  ? 'جرافيـاتو بدون ليزر (6 لوحات) على واجهة البيت'
+                  : isFutecNewtec
+                  ? 'كتالوج فيوتك NEWTEC 2025 — معاينة مباشرة على الغرف والحائط'
+                  : isPsMlkawy
+                  ? 'كتالوج بانوهات وكرانيش ووزر PS ملكاوي 2026 — معاينة على الغرف'
+                  : 'كمبيوتر ألوان GLC بلاتين'}
               </h1>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto min-w-0">
-              {isJotun ? (
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
+              {isFutecNewtec ? (
+                <a
+                  href={FUTEC_NEWTEC_PDF_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download="كتالوج فيوتك NEWTEC 2025.pdf"
+                  className="min-h-[36px] sm:min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-slate-100 whitespace-nowrap transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5 text-amber-400" />
+                  <span>كتالوج NEWTEC 2025 PDF</span>
+                </a>
+              ) : isPsMlkawy ? (
+                <a
+                  href={PS_MLKAWY_PDF_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download="كتالوج بانوهات وكرانيش ووزر PS.pdf"
+                  className="min-h-[36px] sm:min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-slate-100 whitespace-nowrap transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5 text-amber-400" />
+                  <span>كتالوج بانوهات PS PDF</span>
+                </a>
+              ) : isJotun ? (
                 <a
                   href={JOTUN_CATALOG_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="min-h-[42px] max-w-full inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-100 leading-tight transition-colors"
+                  className="min-h-[36px] sm:min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-slate-100 leading-tight transition-colors"
                 >
-                  <ExternalLink className="w-4 h-4 text-amber-400" />
+                  <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
                   <span>كتالوج جوتن الرسمي</span>
                 </a>
               ) : isScib ? (
@@ -1261,9 +1721,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   href={SCIB_CATALOG_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="min-h-[42px] max-w-full inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-100 leading-tight transition-colors"
+                  className="min-h-[36px] sm:min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-slate-100 leading-tight transition-colors"
                 >
-                  <ExternalLink className="w-4 h-4 text-amber-400 shrink-0" />
+                  <ExternalLink className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span>كتالوج سكيب الرسمي</span>
                 </a>
               ) : isCmb && activeCmbSection ? (
@@ -1272,11 +1732,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   download={activeCmbSection.pdfName}
-                  className="min-h-[42px] max-w-full inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-100 leading-tight transition-colors"
+                  className="min-h-[36px] sm:min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-slate-100 leading-tight transition-colors"
                 >
-                  <FileText className="w-4 h-4 text-amber-400 shrink-0" />
+                  <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span>كتالوج {activeCmbSection.shortAr} PDF</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </a>
               ) : isSipes && activeSipesSection ? (
                 <a
@@ -1284,11 +1743,10 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   download={activeSipesSection.pdfName}
-                  className="min-h-[42px] max-w-full inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-100 leading-tight transition-colors"
+                  className="min-h-[36px] sm:min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-slate-100 leading-tight transition-colors"
                 >
-                  <FileText className="w-4 h-4 text-amber-400 shrink-0" />
+                  <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span>كتالوج {SIPES_SECTION_SHORT_AR[activeSipesSection.id]} PDF</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </a>
               ) : isDedicatedGraffiato ? (
                 <button
@@ -1301,9 +1759,9 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       index: 0,
                     })
                   }
-                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                  className="min-h-[36px] sm:min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
                 >
-                  <Images className="w-4 h-4 text-amber-400" />
+                  <Images className="w-3.5 h-3.5 text-amber-400" />
                   <span>
                     {isGraffiatoLaser ? 'تصفح 6 صور ليزر الأصلية' : 'تصفح 6 صور بدون ليزر'}
                   </span>
@@ -1314,15 +1772,14 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   download="GLC_Platine_Color_Card.pdf"
-                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors"
+                  className="min-h-[36px] sm:min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors"
                 >
-                  <FileText className="w-4 h-4 text-amber-400" />
+                  <FileText className="w-3.5 h-3.5 text-amber-400" />
                   <span>كتالوج بلاتين PDF</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                 </a>
               )}
 
-              {!isDedicatedGraffiato && (
+              {!isDedicatedGraffiato && !isMouldingMode && (
                 <button
                   type="button"
                   onClick={
@@ -1338,18 +1795,18 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       ? onBrowseCmbProducts
                       : onBrowseGlcProducts
                   }
-                  className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                  className="min-h-[36px] sm:min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-slate-100 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
                 >
-                  <Paintbrush className="w-4 h-4 text-amber-400" />
+                  <Paintbrush className="w-3.5 h-3.5 text-amber-400" />
                   <span>
                     {isJotun
-                      ? 'قسم دهانات جوتن'
+                      ? 'منتجات جوتن'
                       : isSipes
-                      ? 'قسم دهانات سايبس'
+                      ? 'منتجات سايبس'
                       : isSaveto
                       ? 'منتجات سافيتو'
                       : isScib
-                      ? 'قسم دهانات سكيب'
+                      ? 'منتجات سكيب'
                       : isCmb
                       ? 'منتجات CMB'
                       : 'منتجات GLC'}
@@ -1360,166 +1817,156 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               <button
                 type="button"
                 onClick={onBackHome}
-                className="min-h-[42px] inline-flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 px-3.5 py-2 text-xs font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                className="min-h-[36px] sm:min-h-[40px] inline-flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 px-3 py-1.5 text-[11px] sm:text-xs font-extrabold text-slate-950 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
               >
-                <ArrowRight className="w-4 h-4" />
-                <span>العودة للصفحة السابقة</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+                <span>العودة</span>
               </button>
             </div>
           </div>
 
-          {/* Clean Brand & Catalog Switcher (Wrapping Grid on Mobile, Zero Horizontal Scroll) */}
-          <div className="flex flex-col gap-2.5 pt-3 border-t border-slate-800 w-full min-w-0">
-            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-stretch gap-1.5 p-1.5 rounded-xl bg-slate-950/90 border border-slate-800 w-full">
+          {/* 10-Catalog Switcher (Standalone Tabs, Zero Horizontal Scroll) */}
+          <div className="pt-2 border-t border-slate-800 w-full min-w-0">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-stretch gap-1 p-1 rounded-xl bg-slate-950/90 border border-slate-800 w-full">
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('glc')}
-                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
+                className={`min-h-[34px] px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'glc'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
                 }`}
               >
-                GLC بلاتين{' '}
-                <span className="font-mono-nums opacity-80">
-                  ({GLC_NORMALIZED_SHADES.length})
-                </span>
+                GLC بلاتين <span className="font-mono-nums opacity-80">({GLC_NORMALIZED_SHADES.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('jotun')}
-                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
+                className={`min-h-[34px] px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'jotun'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
                 }`}
               >
-                جوتن JOTUN{' '}
-                <span className="font-mono-nums opacity-80">
-                  ({JOTUN_NORMALIZED_SHADES.length})
-                </span>
+                جوتن JOTUN <span className="font-mono-nums opacity-80">({JOTUN_NORMALIZED_SHADES.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('sipes')}
-                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
+                className={`min-h-[34px] px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'sipes'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
                 }`}
               >
-                سايبس SIPES{' '}
-                <span className="font-mono-nums opacity-80">
-                  ({SIPES_NORMALIZED_SHADES.length})
-                </span>
+                سايبس SIPES <span className="font-mono-nums opacity-80">({SIPES_NORMALIZED_SHADES.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('scib')}
-                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
+                className={`min-h-[34px] px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'scib'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
                 }`}
               >
-                سكيب SCIB{' '}
-                <span className="font-mono-nums opacity-80">
-                  ({SCIB_NORMALIZED_SHADES.length})
-                </span>
+                سكيب SCIB <span className="font-mono-nums opacity-80">({SCIB_NORMALIZED_SHADES.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('cmb')}
-                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
+                className={`min-h-[34px] px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'cmb'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
                 }`}
               >
-                CMB كيماويات{' '}
-                <span className="font-mono-nums opacity-80">
-                  ({CMB_NORMALIZED_SHADES.length})
-                </span>
+                CMB كيماويات <span className="font-mono-nums opacity-80">({CMB_NORMALIZED_SHADES.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('saveto')}
-                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
+                className={`min-h-[34px] px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'saveto'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
                 }`}
               >
-                سافيتو SAVETO{' '}
-                <span className="font-mono-nums opacity-80">
-                  ({SAVETO_NORMALIZED_SHADES.length})
-                </span>
+                سافيتو <span className="font-mono-nums opacity-80">({SAVETO_NORMALIZED_SHADES.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('graffiato_laser')}
-                className={`min-h-[40px] inline-flex items-center justify-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
+                className={`min-h-[34px] inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'graffiato_laser'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-amber-300 hover:text-white hover:bg-slate-800/70'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <Sparkles className="w-3 h-3 shrink-0" />
                 <span>جرافيـاتو ليزر</span>
-                <span className="font-mono-nums opacity-80">
-                  ({GRAFFIATO_LASER_SHADES.length})
-                </span>
+                <span className="font-mono-nums opacity-80">({GRAFFIATO_LASER_SHADES.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleBrandSwitch('graffiato_classic')}
-                className={`min-h-[40px] px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold text-center leading-tight transition-colors cursor-pointer ${
+                className={`min-h-[34px] px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-extrabold text-center leading-tight transition-colors cursor-pointer ${
                   activeBrand === 'graffiato_classic'
                     ? 'bg-amber-400 text-slate-950'
                     : 'text-slate-200 hover:text-white hover:bg-slate-800/70'
                 }`}
               >
                 جرافيـاتو بدون ليزر{' '}
-                <span className="font-mono-nums opacity-80">
-                  ({GRAFFIATO_CLASSIC_SHADES.length})
-                </span>
+                <span className="font-mono-nums opacity-80">({GRAFFIATO_CLASSIC_SHADES.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBrandSwitch('futec_newtec')}
+                className={`min-h-[34px] px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-extrabold text-center leading-tight transition-colors cursor-pointer ${
+                  activeBrand === 'futec_newtec'
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'text-amber-300 hover:text-white hover:bg-slate-800/70'
+                }`}
+              >
+                فيوتك NEWTEC 2025{' '}
+                <span className="font-mono-nums opacity-80">({FUTEC_NEWTEC_PROFILES.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBrandSwitch('ps_mlkawy')}
+                className={`min-h-[34px] px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-extrabold text-center leading-tight transition-colors cursor-pointer ${
+                  activeBrand === 'ps_mlkawy'
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'text-sky-300 hover:text-white hover:bg-slate-800/70'
+                }`}
+              >
+                بانوهات PS ملكاوي{' '}
+                <span className="font-mono-nums opacity-80">({PS_MLKAWY_PROFILES.length})</span>
               </button>
             </div>
-
-            <p className="text-[11px] sm:text-xs text-slate-400">
-              {isDedicatedGraffiato
-                ? 'اضغط على أي كود لمشاهدته فوراً على واجهة البيت مع التبديل بين الملمس الخشن والوسط والناعم'
-                : 'اختر الشركة والقسم واضغط على أي درجة لون لمشاهدتها فوراً على الواجهة الخارجية أو الغرفة'}
-            </p>
           </div>
         </div>
       </div>
 
-      {/* Main 2-Column Interactive Studio Workspace */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-5 sm:py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start min-w-0">
-        {/* RIGHT / STICKY COLUMN (in RTL): Interactive Wall & Exterior Facade Visualizer */}
-        <div className="lg:col-span-6 lg:sticky lg:top-20 space-y-4 min-w-0 w-full">
-          <section className="rounded-2xl bg-white border border-slate-200 p-3.5 sm:p-5 space-y-4 shadow-xs min-w-0 w-full">
-            {/* Scene Toolbar Controls (Wrapping Grid, Zero Horizontal Scroll) */}
-            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2">
-              <div className="grid grid-cols-2 sm:inline-flex sm:flex-wrap items-stretch gap-1 p-1 bg-slate-100 rounded-lg w-full sm:w-auto">
-                {(isGraffiatoMode
-                  ? ([
-                      { id: 'exterior', label: 'واجهة البيت' },
-                      { id: 'wall', label: 'تكبير ملمس الواجهة' },
-                    ] as const)
-                  : ([
-                      { id: 'living', label: 'غرفة معيشة' },
-                      { id: 'bedroom', label: 'غرفة نوم' },
-                      { id: 'exterior', label: 'واجهة البيت' },
-                      { id: 'wall', label: 'حائط كامل' },
-                    ] as const)
+      {/* Main 2-Column Workspace: Visualizer is Pinned Sticky Top on Mobile + Sticky Column on Desktop across ALL 10 Catalogs */}
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 pt-2 sm:pt-5 pb-4 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start min-w-0">
+        {/* STICKY TOP VISUALIZER ("العارضة متثبتة بأعلى الشاشة") */}
+        <section className="sticky top-0 z-30 lg:top-20 lg:col-span-6 rounded-b-2xl sm:rounded-2xl bg-white/95 backdrop-blur-xs border border-slate-200 p-2 sm:p-4 space-y-2 sm:space-y-3 shadow-md lg:shadow-xs min-w-0 w-full">
+          {/* Room / Exterior Scene Toolbar (8 Interior & Exterior Rooms for Paint / Futec / PS, 2 Views for Graffiato) */}
+          <div className="flex flex-col gap-1.5">
+            {isGraffiatoMode ? (
+              <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-lg w-full">
+                {(
+                  [
+                    { id: 'exterior', label: 'واجهة البيت' },
+                    { id: 'wall', label: 'تكبير ملمس الواجهة' },
+                  ] as const
                 ).map((item) => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => setScene(item.id)}
-                    className={`min-h-[36px] px-2.5 sm:px-3 py-1 rounded-md text-xs font-bold text-center leading-tight transition-colors cursor-pointer ${
+                    className={`min-h-[32px] px-2 py-1 rounded-md text-xs font-bold text-center leading-tight transition-colors cursor-pointer ${
                       effectiveScene === item.id
                         ? 'bg-white text-slate-900 shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
@@ -1529,14 +1976,33 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   </button>
                 ))}
               </div>
+            ) : (
+              <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-1 p-1 bg-slate-100 rounded-lg w-full">
+                {ALL_ROOM_SCENES.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setScene(item.id)}
+                    className={`min-h-[28px] sm:min-h-[32px] px-1.5 sm:px-2.5 py-0.5 rounded-md text-[10px] sm:text-xs font-bold text-center leading-tight transition-colors cursor-pointer ${
+                      effectiveScene === item.id
+                        ? 'bg-slate-900 text-amber-400 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 bg-white/60 sm:bg-transparent'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
-              <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() =>
                     setLighting((prev) => (prev === 'daylight' ? 'warm' : 'daylight'))
                   }
-                  className={`min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold leading-tight transition-colors cursor-pointer ${
+                  className={`min-h-[30px] sm:min-h-[34px] inline-flex items-center justify-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-bold leading-tight transition-colors cursor-pointer ${
                     lighting === 'warm'
                       ? 'bg-amber-50 border-amber-300 text-amber-900'
                       : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1545,100 +2011,119 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   {lighting === 'warm' ? (
                     <>
                       <Lamp className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      <span>{effectiveScene === 'exterior' ? 'إضاءة ليلية' : 'إضاءة دافئة'}</span>
+                      <span>{effectiveScene === 'exterior' ? 'ليلية' : 'إضاءة دافئة'}</span>
                     </>
                   ) : (
                     <>
                       <Sun className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      <span>إضاءة نهارية</span>
+                      <span>نهارية</span>
                     </>
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setCompareMode((prev) => !prev)}
-                  className={`min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold leading-tight transition-colors cursor-pointer ${
-                    compareMode
-                      ? 'bg-slate-900 border-slate-900 text-amber-300'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <Columns2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>مقارنة لونين</span>
-                </button>
+                {!isMouldingMode && (
+                  <button
+                    type="button"
+                    onClick={() => setCompareMode((prev) => !prev)}
+                    className={`min-h-[30px] sm:min-h-[34px] inline-flex items-center justify-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-bold leading-tight transition-colors cursor-pointer ${
+                      compareMode
+                        ? 'bg-slate-900 border-slate-900 text-amber-300'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Columns2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>مقارنة لونين</span>
+                  </button>
+                )}
               </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById('studio-order-form')
+                    ?.scrollIntoView({ behavior: 'smooth' })
+                }
+                className="min-h-[30px] sm:min-h-[34px] inline-flex items-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 text-[11px] font-extrabold transition-colors cursor-pointer shrink-0"
+              >
+                <span>طلب الكود ↓</span>
+              </button>
             </div>
+          </div>
 
-            {/* Split-Compare Slot Selector when enabled */}
-            {compareMode && (
-              <div className="grid grid-cols-2 gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setCompareSlotTarget('primary')}
-                  className={`min-h-[42px] rounded-lg border px-3 py-1.5 flex items-center justify-between gap-2 text-right transition-all cursor-pointer ${
-                    compareSlotTarget === 'primary'
-                      ? 'border-blue-600 bg-white ring-2 ring-blue-600/15'
-                      : 'border-slate-200 bg-white/70 hover:bg-white'
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <div className="text-[10px] text-slate-500">
-                      {effectiveScene === 'exterior'
-                        ? 'تغيير الواجهة الرئيسية'
-                        : 'تغيير اللون الأساسي (يمين)'}
-                    </div>
-                    <div className="font-mono-nums text-xs font-extrabold text-slate-900 truncate">
-                      {primaryShade.code}
-                      {primaryShade.nameAr ? ` · ${primaryShade.nameAr}` : ''}
-                    </div>
+          {/* Split-Compare Slot Selector when enabled (Paint / Graffiato only) */}
+          {compareMode && !isMouldingMode && (
+            <div className="grid grid-cols-2 gap-1.5 p-1.5 rounded-xl bg-slate-50 border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setCompareSlotTarget('primary')}
+                className={`min-h-[36px] rounded-lg border px-2 py-1 flex items-center justify-between gap-1.5 text-right transition-all cursor-pointer ${
+                  compareSlotTarget === 'primary'
+                    ? 'border-blue-600 bg-white ring-2 ring-blue-600/15'
+                    : 'border-slate-200 bg-white/70 hover:bg-white'
+                }`}
+              >
+                <div className="min-w-0">
+                  <div className="text-[9px] text-slate-500">أساسي</div>
+                  <div className="font-mono-nums text-[11px] font-extrabold text-slate-900 truncate">
+                    {primaryShade.code}
                   </div>
-                  <span
-                    className="w-6 h-6 rounded border border-black/15 shrink-0"
-                    style={{ backgroundColor: primaryShade.hex }}
-                  />
-                </button>
+                </div>
+                <span
+                  className="w-5 h-5 rounded border border-black/15 shrink-0"
+                  style={{ backgroundColor: primaryShade.hex }}
+                />
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => setCompareSlotTarget('compare')}
-                  className={`min-h-[42px] rounded-lg border px-3 py-1.5 flex items-center justify-between gap-2 text-right transition-all cursor-pointer ${
-                    compareSlotTarget === 'compare'
-                      ? 'border-blue-600 bg-white ring-2 ring-blue-600/15'
-                      : 'border-slate-200 bg-white/70 hover:bg-white'
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <div className="text-[10px] text-slate-500">
-                      {effectiveScene === 'exterior'
-                        ? 'تغيير الجناح والسور'
-                        : 'تغيير لون المقارنة (يسار)'}
-                    </div>
-                    <div className="font-mono-nums text-xs font-extrabold text-slate-900 truncate">
-                      {compareShade.code}
-                      {compareShade.nameAr ? ` · ${compareShade.nameAr}` : ''}
-                    </div>
+              <button
+                type="button"
+                onClick={() => setCompareSlotTarget('compare')}
+                className={`min-h-[36px] rounded-lg border px-2 py-1 flex items-center justify-between gap-1.5 text-right transition-all cursor-pointer ${
+                  compareSlotTarget === 'compare'
+                    ? 'border-blue-600 bg-white ring-2 ring-blue-600/15'
+                    : 'border-slate-200 bg-white/70 hover:bg-white'
+                }`}
+              >
+                <div className="min-w-0">
+                  <div className="text-[9px] text-slate-500">مقارنة</div>
+                  <div className="font-mono-nums text-[11px] font-extrabold text-slate-900 truncate">
+                    {compareShade.code}
                   </div>
-                  <span
-                    className="w-6 h-6 rounded border border-black/15 shrink-0"
-                    style={{ backgroundColor: compareShade.hex }}
-                  />
-                </button>
-              </div>
-            )}
+                </div>
+                <span
+                  className="w-5 h-5 rounded border border-black/15 shrink-0"
+                  style={{ backgroundColor: compareShade.hex }}
+                />
+              </button>
+            </div>
+          )}
 
-            {/* Architectural Live Visualizer (Exterior Facade or Room Wall) */}
+          {/* Architectural Live Visualizer Canvas (Compact height on <sm so swatches stay visible below while pinned) */}
+          <div className="[&>div]:aspect-[2/1] sm:[&>div]:aspect-[16/9]">
             <GlcWallPreview
-              primaryShade={{
-                code: primaryShade.code,
-                hex: primaryShade.hex,
-                nameAr: primaryShade.nameAr || primaryShade.nameEn,
-                brandLabel: brandTitleUpper,
-                texture: activeWallTexture,
-                laserGlitter: isGraffiatoLaser || Boolean(primaryShade.isLaser),
-              }}
+              primaryShade={
+                isMouldingMode
+                  ? {
+                      code: activeMouldingProfile?.code || '',
+                      hex: mouldingWallHex,
+                      nameAr:
+                        MOULDING_WALL_BACKDROPS.find((w) => w.hex === mouldingWallHex)?.nameAr ||
+                        'جريج دافئ',
+                      brandLabel: brandTitleUpper,
+                      texture: 'smooth',
+                      laserGlitter: false,
+                    }
+                  : {
+                      code: primaryShade.code,
+                      hex: primaryShade.hex,
+                      nameAr: primaryShade.nameAr || primaryShade.nameEn,
+                      brandLabel: brandTitleUpper,
+                      texture: activeWallTexture,
+                      laserGlitter: isGraffiatoLaser || Boolean(primaryShade.isLaser),
+                    }
+              }
               compareShade={
-                compareMode
+                compareMode && !isMouldingMode
                   ? {
                       code: compareShade.code,
                       hex: compareShade.hex,
@@ -1653,289 +2138,204 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
               lighting={lighting}
               finish={finish}
               texture={activeWallTexture}
-              hasLaserGlitter={isGraffiatoLaser}
+              hasLaserGlitter={!isMouldingMode && isGraffiatoLaser}
+              moulding={activeMouldingSpec}
             />
+          </div>
 
-            {/* Graffiato Texture Controls when in Graffiato / Exterior mode, or Sheen Controls otherwise */}
-            {isGraffiatoMode || activeWallTexture !== 'smooth' ? (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
-                <span className="text-xs font-bold text-slate-700">
-                  {isSaveto
-                    ? 'ملمس وخشونة واجهة سافيتو:'
-                    : 'خشونة الملمس على واجهة البيت:'}
-                </span>
-                <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-lg">
-                  {(
-                    [
-                      {
-                        id: 'coarse',
-                        label: isSaveto ? 'خشن 3–4مم' : 'خشن',
-                      },
-                      {
-                        id: 'medium',
-                        label: isSaveto ? 'وسط 2مم' : 'وسط',
-                      },
-                      {
-                        id: 'fine',
-                        label: isSaveto ? 'ناعم 1مم' : 'ناعم',
-                      },
-                    ] as const
-                  ).map((item) => (
+          {/* Context-Specific Live Controls inside Sticky Visualizer */}
+          {isMouldingMode && activeMouldingProfile ? (
+            <div className="space-y-2 pt-0.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-600">لون الحائط:</span>
+                  {MOULDING_WALL_BACKDROPS.map((bg) => (
                     <button
-                      key={item.id}
+                      key={bg.id}
                       type="button"
-                      onClick={() => handleSelectTexture(item.id)}
-                      className={`min-h-[38px] px-3 py-1 rounded-md text-xs sm:text-sm font-extrabold whitespace-nowrap transition-colors cursor-pointer ${
-                        activeWallTexture === item.id
-                          ? 'bg-slate-900 text-amber-400 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
+                      title={bg.nameAr}
+                      aria-label={`خلفية حائط ${bg.nameAr}`}
+                      onClick={() => setMouldingWallHex(bg.hex)}
+                      className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border transition-transform cursor-pointer ${
+                        mouldingWallHex === bg.hex
+                          ? 'ring-2 ring-blue-600 ring-offset-1 scale-110 border-slate-900'
+                          : 'border-slate-300 hover:scale-105'
                       }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
-                <span className="text-xs font-bold text-slate-700">درجة اللمعة على الحائط:</span>
-                <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-lg w-full sm:w-auto">
-                  {(
-                    [
-                      { id: 'matt', label: 'مط (Matt)' },
-                      { id: 'silk', label: 'حريري (Silk)' },
-                      { id: 'semigloss', label: 'نصف لامع' },
-                    ] as const
-                  ).map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleSelectFinish(item.id)}
-                      className={`min-h-[36px] px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold text-center leading-tight transition-colors cursor-pointer ${
-                        finish === item.id
-                          ? 'bg-slate-900 text-white'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Active Swatch Specifications Summary */}
-            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className="relative w-12 h-12 rounded-xl border border-black/15 shrink-0 shadow-xs overflow-hidden"
-                  style={{ backgroundColor: primaryShade.hex }}
-                >
-                  {activeWallTexture !== 'smooth' && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute inset-0 pointer-events-none"
-                      style={{ backgroundImage: GRAFFIATO_SWATCH_SVG_PATTERNS[activeWallTexture] }}
+                      style={{ backgroundColor: bg.hex }}
                     />
-                  )}
+                  ))}
                 </div>
-                <div className="min-w-0 space-y-0.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono-nums text-base font-extrabold text-slate-900">
-                      {brandTitleUpper} {primaryShade.code}
-                    </span>
-                    {primaryShade.nameAr && (
-                      <span className="text-sm font-extrabold text-blue-700">
-                        {primaryShade.nameAr}
-                      </span>
-                    )}
-                    {primaryShade.nameEn && (
-                      <span className="text-xs text-slate-500">({primaryShade.nameEn})</span>
-                    )}
-                    <span className="text-xs text-slate-400 font-mono-nums">
-                      {primaryShade.hex}
-                    </span>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-600">لون الفيوتك:</span>
+                  {MOULDING_FINISH_TINTS.map((tint) => (
+                    <button
+                      key={tint.id}
+                      type="button"
+                      title={tint.nameAr}
+                      aria-label={`تشطيب ${tint.nameAr}`}
+                      onClick={() => setMouldingTrimHex(tint.hex)}
+                      className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border transition-transform cursor-pointer ${
+                        mouldingTrimHex === tint.hex
+                          ? 'ring-2 ring-amber-500 ring-offset-1 scale-110 border-slate-900'
+                          : 'border-slate-300 hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: tint.hex }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-12 h-8 rounded-lg border border-slate-200 overflow-hidden shrink-0">
+                    <MouldingPatternThumb patternKind={activeMouldingProfile.patternKind} />
                   </div>
-                  <p className="text-xs text-slate-600 truncate">
-                    {primaryFamilyName}
-                    {activeTextureLabel ? (
-                      <>
-                        <span aria-hidden="true"> · </span>
-                        {activeTextureLabel}
-                      </>
-                    ) : (
-                      <>
-                        <span aria-hidden="true"> · </span>
-                        {getToneBrightnessLabel(primaryShade.hex)}
-                      </>
-                    )}
-                    {primaryShade.pageNumber ? (
-                      <>
-                        <span aria-hidden="true"> · </span>
-                        صفحة {primaryShade.pageNumber} بالكتالوج
-                      </>
-                    ) : null}
-                  </p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 font-extrabold text-slate-900 truncate">
+                      <span className="font-mono-nums text-blue-700 shrink-0">
+                        {activeMouldingProfile.code}
+                      </span>
+                      <span className="truncate">{activeMouldingProfile.nameAr}</span>
+                    </div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500 truncate">
+                      {activeMouldingProfile.dimensionsAr} · {activeMouldingProfile.lengthAr} · ص{' '}
+                      {activeMouldingProfile.catalogPage}
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {primaryShade.url && (
-                <a
-                  href={primaryShade.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:underline whitespace-nowrap shrink-0"
-                >
-                  <span>{isScib ? 'صفحة اللون بسكيب' : 'صفحة اللون بجوتن'}</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+            </div>
+          ) : (
+            <>
+              {isGraffiatoMode || activeWallTexture !== 'smooth' ? (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] sm:text-xs font-bold text-slate-700 shrink-0">
+                    خشونة الملمس:
+                  </span>
+                  <div className="grid grid-cols-3 gap-1 p-0.5 bg-slate-100 rounded-lg flex-1 sm:flex-initial">
+                    {(
+                      [
+                        {
+                          id: 'coarse',
+                          label: isSaveto ? 'خشن 3مم' : 'خشن',
+                        },
+                        {
+                          id: 'medium',
+                          label: isSaveto ? 'وسط 2مم' : 'وسط',
+                        },
+                        {
+                          id: 'fine',
+                          label: isSaveto ? 'ناعم 1مم' : 'ناعم',
+                        },
+                      ] as const
+                    ).map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleSelectTexture(item.id)}
+                        className={`min-h-[30px] px-2.5 py-0.5 rounded-md text-xs font-extrabold whitespace-nowrap transition-colors cursor-pointer ${
+                          activeWallTexture === item.id
+                            ? 'bg-slate-900 text-amber-400 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] sm:text-xs font-bold text-slate-700 shrink-0">
+                    اللمعة:
+                  </span>
+                  <div className="grid grid-cols-3 gap-1 p-0.5 bg-slate-100 rounded-lg flex-1 sm:flex-initial">
+                    {(
+                      [
+                        { id: 'matt', label: 'مط' },
+                        { id: 'silk', label: 'حريري' },
+                        { id: 'semigloss', label: 'نصف لامع' },
+                      ] as const
+                    ).map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleSelectFinish(item.id)}
+                        className={`min-h-[28px] px-2 py-0.5 rounded-md text-[11px] font-bold text-center transition-colors cursor-pointer ${
+                          finish === item.id
+                            ? 'bg-slate-900 text-white'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
-            </div>
-          </section>
 
-          {/* Computer Color Mixing & Order Request Card */}
-          <form
-            onSubmit={handleOrderSubmit}
-            className="rounded-2xl bg-white border border-slate-200 p-4 sm:p-5 space-y-4"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
-                تجهيز لون{' '}
-                {isJotun
-                  ? 'جوتن'
-                  : isSipes
-                  ? 'سايبس'
-                  : isSaveto
-                  ? 'سافيتو'
-                  : isScib
-                  ? 'سكيب'
-                  : isCmb
-                  ? 'CMB'
-                  : isGraffiatoLaser
-                  ? 'جرافيـاتو ليزر'
-                  : isGraffiatoClassic
-                  ? 'جرافيـاتو بدون ليزر'
-                  : 'GLC'}{' '}
-                بالكمبيوتر وطلبه الآن
-              </h2>
-              {matchingStoreProduct && (
-                <button
-                  type="button"
-                  onClick={() => onOpenProduct(matchingStoreProduct)}
-                  className="text-xs font-bold text-blue-700 hover:underline whitespace-nowrap shrink-0 cursor-pointer"
-                >
-                  تفاصيل الدهان ←
-                </button>
-              )}
-            </div>
+              {/* Compact Active Swatch Strip inside Sticky Visualizer */}
+              <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-lg border border-black/15 shrink-0 shadow-xs overflow-hidden"
+                    style={{ backgroundColor: primaryShade.hex }}
+                  >
+                    {activeWallTexture !== 'smooth' && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-0 pointer-events-none"
+                        style={{ backgroundImage: GRAFFIATO_SWATCH_SVG_PATTERNS[activeWallTexture] }}
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-baseline gap-1.5 truncate">
+                      <span className="font-mono-nums text-xs sm:text-sm font-extrabold text-slate-900">
+                        {brandTitleUpper} {primaryShade.code}
+                      </span>
+                      {primaryShade.nameAr && (
+                        <span className="text-xs font-extrabold text-blue-700 truncate">
+                          {primaryShade.nameAr}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] sm:text-xs text-slate-500 truncate">
+                      {primaryFamilyName}
+                      {activeTextureLabel ? ` · ${activeTextureLabel}` : ` · ${getToneBrightnessLabel(primaryShade.hex)}`}
+                      {primaryShade.pageNumber ? ` · ص ${primaryShade.pageNumber}` : ''}
+                    </p>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">
-                  منتج {brandTitleUpper} المطلوب للتلوين:
-                </label>
-                <select
-                  value={selectedBaseId}
-                  onChange={(e) => handleSelectBase(e.target.value)}
-                  className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
-                >
-                  {basesList.map((base) => (
-                    <option key={base.id} value={base.id}>
-                      {base.nameAr} — {base.finishLabelAr}
-                    </option>
-                  ))}
-                </select>
+                {primaryShade.url && (
+                  <a
+                    href={primaryShade.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:underline whitespace-nowrap shrink-0"
+                  >
+                    <span>المصدر</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
               </div>
+            </>
+          )}
+        </section>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">حجم العبوة:</label>
-                <select
-                  value={sizeOption}
-                  onChange={(e) =>
-                    setSizeByBrand((prev) => ({ ...prev, [activeBrand]: e.target.value }))
-                  }
-                  className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
-                >
-                  {sizeOptions.map((sz) => (
-                    <option key={sz} value={sz}>
-                      {sz}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <input
-                type="text"
-                required
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="الاسم بالكامل *"
-                className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
-              />
-              <input
-                type="tel"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="رقم الهاتف / واتساب *"
-                className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-900 font-mono-nums focus:outline-none focus:border-blue-600"
-              />
-            </div>
-
-            {errorMsg && <p className="text-xs font-semibold text-red-600">{errorMsg}</p>}
-            {submitted && (
-              <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs font-bold text-emerald-800">
-                <Check className="w-4 h-4 shrink-0" />
-                <span>
-                  تم إرسال طلب تجهيز كود {brandTitleUpper} {primaryShade.code} لإدارة المتجر وسنتواصل
-                  معك فوراً!
-                </span>
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row gap-2.5">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex-1 min-h-[44px] mowan-btn-bevel inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 px-4 py-2.5 text-xs sm:text-sm font-bold text-white whitespace-nowrap transition-colors cursor-pointer"
-              >
-                <Send className="w-4 h-4" />
-                <span>
-                  {submitting
-                    ? 'جاري الإرسال...'
-                    : `طلب خلط كود ${primaryShade.code}`}
-                </span>
-              </button>
-
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() =>
-                  trackAnalyticsEvent({
-                    eventType: 'whatsapp_click',
-                    targetId: `${activeBrand}_color_${primaryShade.code}`,
-                    targetLabel: `طلب لون ${brandTitleUpper} ${primaryShade.code}`,
-                  })
-                }
-                className="min-h-[44px] mowan-btn-bevel inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs sm:text-sm font-bold text-white whitespace-nowrap shrink-0 transition-colors"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>طلب عبر واتساب</span>
-              </a>
-            </div>
-          </form>
-        </div>
-
-        {/* LEFT / CATALOG GRID COLUMN (in RTL): Search + Section Tabs + Textured Swatches */}
+        {/* SCROLLABLE CATALOG SELECTION COLUMN (Swatches or Moulding Profiles update Sticky Visualizer Live!) */}
         <div className="lg:col-span-6 space-y-4 min-w-0 w-full">
-          <section className="rounded-2xl bg-white border border-slate-200 p-4 sm:p-5 space-y-4 min-w-0 w-full">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <section className="rounded-2xl bg-white border border-slate-200 p-3.5 sm:p-5 space-y-3.5 min-w-0 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
-                <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                  {isGraffiatoLaser
+                <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
+                  {isFutecNewtec
+                    ? 'اختر أي كود فيوتك NEWTEC 2025 لتركيبه فوراً في العارضة'
+                    : isPsMlkawy
+                    ? 'اختر أي كود بانوه أو كرنيش PS لتركيبه فوراً في العارضة'
+                    : isGraffiatoLaser
                     ? 'اختر كود الجرافيـاتو بالليزر ليظهر فوراً على واجهة البيت'
                     : isGraffiatoClassic
                     ? 'اختر كود الجرافيـاتو بدون ليزر ليظهر على واجهة البيت'
@@ -1943,29 +2343,16 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                       (selectedFamilyId === 'graffiato' && isSipes) ||
                       (selectedFamilyId === 'graviato' && isCmb)
                     ? 'اختر لون وملمس الواجهة ليظهر فوراً على المبنى الخارجي'
-                    : 'اختر الدرجة لتظهر فوراً في المعاينة'}
+                    : 'اضغط على أي درجة لتظهر فوراً في العارضة أعلى الشاشة'}
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5 font-mono-nums">
-                  معروض {displayedColors.length} من أصل {filteredColors.length} لون{' '}
-                  {isJotun
-                    ? 'في كتالوج جوتن الداخلي'
-                    : isSipes
-                    ? 'في أقسام دهانات سايبس المعتمدة'
-                    : isSaveto
-                    ? 'في كتالوج جرافيـاتو سافيتو (خشن · متوسط · ناعم)'
-                    : isScib
-                    ? 'في كتالوج سكيب الرسمي'
-                    : isCmb
-                    ? 'في أقسام ومنتجات CMB المعتمدة'
-                    : isGraffiatoLaser
-                    ? 'في كتالوج الليزر (6 لوحات أصلية · 1002–1220)'
-                    : isGraffiatoClassic
-                    ? 'في كتالوج بدون ليزر (6 لوحات · جوتاشيلد · مارفكس · جيماتكس · ماربل)'
-                    : 'في كارتيلا GLC بلاتين'}
+                <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-mono-nums">
+                  {isMouldingMode
+                    ? `معروض ${filteredMouldings.length} من أصل ${allMouldings.length} شكل وكود رسمي`
+                    : `معروض ${displayedColors.length} من أصل ${filteredColors.length} لون`}
                 </p>
               </div>
 
-              <div className="relative w-full sm:w-64">
+              <div className="relative w-full sm:w-60">
                 <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="search"
@@ -1974,39 +2361,47 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     setSearchByBrand((prev) => ({ ...prev, [activeBrand]: e.target.value }))
                   }
                   placeholder={
-                    isJotun
-                      ? 'ابحث بالكود أو الاسم (مثلاً 7627)...'
+                    isFutecNewtec
+                      ? 'ابحث بالكود أو الاسم (K217، WP1، 3D5)...'
+                      : isPsMlkawy
+                      ? 'ابحث بكود PS أو الاسم (RT02، RT09، وزر)...'
+                      : isJotun
+                      ? 'ابحث بالكود أو الاسم (7627)...'
                       : isSipes
-                      ? 'ابحث بالكود أو الملمس (مثلاً 684 أو خشن أو ناعم)...'
+                      ? 'ابحث بالكود أو الملمس...'
                       : isSaveto
-                      ? 'ابحث بالكود أو الخشونة (خشن، متوسط، ناعم، رملي)...'
+                      ? 'ابحث بالكود أو الخشونة...'
                       : isScib
-                      ? 'ابحث بكود سكيب أو الاسم (مثلاً 9436 أو 7420)...'
+                      ? 'ابحث بكود سكيب (9436)...'
                       : isCmb
-                      ? 'ابحث بكود CMB أو المنتج (مثلاً 347 أو CMB 06 أو كيمابوكسي)...'
+                      ? 'ابحث بكود CMB أو المنتج...'
                       : isGraffiatoLaser
-                      ? 'ابحث بكود الليزر (مثلاً 1004 أو 1016 أو 1150)...'
+                      ? 'ابحث بكود الليزر (1004)...'
                       : isGraffiatoClassic
-                      ? 'ابحث بالكود (مثلاً 6050 أو R50 أو X11 أو 5001)...'
-                      : 'ابحث بالكود (مثلاً Y21010)...'
+                      ? 'ابحث بالكود (6050 أو R50)...'
+                      : 'ابحث بالكود (Y21010)...'
                   }
-                  className="w-full min-h-[42px] rounded-xl border border-slate-200 bg-slate-50 pr-9 pl-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="w-full min-h-[40px] rounded-xl border border-slate-200 bg-slate-50 pr-9 pl-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
                 />
               </div>
             </div>
 
-            {/* Color Family / Product Specialized Sections Filter Tabs */}
+            {/* Section / Category Filter Tabs */}
             <div className="flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => handleSelectFamily('all')}
-                className={`min-h-[38px] max-w-full px-3 py-1.5 rounded-lg text-xs font-bold text-right leading-snug transition-colors cursor-pointer ${
+                className={`min-h-[34px] max-w-full px-2.5 py-1 rounded-lg text-xs font-bold text-right leading-snug transition-colors cursor-pointer ${
                   selectedFamilyId === 'all'
                     ? 'bg-slate-900 text-amber-400'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                {isSipes
+                {isFutecNewtec
+                  ? `كل أقسام فيوتك (${FUTEC_NEWTEC_PROFILES.length})`
+                  : isPsMlkawy
+                  ? `كل أشكال PS (${PS_MLKAWY_PROFILES.length})`
+                  : isSipes
                   ? `جميع أقسام سايبس (${allShades.length})`
                   : isCmb
                   ? `كل أقسام CMB (${allShades.length})`
@@ -2021,30 +2416,52 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     key={fam.id}
                     type="button"
                     onClick={() => handleSelectFamily(fam.id)}
-                    className={`min-h-[38px] max-w-full inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-right leading-snug transition-colors cursor-pointer ${
+                    className={`min-h-[34px] max-w-full inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-right leading-snug transition-colors cursor-pointer ${
                       active
                         ? 'bg-slate-900 text-white'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
                     <span
-                      className="w-3.5 h-3.5 rounded-sm border border-black/15 shrink-0"
+                      className="w-3 h-3 rounded-sm border border-black/15 shrink-0"
                       style={{ backgroundColor: fam.swatchHex }}
                     />
                     <span>{fam.nameAr}</span>
-                    {(isSipes || isSaveto || isCmb || isScib || isDedicatedGraffiato) && (
-                      <span
-                        className={`font-mono-nums text-[11px] shrink-0 ${
-                          active ? 'text-amber-300' : 'text-slate-500'
-                        }`}
-                      >
-                        ({fam.count})
-                      </span>
-                    )}
+                    <span
+                      className={`font-mono-nums text-[10px] shrink-0 ${
+                        active ? 'text-amber-300' : 'text-slate-500'
+                      }`}
+                    >
+                      ({fam.count})
+                    </span>
                   </button>
                 );
               })}
             </div>
+
+            {isMouldingMode && (
+              <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+                <span>
+                  {isFutecNewtec
+                    ? 'كتالوج فيوتك نيوتك NEWTEC 2025 المستقل (10 أقسام · كرانيش · بانوهات · بديل خشب · 3D · صرر · واجهات)'
+                    : 'كتالوج بانوهات وكرانيش ووزر PS ملكاوي جروب 2026 المستقل (20 كود RT ARTEC)'}
+                </span>
+                <a
+                  href={isFutecNewtec ? FUTEC_NEWTEC_PDF_URL : PS_MLKAWY_PDF_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={
+                    isFutecNewtec
+                      ? 'كتالوج فيوتك NEWTEC 2025.pdf'
+                      : 'كتالوج بانوهات وكرانيش ووزر PS.pdf'
+                  }
+                  className="inline-flex items-center gap-1 font-bold text-blue-700 hover:underline shrink-0"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>تحميل الكتالوج الأصلي PDF</span>
+                </a>
+              </div>
+            )}
 
             {/* Dedicated 6-Photo Real Catalog Strip + Controls for Laser Graffiato */}
             {isGraffiatoLaser && (
@@ -2382,8 +2799,65 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             )}
           </section>
 
-          {/* Coded Swatches Grid */}
-          {filteredColors.length === 0 ? (
+          {/* Moulding Profiles Grid OR Color Swatches Grid */}
+          {isMouldingMode ? (
+            filteredMouldings.length === 0 ? (
+              <div className="rounded-2xl bg-white border border-slate-200 p-8 text-center space-y-3">
+                <p className="text-sm font-bold text-slate-800">
+                  لا توجد أشكال مطابقة للبحث &quot;{searchCode}&quot;
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchByBrand((prev) => ({ ...prev, [activeBrand]: '' }));
+                    setFamilyByBrand((prev) => ({ ...prev, [activeBrand]: 'all' }));
+                  }}
+                  className="min-h-[40px] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold cursor-pointer"
+                >
+                  عرض جميع أشكال {brandTitleUpper} ({allMouldings.length})
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                {filteredMouldings.map((profile) => {
+                  const isSelected = activeMouldingProfile?.id === profile.id;
+                  return (
+                    <button
+                      key={profile.id}
+                      type="button"
+                      onClick={() => handleSelectMoulding(profile)}
+                      className={`group rounded-xl border bg-white p-2 text-right transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                        isSelected
+                          ? 'border-blue-600 ring-2 ring-blue-600/25 shadow-sm'
+                          : 'border-slate-200 hover:border-slate-400'
+                      }`}
+                    >
+                      <div className="relative h-20 w-full rounded-lg border border-slate-200 overflow-hidden bg-slate-100">
+                        <MouldingPatternThumb patternKind={profile.patternKind} />
+                        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-slate-900/85 text-amber-300 font-mono-nums text-[10px] font-extrabold leading-none">
+                          {profile.code}
+                        </span>
+                        <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-white/90 text-slate-700 font-mono-nums text-[9px] font-bold leading-none border border-slate-200">
+                          ص {profile.catalogPage}
+                        </span>
+                      </div>
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="text-xs font-extrabold text-slate-900 leading-snug line-clamp-2">
+                          {profile.nameAr}
+                        </div>
+                        <div className="text-[10px] sm:text-[11px] font-semibold text-blue-700 truncate">
+                          {profile.dimensionsAr}
+                        </div>
+                        <div className="text-[10px] text-slate-500 truncate">
+                          {profile.lengthAr}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )
+          ) : filteredColors.length === 0 ? (
             <div className="rounded-2xl bg-white border border-slate-200 p-8 text-center space-y-3">
               <p className="text-sm font-bold text-slate-800">
                 لا توجد ألوان مطابقة للبحث &quot;{searchCode}&quot;
@@ -2535,13 +3009,170 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             </>
           )}
 
-          {/* Color Accuracy Disclaimer */}
+          {/* Accuracy Disclaimer */}
           <p className="text-[11px] text-slate-500 leading-relaxed px-1">
-            قد تختلف درجة اللون المعروضة على الشاشة بنسبة طفيفة عن الدهان النهائي بسبب إعدادات
-            الإضاءة وسطوع الشاشة؛ يُعتمد كود {brandTitleUpper} الرسمي عند التلوين الفعلي بماكينة
-            الكمبيوتر بالمتجر.
+            {isMouldingMode
+              ? 'الأشكال والمقاسات والرموز مطابقة للكتالوج الرسمي المرفق؛ يتم تأكيد الطول والكمية بالمتر أو بالعود قبل التسليم.'
+              : `قد تختلف درجة اللون المعروضة على الشاشة بنسبة طفيفة عن الدهان النهائي بسبب إعدادات الإضاءة وسطوع الشاشة؛ يُعتمد كود ${brandTitleUpper} الرسمي عند التلوين الفعلي بماكينة الكمبيوتر بالمتجر.`}
           </p>
         </div>
+      </div>
+
+      {/* Dedicated Bottom Order Form (Never Blocks Sticky Top Visualizer on Mobile) */}
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 pb-8">
+        <form
+          id="studio-order-form"
+          onSubmit={handleOrderSubmit}
+          className="rounded-2xl bg-white border border-slate-200 p-4 sm:p-6 space-y-4 shadow-xs"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
+              {isMouldingMode && activeMouldingProfile
+                ? `طلب وتجهيز كود ${brandTitleUpper} (${activeMouldingProfile.code} — ${activeMouldingProfile.nameAr})`
+                : `تجهيز لون ${
+                    isJotun
+                      ? 'جوتن'
+                      : isSipes
+                      ? 'سايبس'
+                      : isSaveto
+                      ? 'سافيتو'
+                      : isScib
+                      ? 'سكيب'
+                      : isCmb
+                      ? 'CMB'
+                      : isGraffiatoLaser
+                      ? 'جرافيـاتو ليزر'
+                      : isGraffiatoClassic
+                      ? 'جرافيـاتو بدون ليزر'
+                      : 'GLC'
+                  } بالكمبيوتر وطلبه الآن`}
+            </h2>
+            {!isMouldingMode && matchingStoreProduct && (
+              <button
+                type="button"
+                onClick={() => onOpenProduct(matchingStoreProduct)}
+                className="text-xs font-bold text-blue-700 hover:underline whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                تفاصيل الدهان ←
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  {isMouldingMode ? 'الخامة / النظام:' : `منتج ${brandTitleUpper} المطلوب:`}
+                </label>
+                <select
+                  value={selectedBaseId}
+                  onChange={(e) => handleSelectBase(e.target.value)}
+                  className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+                >
+                  {basesList.map((base) => (
+                    <option key={base.id} value={base.id}>
+                      {base.nameAr} — {base.finishLabelAr}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  {isMouldingMode ? 'نظام التوريد المطلوب:' : 'حجم العبوة:'}
+                </label>
+                <select
+                  value={sizeOption}
+                  onChange={(e) =>
+                    setSizeByBrand((prev) => ({ ...prev, [activeBrand]: e.target.value }))
+                  }
+                  className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+                >
+                  {sizeOptions.map((sz) => (
+                    <option key={sz} value={sz}>
+                      {sz}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-end">
+              <input
+                type="text"
+                required
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="الاسم بالكامل *"
+                className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+              <input
+                type="tel"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="رقم الهاتف / واتساب *"
+                className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-900 font-mono-nums focus:outline-none focus:border-blue-600"
+              />
+            </div>
+          </div>
+
+          {errorMsg && <p className="text-xs font-semibold text-red-600">{errorMsg}</p>}
+          {submitted && (
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs font-bold text-emerald-800">
+              <Check className="w-4 h-4 shrink-0" />
+              <span>
+                تم إرسال طلب كود {brandTitleUpper}{' '}
+                {isMouldingMode && activeMouldingProfile
+                  ? activeMouldingProfile.code
+                  : primaryShade.code}{' '}
+                لإدارة المتجر وسنتواصل معك فوراً!
+              </span>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 min-h-[44px] mowan-btn-bevel inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 px-4 py-2.5 text-xs sm:text-sm font-bold text-white whitespace-nowrap transition-colors cursor-pointer"
+            >
+              <Send className="w-4 h-4" />
+              <span>
+                {submitting
+                  ? 'جاري الإرسال...'
+                  : isMouldingMode && activeMouldingProfile
+                  ? `طلب كود ${activeMouldingProfile.code}`
+                  : `طلب خلط كود ${primaryShade.code}`}
+              </span>
+            </button>
+
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() =>
+                trackAnalyticsEvent({
+                  eventType: 'whatsapp_click',
+                  targetId: `${activeBrand}_${
+                    isMouldingMode && activeMouldingProfile
+                      ? activeMouldingProfile.code
+                      : primaryShade.code
+                  }`,
+                  targetLabel: `طلب ${brandTitleUpper} ${
+                    isMouldingMode && activeMouldingProfile
+                      ? activeMouldingProfile.code
+                      : primaryShade.code
+                  }`,
+                })
+              }
+              className="min-h-[44px] mowan-btn-bevel inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs sm:text-sm font-bold text-white whitespace-nowrap shrink-0 transition-colors"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>طلب عبر واتساب</span>
+            </a>
+          </div>
+        </form>
       </div>
 
       {/* Original Photographed 6-Board Lightbox */}

@@ -329,6 +329,40 @@ export const DEFAULT_CATALOGS: ColorCatalog[] = [
     notes:
       'الـ 6 لوحات الأصلية بدون ليزر: جوتاشيلد للواجهات (6050–6108)، مارفكس (R50–R64)، جيماتكس (X11–X25)، وماربل (5001–5059).',
   },
+  {
+    id: 'catlg_futec_newtec_2025',
+    title: 'كتالوج فيوتك نيوتك NEWTEC 2025 الشامل (62 صفحة · 162 كود)',
+    brand: 'فيوتك NEWTEC',
+    fileType: 'pdf',
+    fileUrl: '/assets/aistudio/______________NEWTEC_2025_e43e98c0.pdf',
+    attachments: [
+      {
+        id: 'att_futec_newtec_2025_pdf',
+        type: 'pdf',
+        url: '/assets/aistudio/______________NEWTEC_2025_e43e98c0.pdf',
+        name: 'كتالوج فيوتك NEWTEC 2025.pdf',
+      },
+    ],
+    notes:
+      'الكتالوج الرسمي الكامل لفيوتك نيوتك 2025: كرانيش أسقف، بيت نور، بانوهات وأبواب، وزر، زوايا، بديل خشب WP، ألواح 3D، صرر أسقف R، كابولي وأعمدة، وواجهات خارجية.',
+  },
+  {
+    id: 'catlg_ps_mlkawy_2026',
+    title: 'كتالوج بانوهات وكرانيش ووزر PS ملكاوي جروب 2026 (20 كود RT)',
+    brand: 'PS ملكاوي',
+    fileType: 'pdf',
+    fileUrl: '/assets/aistudio/____________________________PS_ac066f9d.pdf',
+    attachments: [
+      {
+        id: 'att_ps_mlkawy_2026_pdf',
+        type: 'pdf',
+        url: '/assets/aistudio/____________________________PS_ac066f9d.pdf',
+        name: 'كتالوج بانوهات وكرانيش ووزر PS.pdf',
+      },
+    ],
+    notes:
+      'كتالوج خامات البولي ستيرين PS عالية الكثافة (RT ARTEC): بانوهات الحوائط، كرانيش وبيت نور، وزر أرضيات، وزوايا حوائط بأطوال 2.40م.',
+  },
 ];
 
 export const CURATED_PAINT_SHADES = [

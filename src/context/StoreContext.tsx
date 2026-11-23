@@ -177,6 +177,8 @@ const LOCAL_PURGE_PACHIN_FLAG = 'mowan_purge_pachin_v1';
 const CLOUD_PURGE_PACHIN_FLAG = 'mowan_cloud_purge_pachin_v1';
 const LOCAL_GRAFFIATO_CATALOGS_V1_FLAG = 'mowan_graffiato_catalogs_v1';
 const CLOUD_GRAFFIATO_CATALOGS_V1_FLAG = 'mowan_cloud_graffiato_catalogs_v1';
+const LOCAL_FUTEC_CATALOGS_V1_FLAG = 'mowan_futec_catalogs_v1';
+const CLOUD_FUTEC_CATALOGS_V1_FLAG = 'mowan_cloud_futec_catalogs_v1';
 
 const PACHIN_SUBPAGE_PURGE_IDS = [
   'sub_pachin_enamel',
@@ -200,6 +202,7 @@ const PACHIN_PRODUCT_PURGE_IDS = [
 const PACHIN_SUBPAGE_PURGE_SET = new Set(PACHIN_SUBPAGE_PURGE_IDS);
 const PACHIN_PRODUCT_PURGE_SET = new Set(PACHIN_PRODUCT_PURGE_IDS);
 const GRAFFIATO_CATALOG_IDS = ['catlg_graffiato_laser_6', 'catlg_graffiato_classic_6'];
+const FUTEC_CATALOG_IDS = ['catlg_futec_newtec_2025', 'catlg_ps_mlkawy_2026'];
 
 const CLOUD_AUTH_REQUIRED_MSG =
   'لم يتم الحفظ في السحابة: يرجى تسجيل الدخول بحساب المالك عبر "تسجيل دخول السحابة" أعلى اللوحة لإتمام التعديل والحذف النهائي.';
@@ -398,6 +401,14 @@ function readLocalSnapshot(): LocalSnapshotState {
     }
   })();
 
+  const shouldSeedFutecCatalogs = (() => {
+    try {
+      return localStorage.getItem(LOCAL_FUTEC_CATALOGS_V1_FLAG) !== '1';
+    } catch {
+      return false;
+    }
+  })();
+
   try {
     const raw = localStorage.getItem(LOCAL_PREVIEW_STORAGE_KEY);
     if (raw) {
@@ -483,6 +494,16 @@ function readLocalSnapshot(): LocalSnapshotState {
         }
       }
 
+      if (shouldSeedFutecCatalogs) {
+        const existingCatIds = new Set(cleanCatalogs.map((c) => c.id));
+        const missingFutecCats = DEFAULT_CATALOGS.filter(
+          (c) => FUTEC_CATALOG_IDS.includes(c.id) && !existingCatIds.has(c.id)
+        );
+        if (missingFutecCats.length > 0) {
+          cleanCatalogs = [...missingFutecCats, ...cleanCatalogs];
+        }
+      }
+
       if (shouldPurgePachin) {
         categories = categories
           .filter((c) => c.id !== 'cat_pachin')
@@ -547,7 +568,8 @@ function readLocalSnapshot(): LocalSnapshotState {
         shouldSeedMultiBrandV1 ||
         shouldSeedMultiBrandV2 ||
         shouldPurgePachin ||
-        shouldSeedGraffiatoCatalogs
+        shouldSeedGraffiatoCatalogs ||
+        shouldSeedFutecCatalogs
       ) {
         try {
           localStorage.setItem(LOCAL_PREVIEW_STORAGE_KEY, JSON.stringify(nextState));
@@ -563,6 +585,8 @@ function readLocalSnapshot(): LocalSnapshotState {
           if (shouldPurgePachin) localStorage.setItem(LOCAL_PURGE_PACHIN_FLAG, '1');
           if (shouldSeedGraffiatoCatalogs)
             localStorage.setItem(LOCAL_GRAFFIATO_CATALOGS_V1_FLAG, '1');
+          if (shouldSeedFutecCatalogs)
+            localStorage.setItem(LOCAL_FUTEC_CATALOGS_V1_FLAG, '1');
         } catch {
           // Ignore storage quota issues
         }
@@ -611,6 +635,7 @@ function readLocalSnapshot(): LocalSnapshotState {
     localStorage.setItem(LOCAL_MULTI_BRAND_SEED_V2_FLAG, '1');
     localStorage.setItem(LOCAL_PURGE_PACHIN_FLAG, '1');
     localStorage.setItem(LOCAL_GRAFFIATO_CATALOGS_V1_FLAG, '1');
+    localStorage.setItem(LOCAL_FUTEC_CATALOGS_V1_FLAG, '1');
     localStorage.setItem(LOCAL_PREVIEW_STORAGE_KEY, JSON.stringify(freshState));
   } catch {
     // Ignore storage quota issues
@@ -1437,6 +1462,50 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       } catch {
         // Ignore non-fatal Graffiato catalog auto-seed error
+      }
+
+      // One-time non-destructive cloud seed of the two Futec / PS Moulding PDF catalogs
+      try {
+        if (localStorage.getItem(CLOUD_FUTEC_CATALOGS_V1_FLAG) !== '1') {
+          const futecDefaults = DEFAULT_CATALOGS.filter((c) => FUTEC_CATALOG_IDS.includes(c.id));
+          if (futecDefaults.length > 0) {
+            const { data: existingFutec, error: futecCheckErr } = await client
+              .from('catalogs')
+              .select('id')
+              .in('id', FUTEC_CATALOG_IDS);
+
+            if (!futecCheckErr && mounted) {
+              const existingIds = new Set(
+                (existingFutec || []).map((r) => String((r as DbRow).id))
+              );
+              const missingFutec = futecDefaults.filter((c) => !existingIds.has(c.id));
+              if (missingFutec.length > 0) {
+                const { data: insRows, error: insFutecErr } = await client
+                  .from('catalogs')
+                  .upsert(missingFutec.map(mapCatalogToDb), {
+                    onConflict: 'id',
+                    ignoreDuplicates: true,
+                  })
+                  .select('*');
+                if (!insFutecErr && mounted) {
+                  const inserted = insRows
+                    ? (insRows as DbRow[]).map(mapCatalogFromDb)
+                    : missingFutec;
+                  setCloudCatalogs((prev) => {
+                    const ids = new Set(prev.map((c) => c.id));
+                    const fresh = inserted.filter((c) => !ids.has(c.id));
+                    return fresh.length > 0 ? [...fresh, ...prev] : prev;
+                  });
+                  localStorage.setItem(CLOUD_FUTEC_CATALOGS_V1_FLAG, '1');
+                }
+              } else {
+                localStorage.setItem(CLOUD_FUTEC_CATALOGS_V1_FLAG, '1');
+              }
+            }
+          }
+        }
+      } catch {
+        // Ignore non-fatal Futec catalog auto-seed error
       }
     };
 

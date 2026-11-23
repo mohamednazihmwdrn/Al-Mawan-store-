@@ -17,7 +17,8 @@ import { Product, StorefrontPage } from './types/store';
 const PAGE_LABELS: Record<StorefrontPage, string> = {
   home: 'الرئيسية والمنتجات',
   categories: 'الأقسام والبحث',
-  glc_colors: 'كمبيوتر الألوان (GLC · جوتن · سايبس · سكيب · CMB · جرافيـاتو ليزر وبدون ليزر)',
+  glc_colors:
+    'كمبيوتر الألوان والديكور (GLC · جوتن · سايبس · سكيب · CMB · جرافيـاتو · فيوتك · PS)',
   brands: 'العلامات التجارية',
   about: 'عن المتجر',
   contact: 'تواصل معنا',
