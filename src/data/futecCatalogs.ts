@@ -59,6 +59,9 @@ export interface MouldingProfileItem {
   widthTier: 'slim' | 'medium' | 'wide';
   catalogPage: number;
   imageUrl: string;
+  appliedImageUrl: string;
+  cornerImageUrl?: string;
+  cornerKind?: 'corner' | 'crown';
   pageImageUrl: string;
   recommendedScene?: RoomSceneType;
   notesAr?: string;
@@ -108,7 +111,7 @@ export const FUTEC_NEWTEC_CATEGORIES: MouldingCategoryMeta[] = [
 ];
 
 // ===================== 1) كتالوج ملكاوي جروب 2026 — خامات PS (RT ARTEC) =====================
-const PS_MLKAWY_RAW: Omit<MouldingProfileItem, 'imageUrl' | 'pageImageUrl'>[] = [
+const PS_MLKAWY_RAW: Omit<MouldingProfileItem, 'imageUrl' | 'appliedImageUrl' | 'pageImageUrl'>[] = [
   // Page 2: بانوهات PS
   {
     id: 'ps_rt02',
@@ -366,6 +369,7 @@ const PS_MLKAWY_RAW: Omit<MouldingProfileItem, 'imageUrl' | 'pageImageUrl'>[] = 
 export const PS_MLKAWY_PROFILES: MouldingProfileItem[] = PS_MLKAWY_RAW.map((item) => ({
   ...item,
   imageUrl: `/assets/futec/ps/${item.id}.jpg`,
+  appliedImageUrl: `/assets/futec/applied/${item.id}.png`,
   pageImageUrl: `/assets/futec/pages/ps-p${String(item.catalogPage).padStart(2, '0')}.jpg`,
 }));
 
@@ -626,8 +630,23 @@ const NEWTEC_RAW: CompactNewtecRow[] = [
   ['060', 'exterior', 'كرنيشة واجهة قصر 40×60 جامبو', '40×60 سم · طول 240 سم', '240 سم', 'exterior_corniche', 'wide', 61, 'exterior'],
 ];
 
+const NEWTEC_CROWN_CODES = new Set(['K 240', 'K 220']);
+const NEWTEC_CORNER_CODES = new Set([
+  'K 11',
+  'K 110',
+  'K 240',
+  'K 220',
+  'K 35',
+  'K 260',
+  'K 123',
+  'K 33',
+  'K 34',
+  'K 10',
+]);
+
 export const FUTEC_NEWTEC_PROFILES: MouldingProfileItem[] = NEWTEC_RAW.map((row, idx) => {
   const id = `nt_${idx + 1}_${row[0].toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+  const hasCorner = NEWTEC_CORNER_CODES.has(row[0]);
   return {
     id,
     brand: 'futec_newtec',
@@ -640,6 +659,13 @@ export const FUTEC_NEWTEC_PROFILES: MouldingProfileItem[] = NEWTEC_RAW.map((row,
     widthTier: row[6],
     catalogPage: row[7],
     imageUrl: `/assets/futec/newtec/${id}.jpg`,
+    appliedImageUrl: `/assets/futec/applied/${id}.png`,
+    ...(hasCorner
+      ? {
+          cornerImageUrl: `/assets/futec/applied/${id}_corner.png`,
+          cornerKind: NEWTEC_CROWN_CODES.has(row[0]) ? ('crown' as const) : ('corner' as const),
+        }
+      : {}),
     pageImageUrl: `/assets/futec/pages/nt-p${String(row[7]).padStart(2, '0')}.jpg`,
     recommendedScene: row[8],
   };

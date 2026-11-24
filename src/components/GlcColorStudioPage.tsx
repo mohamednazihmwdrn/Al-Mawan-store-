@@ -12,11 +12,14 @@ import {
   Maximize2,
   MessageCircle,
   Paintbrush,
+  RotateCcw,
   Search,
   Send,
   Sparkles,
   Sun,
   X,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import {
   GLC_COLOR_FAMILIES,
@@ -547,6 +550,8 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   );
   const [lighting, setLighting] = useState<WallLightingMode>('daylight');
   const [finish, setFinish] = useState<WallFinishType>('matt');
+  const [sampleZoom, setSampleZoom] = useState<number>(1);
+  const [sampleFullscreenOpen, setSampleFullscreenOpen] = useState<boolean>(false);
   const [wallTexture, setWallTexture] = useState<WallTextureType>(() =>
     activeBrand === 'graffiato_laser' ||
     activeBrand === 'graffiato_classic' ||
@@ -685,10 +690,15 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         nameAr: activeMouldingProfile.nameAr,
         brandLabel: isFutecNewtec ? 'NEWTEC' : 'PS',
         dimensionsAr: activeMouldingProfile.dimensionsAr,
+        categoryId: activeMouldingProfile.categoryId,
+        catalogPage: activeMouldingProfile.catalogPage,
         patternKind: activeMouldingProfile.patternKind,
         widthTier: activeMouldingProfile.widthTier,
         trimHex: mouldingTrimHex,
         imageUrl: activeMouldingProfile.imageUrl,
+        appliedImageUrl: activeMouldingProfile.appliedImageUrl,
+        cornerImageUrl: activeMouldingProfile.cornerImageUrl,
+        cornerKind: activeMouldingProfile.cornerKind,
       }
     : null;
 
@@ -1513,7 +1523,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     : `${allShades.length} كود لون`}
                 </span>
               </div>
-              <h1 className="text-sm sm:text-xl font-extrabold text-white leading-snug truncate">
+              <h1 className="text-sm sm:text-xl font-extrabold text-white leading-snug break-words">
                 {isJotun
                   ? 'كمبيوتر ألوان جوتن (JOTUN)'
                   : isSipes
@@ -1852,7 +1862,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
             )}
 
             <div className="flex flex-wrap items-center justify-between gap-1.5">
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1">
                 <button
                   type="button"
                   onClick={() =>
@@ -1895,7 +1905,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     <span>
                       {mouldingCanvasMode === 'catalog_photo'
                         ? 'عرض داخل الغرفة'
-                        : 'صورة الكتالوج الأصلية'}
+                        : 'صورة الكتالوج'}
                     </span>
                   </button>
                 ) : (
@@ -1911,6 +1921,56 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     <Columns2 className="w-3.5 h-3.5 shrink-0" />
                     <span>مقارنة لونين</span>
                   </button>
+                )}
+
+                {/* Zoom & 100% Inspection Controls (Above Canvas — Never Overlapping) */}
+                {(!isMouldingMode || mouldingCanvasMode === 'room') && (
+                  <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setSampleZoom((z) => Math.max(1, Math.round((z - 0.5) * 10) / 10))}
+                      disabled={sampleZoom <= 1}
+                      aria-label="تصغير العينة"
+                      title="تصغير"
+                      className="min-h-[26px] min-w-[26px] inline-flex items-center justify-center rounded-md text-slate-700 hover:bg-white disabled:opacity-35 cursor-pointer"
+                    >
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="font-mono-nums text-[10px] sm:text-[11px] font-extrabold text-slate-800 px-1 min-w-[32px] text-center">
+                      {Math.round(sampleZoom * 100)}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSampleZoom((z) => Math.min(4, Math.round((z + 0.5) * 10) / 10))}
+                      disabled={sampleZoom >= 4}
+                      aria-label="تكبير العينة"
+                      title="تكبير الزوم"
+                      className="min-h-[26px] min-w-[26px] inline-flex items-center justify-center rounded-md text-slate-700 hover:bg-white disabled:opacity-35 cursor-pointer"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </button>
+                    {sampleZoom > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setSampleZoom(1)}
+                        aria-label="إرجاع الحجم الطبيعي"
+                        title="إرجاع 100%"
+                        className="min-h-[26px] min-w-[26px] inline-flex items-center justify-center rounded-md text-blue-700 hover:bg-white cursor-pointer"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSampleFullscreenOpen(true)}
+                      aria-label="تكبير العينة بملء الشاشة 100%"
+                      title="ملء الشاشة لفحص العينة 100%"
+                      className="min-h-[26px] px-1.5 inline-flex items-center gap-1 rounded-md bg-slate-900 text-amber-300 hover:bg-slate-800 text-[10px] font-bold cursor-pointer"
+                    >
+                      <Maximize2 className="w-3 h-3 shrink-0" />
+                      <span className="hidden sm:inline">زوم كامل</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -2026,15 +2086,18 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 texture={activeWallTexture}
                 hasLaserGlitter={!isMouldingMode && isGraffiatoLaser}
                 moulding={activeMouldingSpec}
+                zoom={sampleZoom}
+                onZoomChange={setSampleZoom}
+                enablePanZoom={true}
               />
             </div>
           )}
 
           {/* Context-Specific Live Controls inside Sticky Visualizer */}
           {isMouldingMode && activeMouldingProfile ? (
-            <div className="space-y-2 pt-0.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5">
+            <div className="space-y-2 pt-0.5 min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                   <span className="text-[10px] sm:text-xs font-bold text-slate-600">لون الحائط:</span>
                   {MOULDING_WALL_BACKDROPS.map((bg) => (
                     <button
@@ -2053,7 +2116,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   ))}
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                   <span className="text-[10px] sm:text-xs font-bold text-slate-600">لون الفيوتك:</span>
                   {MOULDING_FINISH_TINTS.map((tint) => (
                     <button
@@ -3196,6 +3259,191 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 <img src={b.url} alt="" className="w-full h-full object-cover" />
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen 100% Live Architectural Sample Inspection & Zoom Modal */}
+      {sampleFullscreenOpen && (
+        <div
+          onClick={() => setSampleFullscreenOpen(false)}
+          className="fixed inset-0 z-50 bg-slate-950/95 flex flex-col justify-between p-3 sm:p-5 overflow-y-auto"
+        >
+          {/* Top Modal Header Bar */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex flex-wrap items-center justify-between gap-2 max-w-6xl w-full mx-auto text-white"
+          >
+            <div className="min-w-0">
+              <h4 className="text-sm sm:text-base font-extrabold truncate">
+                {isMouldingMode && activeMouldingProfile
+                  ? `${brandTitleUpper} ${activeMouldingProfile.code} — ${activeMouldingProfile.nameAr}`
+                  : `${brandTitleUpper} ${primaryShade.code} ${primaryShade.nameAr || primaryShade.nameEn}`}
+              </h4>
+              <p className="text-[11px] text-slate-300">
+                اسحب داخل العينة للتحريك أو استخدم أزرار الزوم (100% – 400%) لفحص التركيب على الطبيعة
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {[1, 1.5, 2.5, 4].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setSampleZoom(preset)}
+                  className={`min-h-[34px] px-2.5 rounded-lg text-xs font-mono-nums font-bold cursor-pointer transition-colors ${
+                    Math.abs(sampleZoom - preset) < 0.2
+                      ? 'bg-amber-400 text-slate-950'
+                      : 'bg-slate-800 hover:bg-slate-700 text-white'
+                  }`}
+                >
+                  {Math.round(preset * 100)}%
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setSampleFullscreenOpen(false)}
+                className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white cursor-pointer mr-1"
+                aria-label="إغلاق الفحص الكامل"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Large Crisp Vector/HD Sample Canvas */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 flex items-center justify-center max-w-6xl w-full mx-auto my-2 min-h-0"
+          >
+            <div className="w-full">
+              <GlcWallPreview
+                primaryShade={
+                  isMouldingMode
+                    ? {
+                        code: activeMouldingProfile?.code || '',
+                        hex: mouldingWallHex,
+                        nameAr:
+                          MOULDING_WALL_BACKDROPS.find((w) => w.hex === mouldingWallHex)?.nameAr ||
+                          'جريج دافئ',
+                        brandLabel: brandTitleUpper,
+                        texture: 'smooth',
+                        laserGlitter: false,
+                      }
+                    : {
+                        code: primaryShade.code,
+                        hex: primaryShade.hex,
+                        nameAr: primaryShade.nameAr || primaryShade.nameEn,
+                        brandLabel: brandTitleUpper,
+                        texture: activeWallTexture,
+                        laserGlitter: isGraffiatoLaser || Boolean(primaryShade.isLaser),
+                      }
+                }
+                compareShade={
+                  compareMode && !isMouldingMode
+                    ? {
+                        code: compareShade.code,
+                        hex: compareShade.hex,
+                        nameAr: compareShade.nameAr || compareShade.nameEn,
+                        brandLabel: brandTitleUpper,
+                        texture: activeWallTexture,
+                        laserGlitter: isGraffiatoLaser || Boolean(compareShade.isLaser),
+                      }
+                    : null
+                }
+                scene={effectiveScene}
+                lighting={lighting}
+                finish={finish}
+                texture={activeWallTexture}
+                hasLaserGlitter={!isMouldingMode && isGraffiatoLaser}
+                moulding={activeMouldingSpec}
+                zoom={sampleZoom}
+                onZoomChange={setSampleZoom}
+                enablePanZoom={true}
+              />
+            </div>
+          </div>
+
+          {/* Bottom Room & Color Quick-Controls Bar inside Fullscreen Modal */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 text-white"
+          >
+            {!isGraffiatoMode && (
+              <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-1 flex-1">
+                {ALL_ROOM_SCENES.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setScene(item.id)}
+                    className={`min-h-[30px] px-2 py-1 rounded-md text-[11px] font-bold cursor-pointer transition-colors ${
+                      effectiveScene === item.id
+                        ? 'bg-amber-400 text-slate-950'
+                        : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {isMouldingMode && (
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-300 font-bold">الحائط:</span>
+                  {MOULDING_WALL_BACKDROPS.map((bg) => (
+                    <button
+                      key={bg.id}
+                      type="button"
+                      onClick={() => setMouldingWallHex(bg.hex)}
+                      aria-label={`حائط ${bg.nameAr}`}
+                      className={`w-5 h-5 rounded-full border cursor-pointer ${
+                        mouldingWallHex === bg.hex
+                          ? 'ring-2 ring-amber-400 border-white scale-110'
+                          : 'border-slate-500'
+                      }`}
+                      style={{ backgroundColor: bg.hex }}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-300 font-bold">التشطيب:</span>
+                  {MOULDING_FINISH_TINTS.map((tint) => (
+                    <button
+                      key={tint.id}
+                      type="button"
+                      onClick={() => setMouldingTrimHex(tint.hex)}
+                      aria-label={`تشطيب ${tint.nameAr}`}
+                      className={`w-5 h-5 rounded-full border cursor-pointer ${
+                        mouldingTrimHex === tint.hex
+                          ? 'ring-2 ring-blue-400 border-white scale-110'
+                          : 'border-slate-500'
+                      }`}
+                      style={{ backgroundColor: tint.hex }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setLighting((prev) => (prev === 'daylight' ? 'warm' : 'daylight'))}
+              className="min-h-[34px] inline-flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1 text-xs font-bold cursor-pointer"
+            >
+              {lighting === 'warm' ? (
+                <>
+                  <Lamp className="w-3.5 h-3.5 text-amber-400" />
+                  <span>إضاءة دافئة</span>
+                </>
+              ) : (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-sky-400" />
+                  <span>نهارية</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       )}
