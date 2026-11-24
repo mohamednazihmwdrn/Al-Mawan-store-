@@ -13,7 +13,6 @@ import {
   MessageCircle,
   Paintbrush,
   RotateCcw,
-  Search,
   Send,
   Sparkles,
   Sun,
@@ -21,6 +20,8 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
+import { matchesSearchQuery } from '../lib/searchUtils';
+import { VoiceSearchInput } from './VoiceSearchInput';
 import {
   GLC_COLOR_FAMILIES,
   GLC_PLATINE_BASES,
@@ -937,7 +938,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   }, [isCmb, isJotun, isSaveto, isScib, isSipes, products, selectedBase.productId]);
 
   const filteredColors = useMemo(() => {
-    const q = searchCode.trim().toLowerCase();
+    const hasQuery = searchCode.trim().length > 0;
     return allShades.filter((c) => {
       if (selectedFamilyId !== 'all' && c.familyId !== selectedFamilyId) return false;
       if (
@@ -969,11 +970,11 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       ) {
         return false;
       }
-      if (q) {
-        const famName = (familyNameById.get(c.familyId) || '').toLowerCase();
-        const texName = c.textureGrade ? TEXTURE_GRADE_LABELS_AR[c.textureGrade].toLowerCase() : '';
-        const hay = `${c.code} ${c.nameAr || ''} ${c.nameEn || ''} ${c.sectionShortAr || ''} ${texName} ${famName}`.toLowerCase();
-        return hay.includes(q);
+      if (hasQuery) {
+        const famName = familyNameById.get(c.familyId) || '';
+        const texName = c.textureGrade ? TEXTURE_GRADE_LABELS_AR[c.textureGrade] : '';
+        const hay = `${c.code} ${c.nameAr || ''} ${c.nameEn || ''} ${c.sectionShortAr || ''} ${texName} ${famName}`;
+        return matchesSearchQuery(hay, searchCode);
       }
       return true;
     });
@@ -1024,13 +1025,13 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
   const filteredMouldings = useMemo(() => {
     if (!isMouldingMode) return [];
-    const q = searchCode.trim().toLowerCase();
+    const hasQuery = searchCode.trim().length > 0;
     return allMouldings.filter((p) => {
       if (selectedFamilyId !== 'all' && p.categoryId !== selectedFamilyId) return false;
-      if (q) {
-        const catName = (familyNameById.get(p.categoryId) || '').toLowerCase();
-        const hay = `${p.code} ${p.nameAr} ${p.dimensionsAr} ${p.lengthAr} ${p.notesAr || ''} ${catName} ص${p.catalogPage}`.toLowerCase();
-        return hay.includes(q);
+      if (hasQuery) {
+        const catName = familyNameById.get(p.categoryId) || '';
+        const hay = `${p.code} ${p.nameAr} ${p.dimensionsAr} ${p.lengthAr} ${p.notesAr || ''} ${catName} ص${p.catalogPage}`;
+        return matchesSearchQuery(hay, searchCode);
       }
       return true;
     });
@@ -2320,38 +2321,36 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 </p>
               </div>
 
-              <div className="relative w-full sm:w-60">
-                <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="search"
-                  value={searchCode}
-                  onChange={(e) =>
-                    setSearchByBrand((prev) => ({ ...prev, [activeBrand]: e.target.value }))
-                  }
-                  placeholder={
-                    isFutecNewtec
-                      ? 'ابحث بالكود أو الاسم (K217، WP1، 3D5)...'
-                      : isPsMlkawy
-                      ? 'ابحث بكود PS أو الاسم (RT02، RT09، وزر)...'
-                      : isJotun
-                      ? 'ابحث بالكود أو الاسم (7627)...'
-                      : isSipes
-                      ? 'ابحث بالكود أو الملمس...'
-                      : isSaveto
-                      ? 'ابحث بالكود أو الخشونة...'
-                      : isScib
-                      ? 'ابحث بكود سكيب (9436)...'
-                      : isCmb
-                      ? 'ابحث بكود CMB أو المنتج...'
-                      : isGraffiatoLaser
-                      ? 'ابحث بكود الليزر (1004)...'
-                      : isGraffiatoClassic
-                      ? 'ابحث بالكود (6050 أو R50)...'
-                      : 'ابحث بالكود (Y21010)...'
-                  }
-                  className="w-full min-h-[40px] rounded-xl border border-slate-200 bg-slate-50 pr-9 pl-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600"
-                />
-              </div>
+              <VoiceSearchInput
+                compact
+                value={searchCode}
+                onChange={(val) =>
+                  setSearchByBrand((prev) => ({ ...prev, [activeBrand]: val }))
+                }
+                placeholder={
+                  isFutecNewtec
+                    ? 'ابحث بالكود أو الاسم (K217، WP1، 3D5)...'
+                    : isPsMlkawy
+                    ? 'ابحث بكود PS أو الاسم (RT02، RT09، وزر)...'
+                    : isJotun
+                    ? 'ابحث بالكود أو الاسم (7627)...'
+                    : isSipes
+                    ? 'ابحث بالكود أو الملمس...'
+                    : isSaveto
+                    ? 'ابحث بالكود أو الخشونة...'
+                    : isScib
+                    ? 'ابحث بكود سكيب (9436)...'
+                    : isCmb
+                    ? 'ابحث بكود CMB أو المنتج...'
+                    : isGraffiatoLaser
+                    ? 'ابحث بكود الليزر (1004)...'
+                    : isGraffiatoClassic
+                    ? 'ابحث بالكود (6050 أو R50)...'
+                    : 'ابحث بالكود (Y21010)...'
+                }
+                ariaLabel="البحث عن الكود أو اللون بالكتابة أو الصوت"
+                className="w-full sm:w-72"
+              />
             </div>
 
             {/* Section / Category Filter Tabs */}

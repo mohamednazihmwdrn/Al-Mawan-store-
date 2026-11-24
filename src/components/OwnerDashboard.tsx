@@ -17,7 +17,6 @@ import {
   MessageCircle,
   Package,
   Plus,
-  Search,
   Settings,
   ShoppingCart,
   Sparkles,
@@ -28,12 +27,14 @@ import {
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { sanitizeId } from '../lib/imageUtils';
+import { matchesSearchQuery } from '../lib/searchUtils';
 import { ADMIN_EMAIL, uploadImageAsset } from '../lib/supabase';
 import { InquiryStatus, OrderStatus, OwnerTab, Product } from '../types/store';
 import { OwnerBannersTab, OwnerCatalogsTab, OwnerCategoriesTab } from './owner/OwnerCatalogTabs';
 import { OwnerBrandsFeaturesTab, OwnerSiteSettingsTab } from './owner/OwnerSettingsTab';
 import { OwnerAnalyticsSection } from './owner/OwnerAnalyticsSection';
 import { ConfirmActionModal } from './ConfirmActionModal';
+import { VoiceSearchInput } from './VoiceSearchInput';
 import { GLC_ALL_PRODUCTS } from '../data/glcCatalog';
 
 interface OwnerDashboardProps {
@@ -355,12 +356,14 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   );
 
   const filteredProducts = useMemo(() => {
-    const q = prodSearch.trim().toLowerCase();
+    const hasQuery = prodSearch.trim().length > 0;
     return products.filter((p) => {
       if (prodCatFilter !== 'all' && p.categoryId !== prodCatFilter) return false;
-      if (q) {
-        const hay = `${p.name} ${p.description} ${p.brandName}`.toLowerCase();
-        if (!hay.includes(q)) return false;
+      if (hasQuery) {
+        return matchesSearchQuery(
+          `${p.name} ${p.description} ${p.brandName} ${p.specs}`,
+          prodSearch
+        );
       }
       return true;
     });
@@ -1336,17 +1339,14 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="search"
-                    value={prodSearch}
-                    onChange={(e) => setProdSearch(e.target.value)}
-                    placeholder="ابحث بالاسم أو الوصف أو الماركة..."
-                    className="w-full rounded-xl border border-slate-200 pr-10 pl-4 py-2.5 text-sm"
-                  />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                <VoiceSearchInput
+                  value={prodSearch}
+                  onChange={setProdSearch}
+                  placeholder="ابحث بالاسم أو الوصف أو الماركة أو بالصوت..."
+                  ariaLabel="البحث عن المنتجات في لوحة التحكم بالكتابة أو الصوت"
+                  inputClassName="bg-white"
+                />
                 <select
                   value={prodCatFilter}
                   onChange={(e) => setProdCatFilter(e.target.value)}

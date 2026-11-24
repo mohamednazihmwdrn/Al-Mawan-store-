@@ -15,7 +15,6 @@ import {
   MessageCircle,
   Palette,
   Phone,
-  Search,
   Send,
   ShieldCheck,
   ShoppingCart,
@@ -24,9 +23,11 @@ import {
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { trackAnalyticsEvent } from '../lib/analytics';
+import { matchesSearchQuery } from '../lib/searchUtils';
 import { Banner, Product, StoreFeature, StorefrontPage } from '../types/store';
 import { ColorStudioBrand } from './GlcColorStudioPage';
 import { PWAInstallButton } from './PWAInstallButton';
+import { VoiceSearchInput } from './VoiceSearchInput';
 
 interface StorefrontProps {
   activePage: StorefrontPage;
@@ -226,19 +227,33 @@ export const Storefront: React.FC<StorefrontProps> = ({
     [subpages, selectedCategoryId]
   );
 
+  const homeSearchProducts = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return products.filter((p) => {
+      const catName = categories.find((c) => c.id === p.categoryId)?.name || '';
+      return matchesSearchQuery(
+        `${p.name} ${p.description} ${p.brandName} ${p.specs} ${catName}`,
+        searchQuery
+      );
+    });
+  }, [categories, products, searchQuery]);
+
   const filteredCategoryProducts = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const hasQuery = searchQuery.trim().length > 0;
     return products.filter((p) => {
       if (selectedCategoryId !== 'all' && p.categoryId !== selectedCategoryId) return false;
       if (selectedSubpageId !== 'all' && p.subpageId !== selectedSubpageId) return false;
       if (offersOnly && !p.isOffer) return false;
-      if (q) {
-        const hay = `${p.name} ${p.description} ${p.brandName} ${p.specs}`.toLowerCase();
-        if (!hay.includes(q)) return false;
+      if (hasQuery) {
+        const catName = categories.find((c) => c.id === p.categoryId)?.name || '';
+        return matchesSearchQuery(
+          `${p.name} ${p.description} ${p.brandName} ${p.specs} ${catName}`,
+          searchQuery
+        );
       }
       return true;
     });
-  }, [products, selectedCategoryId, selectedSubpageId, offersOnly, searchQuery]);
+  }, [categories, products, selectedCategoryId, selectedSubpageId, offersOnly, searchQuery]);
 
   const brandProducts = useMemo(() => {
     if (!selectedBrandCode) return [];
@@ -585,6 +600,29 @@ export const Storefront: React.FC<StorefrontProps> = ({
                 id="products-section"
                 className="max-w-7xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-6 sm:space-y-8"
               >
+                {products.length > 0 && (
+                  <div className="rounded-2xl bg-white border border-slate-200 p-3 sm:p-4 shadow-2xs space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3">
+                      <div className="flex-1 min-w-0">
+                        <VoiceSearchInput
+                          value={searchQuery}
+                          onChange={setSearchQuery}
+                          placeholder="ابحث بالاسم أو الماركة أو اضغط الميكروفون للتحدث..."
+                          ariaLabel="البحث عن المنتجات بالكتابة أو الصوت"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigatePage('categories')}
+                        className="min-h-[44px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 px-3.5 py-2 text-xs font-bold whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                      >
+                        <LayoutGrid className="w-4 h-4 text-blue-700" />
+                        <span>كل الأقسام والفلاتر</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {products.length === 0 ? (
                   <div className="rounded-2xl border border-slate-200 bg-white p-8 sm:p-12 text-center space-y-3">
                     <p className="text-base font-bold text-slate-800">
@@ -593,6 +631,46 @@ export const Storefront: React.FC<StorefrontProps> = ({
                     <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
                       يتم الآن تحديث التشكيلة وإضافة منتجات جديدة — يمكنك التواصل معنا عبر واتساب أو طلب خلط الألوان بالكمبيوتر.
                     </p>
+                  </div>
+                ) : searchQuery.trim() !== '' ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <h2 className="text-base sm:text-xl font-extrabold text-slate-900">
+                          نتائج البحث عن &quot;{searchQuery}&quot;
+                        </h2>
+                        <p className="text-xs text-slate-500 font-mono-nums">
+                          النتائج المطابقة: {homeSearchProducts.length} منتج
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="min-h-[38px] inline-flex items-center gap-1.5 rounded-xl bg-slate-200/80 hover:bg-slate-300 text-slate-800 px-3 py-1.5 text-xs font-bold cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>عرض جميع الأقسام</span>
+                      </button>
+                    </div>
+
+                    {homeSearchProducts.length === 0 ? (
+                      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center space-y-3">
+                        <p className="text-sm sm:text-base font-bold text-slate-800">
+                          لا توجد منتجات مطابقة لبحثك &quot;{searchQuery}&quot;
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="min-h-[42px] mowan-btn-bevel bg-slate-900 text-white px-5 py-2 text-xs font-bold hover:bg-slate-800 cursor-pointer"
+                        >
+                          العودة لجميع المنتجات
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                        {homeSearchProducts.map((product) => renderProductCard(product))}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   homeCategorySections.map((section) => (
@@ -1447,16 +1525,13 @@ export const Storefront: React.FC<StorefrontProps> = ({
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
-                      <div className="relative flex-1 sm:w-72">
-                        <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        <input
-                          type="search"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="ابحث بالاسم أو الماركة أو المواصفات..."
-                          className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 pr-10 pl-4 py-2 text-base sm:text-sm text-slate-900 focus:outline-none focus:border-blue-600"
-                        />
-                      </div>
+                      <VoiceSearchInput
+                        value={searchQuery}
+                        onChange={setSearchQuery}
+                        placeholder="ابحث بالاسم أو الماركة أو بالميكروفون..."
+                        ariaLabel="البحث عن المنتجات بالكتابة أو الصوت"
+                        className="flex-1 sm:w-80"
+                      />
 
                       {config.visibility.quickFilters && (
                         <div className="grid grid-cols-3 sm:inline-flex sm:items-center gap-1 p-1 bg-slate-200/75 rounded-xl w-full sm:w-auto">
