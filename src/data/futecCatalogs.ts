@@ -58,6 +58,8 @@ export interface MouldingProfileItem {
   patternKind: MouldingPatternKind;
   widthTier: 'slim' | 'medium' | 'wide';
   catalogPage: number;
+  imageUrl: string;
+  pageImageUrl: string;
   recommendedScene?: RoomSceneType;
   notesAr?: string;
 }
@@ -106,7 +108,7 @@ export const FUTEC_NEWTEC_CATEGORIES: MouldingCategoryMeta[] = [
 ];
 
 // ===================== 1) كتالوج ملكاوي جروب 2026 — خامات PS (RT ARTEC) =====================
-export const PS_MLKAWY_PROFILES: MouldingProfileItem[] = [
+const PS_MLKAWY_RAW: Omit<MouldingProfileItem, 'imageUrl' | 'pageImageUrl'>[] = [
   // Page 2: بانوهات PS
   {
     id: 'ps_rt02',
@@ -360,6 +362,12 @@ export const PS_MLKAWY_PROFILES: MouldingProfileItem[] = [
     catalogPage: 6,
   },
 ];
+
+export const PS_MLKAWY_PROFILES: MouldingProfileItem[] = PS_MLKAWY_RAW.map((item) => ({
+  ...item,
+  imageUrl: `/assets/futec/ps/${item.id}.jpg`,
+  pageImageUrl: `/assets/futec/pages/ps-p${String(item.catalogPage).padStart(2, '0')}.jpg`,
+}));
 
 // ===================== 2) كتالوج نيوتك 2025 (Newtec 2025) — فيوتك وفوم =====================
 type CompactNewtecRow = [
@@ -618,16 +626,21 @@ const NEWTEC_RAW: CompactNewtecRow[] = [
   ['060', 'exterior', 'كرنيشة واجهة قصر 40×60 جامبو', '40×60 سم · طول 240 سم', '240 سم', 'exterior_corniche', 'wide', 61, 'exterior'],
 ];
 
-export const FUTEC_NEWTEC_PROFILES: MouldingProfileItem[] = NEWTEC_RAW.map((row, idx) => ({
-  id: `nt_${idx + 1}_${row[0].toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
-  brand: 'futec_newtec',
-  code: row[0],
-  categoryId: row[1],
-  nameAr: row[2],
-  dimensionsAr: row[3],
-  lengthAr: row[4],
-  patternKind: row[5],
-  widthTier: row[6],
-  catalogPage: row[7],
-  recommendedScene: row[8],
-}));
+export const FUTEC_NEWTEC_PROFILES: MouldingProfileItem[] = NEWTEC_RAW.map((row, idx) => {
+  const id = `nt_${idx + 1}_${row[0].toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+  return {
+    id,
+    brand: 'futec_newtec',
+    code: row[0],
+    categoryId: row[1],
+    nameAr: row[2],
+    dimensionsAr: row[3],
+    lengthAr: row[4],
+    patternKind: row[5],
+    widthTier: row[6],
+    catalogPage: row[7],
+    imageUrl: `/assets/futec/newtec/${id}.jpg`,
+    pageImageUrl: `/assets/futec/pages/nt-p${String(row[7]).padStart(2, '0')}.jpg`,
+    recommendedScene: row[8],
+  };
+});

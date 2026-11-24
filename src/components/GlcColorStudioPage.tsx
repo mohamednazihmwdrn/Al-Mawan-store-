@@ -74,7 +74,6 @@ import {
   FUTEC_NEWTEC_PROFILES,
   MOULDING_FINISH_TINTS,
   MOULDING_WALL_BACKDROPS,
-  MouldingPatternKind,
   MouldingProfileItem,
   PS_MLKAWY_CATEGORIES,
   PS_MLKAWY_PDF_URL,
@@ -402,179 +401,6 @@ const ALL_ROOM_SCENES: ReadonlyArray<{ id: RoomSceneType; label: string }> = [
   { id: 'exterior', label: 'واجهة' },
 ];
 
-const MouldingPatternThumb: React.FC<{ patternKind: MouldingPatternKind }> = ({
-  patternKind,
-}) => {
-  return (
-    <svg viewBox="0 0 120 72" className="w-full h-full block" aria-hidden="true">
-      <rect x="0" y="0" width="120" height="72" fill="#F1F5F9" />
-      {(patternKind === 'corniche_plain' || patternKind === 'exterior_corniche') && (
-        <g>
-          <path d="M12,12 L108,12 L108,24 C86,26 78,42 54,48 L54,58 L12,58 Z" fill="#FFFFFF" stroke="#64748B" strokeWidth="1.8" />
-          <line x1="16" y1="20" x2="96" y2="20" stroke="#CBD5E1" strokeWidth="1.5" />
-          <line x1="16" y1="30" x2="72" y2="30" stroke="#94A3B8" strokeWidth="1.5" />
-        </g>
-      )}
-      {patternKind === 'corniche_ornate' && (
-        <g>
-          <path d="M12,12 L108,12 L108,26 L92,34 L76,42 L56,50 L44,58 L12,58 Z" fill="#FFFFFF" stroke="#475569" strokeWidth="1.8" />
-          <path d="M18,22 Q26,16 34,22 Q42,16 50,22 Q58,16 66,22 Q74,16 82,22 Q90,16 98,22" fill="none" stroke="#94A3B8" strokeWidth="2" />
-          <circle cx="28" cy="36" r="3" fill="#CBD5E1" />
-          <circle cx="44" cy="36" r="3" fill="#CBD5E1" />
-          <circle cx="60" cy="36" r="3" fill="#CBD5E1" />
-        </g>
-      )}
-      {patternKind === 'corniche_light' && (
-        <g>
-          <rect x="12" y="10" width="96" height="14" fill="#FEF3C7" />
-          <path d="M12,32 L108,32 L108,22 L92,22 L88,44 C72,48 64,56 42,58 L12,58 Z" fill="#FFFFFF" stroke="#64748B" strokeWidth="1.8" />
-          <ellipse cx="64" cy="18" rx="40" ry="6" fill="#FDE047" opacity="0.55" />
-        </g>
-      )}
-      {patternKind === 'panel_classic' && (
-        <g>
-          <rect x="18" y="12" width="84" height="48" rx="2" fill="#E2E8F0" />
-          <rect x="24" y="18" width="72" height="36" fill="none" stroke="#FFFFFF" strokeWidth="5" />
-          <rect x="26" y="20" width="68" height="32" fill="none" stroke="#64748B" strokeWidth="1.2" />
-          <rect x="30" y="24" width="60" height="24" fill="none" stroke="#94A3B8" strokeWidth="1" />
-        </g>
-      )}
-      {patternKind === 'panel_ornate' && (
-        <g>
-          <rect x="18" y="12" width="84" height="48" fill="#E2E8F0" />
-          <rect x="24" y="18" width="72" height="36" fill="none" stroke="#FFFFFF" strokeWidth="4.5" />
-          <rect x="24" y="18" width="72" height="36" fill="none" stroke="#475569" strokeWidth="1.2" />
-          <circle cx="24" cy="18" r="5" fill="#FFFFFF" stroke="#475569" strokeWidth="1.2" />
-          <circle cx="96" cy="18" r="5" fill="#FFFFFF" stroke="#475569" strokeWidth="1.2" />
-          <circle cx="24" cy="54" r="5" fill="#FFFFFF" stroke="#475569" strokeWidth="1.2" />
-          <circle cx="96" cy="54" r="5" fill="#FFFFFF" stroke="#475569" strokeWidth="1.2" />
-        </g>
-      )}
-      {patternKind === 'panel_arch' && (
-        <g>
-          <rect x="24" y="10" width="72" height="54" fill="#E2E8F0" />
-          <path d="M34,58 L34,36 A26,22 0 0 1 86,36 L86,58 Z" fill="none" stroke="#FFFFFF" strokeWidth="5" />
-          <path d="M34,58 L34,36 A26,22 0 0 1 86,36 L86,58 Z" fill="none" stroke="#475569" strokeWidth="1.3" />
-        </g>
-      )}
-      {patternKind === 'door_frame' && (
-        <g>
-          <rect x="36" y="12" width="48" height="52" fill="#D6C7B2" />
-          <path d="M32,64 L32,12 L88,12 L88,64" fill="none" stroke="#FFFFFF" strokeWidth="7" />
-          <path d="M32,64 L32,12 L88,12 L88,64" fill="none" stroke="#475569" strokeWidth="1.5" />
-          <rect x="26" y="6" width="68" height="7" fill="#FFFFFF" stroke="#475569" strokeWidth="1.3" />
-        </g>
-      )}
-      {(patternKind === 'skirting' || patternKind === 'skirting_led') && (
-        <g>
-          <rect x="0" y="54" width="120" height="18" fill="#CBD5E1" />
-          {patternKind === 'skirting_led' && (
-            <rect x="10" y="24" width="100" height="6" fill="#FDE047" opacity="0.65" />
-          )}
-          <path d="M12,28 L108,28 L108,56 L12,56 Z" fill="#FFFFFF" stroke="#475569" strokeWidth="1.6" />
-          <line x1="12" y1="36" x2="108" y2="36" stroke="#94A3B8" strokeWidth="1.3" />
-          <line x1="12" y1="42" x2="108" y2="42" stroke="#CBD5E1" strokeWidth="1.3" />
-        </g>
-      )}
-      {patternKind === 'angle' && (
-        <g>
-          <rect x="38" y="8" width="44" height="56" fill="#E2E8F0" />
-          <path d="M44,8 L60,18 L76,8 L76,64 L60,54 L44,64 Z" fill="#FFFFFF" stroke="#475569" strokeWidth="1.5" />
-          <line x1="60" y1="16" x2="60" y2="56" stroke="#64748B" strokeWidth="1.5" />
-        </g>
-      )}
-      {(patternKind === 'wood_slat_wide' ||
-        patternKind === 'wood_slat_fine' ||
-        patternKind === 'wood_wave') && (
-        <g>
-          <rect x="12" y="10" width="96" height="52" fill="#3B2314" rx="3" />
-          {Array.from({ length: patternKind === 'wood_slat_fine' ? 12 : 7 }).map((_, idx) => {
-            const step = patternKind === 'wood_slat_fine' ? 7.8 : 13.5;
-            const w = patternKind === 'wood_slat_fine' ? 4.8 : 9;
-            return (
-              <rect
-                key={idx}
-                x={16 + idx * step}
-                y="12"
-                width={w}
-                height="48"
-                rx={patternKind === 'wood_wave' ? 4 : 1}
-                fill={idx % 2 === 0 ? '#A47148' : '#8B5A2B'}
-              />
-            );
-          })}
-        </g>
-      )}
-      {patternKind.startsWith('wall_3d_') && (
-        <g>
-          <rect x="14" y="10" width="92" height="52" fill="#E2E8F0" rx="2" />
-          {patternKind === 'wall_3d_diamond' && (
-            <path d="M18,36 L38,14 L58,36 L78,14 L98,36 L78,58 L58,36 L38,58 Z" fill="#FFFFFF" stroke="#64748B" strokeWidth="1.4" />
-          )}
-          {patternKind === 'wall_3d_wave' && (
-            <g fill="none" stroke="#64748B" strokeWidth="2.4">
-              <path d="M16,22 Q38,12 60,22 T104,22" />
-              <path d="M16,36 Q38,26 60,36 T104,36" />
-              <path d="M16,50 Q38,40 60,50 T104,50" />
-            </g>
-          )}
-          {patternKind === 'wall_3d_brick' && (
-            <g fill="#FFFFFF" stroke="#64748B" strokeWidth="1.3">
-              <rect x="18" y="14" width="26" height="12" rx="1" />
-              <rect x="47" y="14" width="26" height="12" rx="1" />
-              <rect x="76" y="14" width="26" height="12" rx="1" />
-              <rect x="30" y="30" width="28" height="12" rx="1" />
-              <rect x="61" y="30" width="28" height="12" rx="1" />
-              <rect x="18" y="46" width="26" height="12" rx="1" />
-              <rect x="47" y="46" width="26" height="12" rx="1" />
-              <rect x="76" y="46" width="26" height="12" rx="1" />
-            </g>
-          )}
-          {patternKind === 'wall_3d_circle' && (
-            <g fill="#FFFFFF" stroke="#64748B" strokeWidth="1.3">
-              <circle cx="38" cy="24" r="9" />
-              <circle cx="60" cy="24" r="9" />
-              <circle cx="82" cy="24" r="9" />
-              <circle cx="38" cy="46" r="9" />
-              <circle cx="60" cy="46" r="9" />
-              <circle cx="82" cy="46" r="9" />
-            </g>
-          )}
-          {(patternKind === 'wall_3d_rock' ||
-            patternKind === 'wall_3d_tufted' ||
-            patternKind === 'wall_3d_origami' ||
-            patternKind === 'wall_3d_strips') && (
-            <g fill="#FFFFFF" stroke="#64748B" strokeWidth="1.3">
-              <polygon points="18,14 48,14 34,36" />
-              <polygon points="48,14 78,14 64,36" />
-              <polygon points="78,14 102,14 90,36" />
-              <polygon points="18,58 48,58 34,36" />
-              <polygon points="48,58 78,58 64,36" />
-              <polygon points="78,58 102,58 90,36" />
-            </g>
-          )}
-        </g>
-      )}
-      {patternKind === 'medallion' && (
-        <g>
-          <circle cx="60" cy="36" r="26" fill="#FFFFFF" stroke="#475569" strokeWidth="1.6" />
-          <circle cx="60" cy="36" r="19" fill="none" stroke="#94A3B8" strokeWidth="1.3" strokeDasharray="3 3" />
-          <circle cx="60" cy="36" r="8" fill="#E2E8F0" stroke="#475569" strokeWidth="1.4" />
-        </g>
-      )}
-      {(patternKind === 'console' || patternKind === 'column') && (
-        <g>
-          <rect x="34" y="10" width="52" height="10" rx="2" fill="#FFFFFF" stroke="#475569" strokeWidth="1.4" />
-          <rect x="44" y="20" width="32" height="36" fill="#FFFFFF" stroke="#475569" strokeWidth="1.4" />
-          <line x1="53" y1="22" x2="53" y2="54" stroke="#94A3B8" strokeWidth="1.3" />
-          <line x1="67" y1="22" x2="67" y2="54" stroke="#94A3B8" strokeWidth="1.3" />
-          <rect x="36" y="56" width="48" height="8" rx="1" fill="#FFFFFF" stroke="#475569" strokeWidth="1.4" />
-        </g>
-      )}
-    </svg>
-  );
-};
-
 export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   activeBrand,
   onChangeBrand,
@@ -639,6 +465,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
   }));
   const [mouldingWallHex, setMouldingWallHex] = useState<string>(MOULDING_WALL_BACKDROPS[0].hex);
   const [mouldingTrimHex, setMouldingTrimHex] = useState<string>(MOULDING_FINISH_TINTS[0].hex);
+  const [mouldingCanvasMode, setMouldingCanvasMode] = useState<'room' | 'catalog_photo'>('room');
 
   const [primaryByBrand, setPrimaryByBrand] = useState<Record<ColorStudioBrand, NormalizedShade>>(
     () => ({
@@ -861,6 +688,7 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
         patternKind: activeMouldingProfile.patternKind,
         widthTier: activeMouldingProfile.widthTier,
         trimHex: mouldingTrimHex,
+        imageUrl: activeMouldingProfile.imageUrl,
       }
     : null;
 
@@ -1197,6 +1025,31 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
       return true;
     });
   }, [allMouldings, familyNameById, isMouldingMode, searchCode, selectedFamilyId]);
+
+  const openMouldingLightbox = (profile: MouldingProfileItem) => {
+    const label = isFutecNewtec ? 'نيوتك NEWTEC 2025' : 'PS ملكاوي 2026';
+    setBoardLightbox({
+      index: 0,
+      boards: [
+        {
+          id: `${profile.id}_crop`,
+          titleAr: `${profile.code} — ${profile.nameAr} (${profile.dimensionsAr})`,
+          codeRange: profile.lengthAr,
+          url: profile.imageUrl,
+          pageNumber: profile.catalogPage,
+          isLaser: false,
+        },
+        {
+          id: `${profile.id}_page`,
+          titleAr: `الصفحة الأصلية ص ${profile.catalogPage} — كتالوج ${label}`,
+          codeRange: `${profile.code} · ${profile.dimensionsAr}`,
+          url: profile.pageImageUrl,
+          pageNumber: profile.catalogPage,
+          isLaser: false,
+        },
+      ],
+    });
+  };
 
   const handleSelectMoulding = (profile: MouldingProfileItem) => {
     setSubmitted(false);
@@ -1982,9 +1835,12 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setScene(item.id)}
+                    onClick={() => {
+                      setScene(item.id);
+                      if (isMouldingMode) setMouldingCanvasMode('room');
+                    }}
                     className={`min-h-[28px] sm:min-h-[32px] px-1.5 sm:px-2.5 py-0.5 rounded-md text-[10px] sm:text-xs font-bold text-center leading-tight transition-colors cursor-pointer ${
-                      effectiveScene === item.id
+                      effectiveScene === item.id && (!isMouldingMode || mouldingCanvasMode === 'room')
                         ? 'bg-slate-900 text-amber-400 shadow-xs'
                         : 'text-slate-600 hover:text-slate-900 bg-white/60 sm:bg-transparent'
                     }`}
@@ -2021,7 +1877,28 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                   )}
                 </button>
 
-                {!isMouldingMode && (
+                {isMouldingMode ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMouldingCanvasMode((prev) =>
+                        prev === 'room' ? 'catalog_photo' : 'room'
+                      )
+                    }
+                    className={`min-h-[30px] sm:min-h-[34px] inline-flex items-center justify-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-bold leading-tight transition-colors cursor-pointer ${
+                      mouldingCanvasMode === 'catalog_photo'
+                        ? 'bg-slate-900 border-slate-900 text-amber-300'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Images className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {mouldingCanvasMode === 'catalog_photo'
+                        ? 'عرض داخل الغرفة'
+                        : 'صورة الكتالوج الأصلية'}
+                    </span>
+                  </button>
+                ) : (
                   <button
                     type="button"
                     onClick={() => setCompareMode((prev) => !prev)}
@@ -2099,49 +1976,59 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
           )}
 
           {/* Architectural Live Visualizer Canvas (Compact height on <sm so swatches stay visible below while pinned) */}
-          <div className="[&>div]:aspect-[2/1] sm:[&>div]:aspect-[16/9]">
-            <GlcWallPreview
-              primaryShade={
-                isMouldingMode
-                  ? {
-                      code: activeMouldingProfile?.code || '',
-                      hex: mouldingWallHex,
-                      nameAr:
-                        MOULDING_WALL_BACKDROPS.find((w) => w.hex === mouldingWallHex)?.nameAr ||
-                        'جريج دافئ',
-                      brandLabel: brandTitleUpper,
-                      texture: 'smooth',
-                      laserGlitter: false,
-                    }
-                  : {
-                      code: primaryShade.code,
-                      hex: primaryShade.hex,
-                      nameAr: primaryShade.nameAr || primaryShade.nameEn,
-                      brandLabel: brandTitleUpper,
-                      texture: activeWallTexture,
-                      laserGlitter: isGraffiatoLaser || Boolean(primaryShade.isLaser),
-                    }
-              }
-              compareShade={
-                compareMode && !isMouldingMode
-                  ? {
-                      code: compareShade.code,
-                      hex: compareShade.hex,
-                      nameAr: compareShade.nameAr || compareShade.nameEn,
-                      brandLabel: brandTitleUpper,
-                      texture: activeWallTexture,
-                      laserGlitter: isGraffiatoLaser || Boolean(compareShade.isLaser),
-                    }
-                  : null
-              }
-              scene={effectiveScene}
-              lighting={lighting}
-              finish={finish}
-              texture={activeWallTexture}
-              hasLaserGlitter={!isMouldingMode && isGraffiatoLaser}
-              moulding={activeMouldingSpec}
-            />
-          </div>
+          {isMouldingMode && mouldingCanvasMode === 'catalog_photo' && activeMouldingProfile ? (
+            <div className="relative w-full aspect-[2/1] sm:aspect-[16/9] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex items-center justify-center">
+              <img
+                src={activeMouldingProfile.imageUrl}
+                alt={`${activeMouldingProfile.code} ${activeMouldingProfile.nameAr}`}
+                className="w-full h-full object-contain p-2"
+              />
+            </div>
+          ) : (
+            <div className="[&>div]:aspect-[2/1] sm:[&>div]:aspect-[16/9]">
+              <GlcWallPreview
+                primaryShade={
+                  isMouldingMode
+                    ? {
+                        code: activeMouldingProfile?.code || '',
+                        hex: mouldingWallHex,
+                        nameAr:
+                          MOULDING_WALL_BACKDROPS.find((w) => w.hex === mouldingWallHex)?.nameAr ||
+                          'جريج دافئ',
+                        brandLabel: brandTitleUpper,
+                        texture: 'smooth',
+                        laserGlitter: false,
+                      }
+                    : {
+                        code: primaryShade.code,
+                        hex: primaryShade.hex,
+                        nameAr: primaryShade.nameAr || primaryShade.nameEn,
+                        brandLabel: brandTitleUpper,
+                        texture: activeWallTexture,
+                        laserGlitter: isGraffiatoLaser || Boolean(primaryShade.isLaser),
+                      }
+                }
+                compareShade={
+                  compareMode && !isMouldingMode
+                    ? {
+                        code: compareShade.code,
+                        hex: compareShade.hex,
+                        nameAr: compareShade.nameAr || compareShade.nameEn,
+                        brandLabel: brandTitleUpper,
+                        texture: activeWallTexture,
+                        laserGlitter: isGraffiatoLaser || Boolean(compareShade.isLaser),
+                      }
+                    : null
+                }
+                scene={effectiveScene}
+                lighting={lighting}
+                finish={finish}
+                texture={activeWallTexture}
+                hasLaserGlitter={!isMouldingMode && isGraffiatoLaser}
+                moulding={activeMouldingSpec}
+              />
+            </div>
+          )}
 
           {/* Context-Specific Live Controls inside Sticky Visualizer */}
           {isMouldingMode && activeMouldingProfile ? (
@@ -2188,9 +2075,18 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
 
               <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-12 h-8 rounded-lg border border-slate-200 overflow-hidden shrink-0">
-                    <MouldingPatternThumb patternKind={activeMouldingProfile.patternKind} />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openMouldingLightbox(activeMouldingProfile)}
+                    title="تكبير الصورة الأصلية وصفحة الكتالوج"
+                    className="w-14 h-9 rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0 cursor-pointer hover:border-blue-500 transition-colors"
+                  >
+                    <img
+                      src={activeMouldingProfile.imageUrl}
+                      alt={`${activeMouldingProfile.code} ${activeMouldingProfile.nameAr}`}
+                      className="w-full h-full object-contain"
+                    />
+                  </button>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 font-extrabold text-slate-900 truncate">
                       <span className="font-mono-nums text-blue-700 shrink-0">
@@ -2204,6 +2100,15 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                     </div>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => openMouldingLightbox(activeMouldingProfile)}
+                  className="min-h-[32px] inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 px-2 py-1 text-[11px] font-bold shrink-0 cursor-pointer"
+                >
+                  <Maximize2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span className="hidden sm:inline">تكبير الكتالوج</span>
+                </button>
               </div>
             </div>
           ) : (
@@ -2822,37 +2727,60 @@ export const GlcColorStudioPage: React.FC<GlcColorStudioPageProps> = ({
                 {filteredMouldings.map((profile) => {
                   const isSelected = activeMouldingProfile?.id === profile.id;
                   return (
-                    <button
+                    <div
                       key={profile.id}
-                      type="button"
-                      onClick={() => handleSelectMoulding(profile)}
-                      className={`group rounded-xl border bg-white p-2 text-right transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                      className={`group rounded-xl border bg-white p-2 text-right transition-all flex flex-col justify-between gap-2 ${
                         isSelected
                           ? 'border-blue-600 ring-2 ring-blue-600/25 shadow-sm'
                           : 'border-slate-200 hover:border-slate-400'
                       }`}
                     >
-                      <div className="relative h-20 w-full rounded-lg border border-slate-200 overflow-hidden bg-slate-100">
-                        <MouldingPatternThumb patternKind={profile.patternKind} />
-                        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-slate-900/85 text-amber-300 font-mono-nums text-[10px] font-extrabold leading-none">
-                          {profile.code}
-                        </span>
-                        <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-white/90 text-slate-700 font-mono-nums text-[9px] font-bold leading-none border border-slate-200">
-                          ص {profile.catalogPage}
-                        </span>
-                      </div>
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="text-xs font-extrabold text-slate-900 leading-snug line-clamp-2">
-                          {profile.nameAr}
+                      <button
+                        type="button"
+                        onClick={() => handleSelectMoulding(profile)}
+                        className="w-full text-right cursor-pointer flex flex-col gap-2 focus:outline-none"
+                      >
+                        <div className="relative h-24 sm:h-28 w-full rounded-lg border border-slate-200 overflow-hidden bg-white">
+                          <img
+                            src={profile.imageUrl}
+                            alt={`${profile.code} ${profile.nameAr}`}
+                            loading="lazy"
+                            className="w-full h-full object-contain p-1 transition-transform duration-150 group-hover:scale-[1.03]"
+                          />
                         </div>
-                        <div className="text-[10px] sm:text-[11px] font-semibold text-blue-700 truncate">
-                          {profile.dimensionsAr}
+                        <div className="space-y-0.5 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-mono-nums text-xs font-extrabold text-blue-700 truncate">
+                              {profile.code}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500 shrink-0 font-mono-nums">
+                              ص {profile.catalogPage}
+                            </span>
+                          </div>
+                          <div className="text-xs font-extrabold text-slate-900 leading-snug line-clamp-2">
+                            {profile.nameAr}
+                          </div>
+                          <div className="text-[10px] sm:text-[11px] font-semibold text-slate-600 truncate">
+                            {profile.dimensionsAr}
+                          </div>
                         </div>
-                        <div className="text-[10px] text-slate-500 truncate">
+                      </button>
+
+                      <div className="pt-1 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                        <span className="text-[10px] text-slate-500 truncate">
                           {profile.lengthAr}
-                        </div>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openMouldingLightbox(profile)}
+                          aria-label={`تكبير الصورة الأصلية لكود ${profile.code}`}
+                          title="تكبير الصورة الأصلية"
+                          className="min-w-[28px] min-h-[28px] inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-slate-600 hover:text-blue-700 transition-colors cursor-pointer shrink-0"
+                        >
+                          <Maximize2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

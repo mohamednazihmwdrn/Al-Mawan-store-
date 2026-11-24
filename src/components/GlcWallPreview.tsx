@@ -33,6 +33,7 @@ export interface MouldingPreviewSpec {
   patternKind: MouldingPatternKind;
   widthTier: 'slim' | 'medium' | 'wide';
   trimHex?: string;
+  imageUrl?: string;
 }
 
 interface GlcWallPreviewProps {
@@ -75,8 +76,6 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
 }) => {
   const uid = React.useId().replace(/:/g, '');
   const isSplit = Boolean(compareShade) && !moulding;
-  const primaryLightText = !isLightHex(primaryShade.hex);
-  const compareLightText = compareShade ? !isLightHex(compareShade.hex) : false;
 
   const activeTexture: WallTextureType = texture;
   const compareTexture: WallTextureType =
@@ -101,9 +100,6 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
   const laserPatternUrl = `url(#${uid}-laser-glitter)`;
 
   const sheenOpacity = finish === 'semigloss' ? 0.24 : finish === 'silk' ? 0.13 : 0.03;
-
-  const textureBadgeLabel =
-    activeTexture !== 'smooth' ? TEXTURE_GRADE_LABELS_AR[activeTexture] : null;
 
   const trimHex = moulding?.trimHex || '#FFFFFF';
   const trimIsDark = !isLightHex(trimHex);
@@ -212,6 +208,66 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
             <circle cx="20" cy="43" r="0.8" fill="#0f172a" fillOpacity="0.2" />
             <circle cx="42" cy="44" r="0.7" fill="#ffffff" fillOpacity="0.78" />
           </pattern>
+
+          {/* 5. Real Catalog Photo Patterns for 3D Wall Tiles & Ceiling Medallions */}
+          {moulding?.imageUrl && moulding.patternKind.startsWith('wall_3d_') && (
+            <pattern
+              id={`${uid}-real-3d-tile`}
+              width={
+                moulding.patternKind === 'wall_3d_rock'
+                  ? scene === 'wall'
+                    ? 190
+                    : 132
+                  : scene === 'wall'
+                  ? 116
+                  : 82
+              }
+              height={
+                moulding.patternKind === 'wall_3d_rock'
+                  ? scene === 'wall'
+                    ? 340
+                    : 236
+                  : scene === 'wall'
+                  ? 116
+                  : 82
+              }
+              patternUnits="userSpaceOnUse"
+            >
+              <image
+                href={moulding.imageUrl}
+                width={
+                  moulding.patternKind === 'wall_3d_rock'
+                    ? scene === 'wall'
+                      ? 190
+                      : 132
+                    : scene === 'wall'
+                    ? 116
+                    : 82
+                }
+                height={
+                  moulding.patternKind === 'wall_3d_rock'
+                    ? scene === 'wall'
+                      ? 340
+                      : 236
+                    : scene === 'wall'
+                    ? 116
+                    : 82
+                }
+                preserveAspectRatio="xMidYMid slice"
+              />
+            </pattern>
+          )}
+
+          {moulding?.imageUrl && moulding.patternKind === 'medallion' && (
+            <clipPath id={`${uid}-medallion-clip`}>
+              <ellipse
+                cx="480"
+                cy={scene === 'wall' ? 195 : 54}
+                rx={scene === 'wall' ? 124 : 108}
+                ry={scene === 'wall' ? 124 : 29}
+              />
+            </clipPath>
+          )}
 
           {/* Side Wall Shadow Multiplier */}
           <linearGradient id={`${uid}-side-shade`} x1="0%" y1="0%" x2="100%" y2="0%">
@@ -1105,6 +1161,8 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
                       : moulding.patternKind === 'wall_3d_origami'
                       ? '3d-origami'
                       : '3d-strips';
+                  const useReal3dPhoto =
+                    Boolean(moulding.imageUrl) && moulding.patternKind.startsWith('wall_3d_');
                   return (
                     <g>
                       <rect
@@ -1112,9 +1170,20 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
                         y={zoneY}
                         width={zoneW}
                         height={zoneH}
-                        fill={`url(#${uid}-${patSuffix})`}
-                        fillOpacity="0.94"
+                        fill={useReal3dPhoto ? `url(#${uid}-real-3d-tile)` : `url(#${uid}-${patSuffix})`}
+                        fillOpacity="0.96"
                       />
+                      {useReal3dPhoto && trimHex.toUpperCase() !== '#FFFFFF' && (
+                        <rect
+                          x={zoneX}
+                          y={zoneY}
+                          width={zoneW}
+                          height={zoneH}
+                          fill={trimHex}
+                          fillOpacity={trimIsDark ? '0.45' : '0.32'}
+                          style={{ mixBlendMode: 'multiply' }}
+                        />
+                      )}
                       {!isWallClose && (
                         <rect
                           x={zoneX}
@@ -1395,10 +1464,36 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
                   return (
                     <g>
                       <ellipse cx={cx} cy={cy + 3} rx={rx + 4} ry={ry + 2} fill="#0f172a" fillOpacity="0.2" />
-                      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={trimHex} stroke={trimShadow} strokeWidth="2" />
-                      <ellipse cx={cx} cy={cy} rx={rx * 0.72} ry={ry * 0.72} fill="none" stroke={trimShadow} strokeOpacity="0.45" strokeWidth="2.5" strokeDasharray={scene === 'wall' ? '10 6' : '6 4'} />
-                      <ellipse cx={cx} cy={cy} rx={rx * 0.44} ry={ry * 0.44} fill="none" stroke={trimShadow} strokeOpacity="0.35" strokeWidth="2" />
-                      <ellipse cx={cx} cy={cy} rx={rx * 0.16} ry={ry * 0.16} fill={trimShadow} fillOpacity="0.35" />
+                      {moulding.imageUrl ? (
+                        <g clipPath={`url(#${uid}-medallion-clip)`}>
+                          <image
+                            href={moulding.imageUrl}
+                            x={cx - rx * 1.12}
+                            y={cy - ry * 1.12}
+                            width={rx * 2.24}
+                            height={ry * 2.24}
+                            preserveAspectRatio="none"
+                          />
+                          {trimHex.toUpperCase() !== '#FFFFFF' && (
+                            <rect
+                              x={cx - rx}
+                              y={cy - ry}
+                              width={rx * 2}
+                              height={ry * 2}
+                              fill={trimHex}
+                              fillOpacity="0.35"
+                              style={{ mixBlendMode: 'multiply' }}
+                            />
+                          )}
+                        </g>
+                      ) : (
+                        <>
+                          <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={trimHex} stroke={trimShadow} strokeWidth="2" />
+                          <ellipse cx={cx} cy={cy} rx={rx * 0.72} ry={ry * 0.72} fill="none" stroke={trimShadow} strokeOpacity="0.45" strokeWidth="2.5" strokeDasharray={scene === 'wall' ? '10 6' : '6 4'} />
+                          <ellipse cx={cx} cy={cy} rx={rx * 0.44} ry={ry * 0.44} fill="none" stroke={trimShadow} strokeOpacity="0.35" strokeWidth="2" />
+                          <ellipse cx={cx} cy={cy} rx={rx * 0.16} ry={ry * 0.16} fill={trimShadow} fillOpacity="0.35" />
+                        </>
+                      )}
                       {scene !== 'wall' && (
                         <>
                           <line x1={cx} y1={cy} x2={cx} y2={cy + 42} stroke="#1E293B" strokeWidth="2.5" />
@@ -1457,87 +1552,6 @@ export const GlcWallPreview: React.FC<GlcWallPreviewProps> = ({
           </g>
         )}
       </svg>
-
-      {/* Clean Architectural Identification Overlays (Zero-Pill) */}
-      <div
-        className={`pointer-events-none absolute top-2 right-2 sm:top-3 sm:right-3 flex items-center gap-2 min-w-0 ${
-          isSplit ? 'max-w-[46%]' : 'max-w-[calc(100%-1rem)]'
-        }`}
-      >
-        <div
-          className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border backdrop-blur-xs shadow-xs min-w-0 max-w-full ${
-            primaryLightText || scene === 'exterior'
-              ? 'bg-slate-950/75 border-white/20 text-white'
-              : 'bg-white/90 border-slate-900/15 text-slate-900'
-          }`}
-        >
-          {moulding ? (
-            <>
-              <div className="text-[10px] opacity-80 truncate">
-                {SCENE_LABELS_AR[scene]} · {moulding.dimensionsAr}
-              </div>
-              <div className="flex items-baseline gap-1.5 min-w-0">
-                <span className="font-mono-nums text-xs sm:text-sm font-extrabold tracking-wide shrink-0">
-                  {moulding.brandLabel} {moulding.code}
-                </span>
-                <span className="text-[11px] font-bold opacity-90 truncate">
-                  {moulding.nameAr}
-                </span>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-[10px] opacity-80 truncate">
-                {isSplit
-                  ? scene === 'exterior'
-                    ? 'الواجهة الرئيسية (أساسي)'
-                    : 'اللون الأساسي (يمين)'
-                  : `معاينة ${SCENE_LABELS_AR[scene]}`}
-                {textureBadgeLabel ? ` · ${textureBadgeLabel}` : ''}
-              </div>
-              <div className="flex items-baseline gap-1.5 min-w-0">
-                <span className="font-mono-nums text-xs sm:text-sm font-extrabold tracking-wide shrink-0">
-                  {primaryShade.brandLabel ? `${primaryShade.brandLabel} ` : ''}
-                  {primaryShade.code}
-                </span>
-                {primaryShade.nameAr && (
-                  <span className="text-[11px] font-bold opacity-90 truncate">
-                    {primaryShade.nameAr}
-                  </span>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {isSplit && compareShade && (
-        <div className="pointer-events-none absolute top-2 left-2 sm:top-3 sm:left-3 flex items-center gap-2 min-w-0 max-w-[46%]">
-          <div
-            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border backdrop-blur-xs shadow-xs min-w-0 max-w-full ${
-              compareLightText || scene === 'exterior'
-                ? 'bg-slate-950/75 border-white/20 text-white'
-                : 'bg-white/90 border-slate-900/15 text-slate-900'
-            }`}
-          >
-            <div className="text-[10px] opacity-80 truncate">
-              {scene === 'exterior' ? 'الجناح والسور (مقارنة)' : 'لون المقارنة (يسار)'}
-              {compareTexture !== 'smooth' ? ` · ${TEXTURE_GRADE_LABELS_AR[compareTexture]}` : ''}
-            </div>
-            <div className="flex items-baseline gap-1.5 min-w-0">
-              <span className="font-mono-nums text-xs sm:text-sm font-extrabold tracking-wide shrink-0">
-                {compareShade.brandLabel ? `${compareShade.brandLabel} ` : ''}
-                {compareShade.code}
-              </span>
-              {compareShade.nameAr && (
-                <span className="text-[11px] font-bold opacity-90 truncate">
-                  {compareShade.nameAr}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
